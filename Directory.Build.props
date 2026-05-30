@@ -1,0 +1,39 @@
+<Project>
+
+  <!-- Solution-wide build settings. Applied to every project automatically. -->
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <LangVersion>latest</LangVersion>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+
+    <!-- Quality gates: treat warnings as errors so problems can't accumulate. -->
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
+    <AnalysisLevel>latest-recommended</AnalysisLevel>
+
+    <!-- NuGet audit (NU19xx) stays ON and visible, but is NOT a hard build error:
+         advisories are published over time and often hit transitive framework
+         packages with no standalone fix yet, which would make a green build fail
+         later through no code change. The CI "vulnerable package scan" step
+         reports these explicitly so they are never hidden. -->
+    <NuGetAudit>true</NuGetAudit>
+    <NuGetAuditMode>all</NuGetAuditMode>
+    <WarningsNotAsErrors>$(WarningsNotAsErrors);NU1901;NU1902;NU1903;NU1904</WarningsNotAsErrors>
+
+    <!-- Deterministic, debuggable builds. -->
+    <Deterministic>true</Deterministic>
+    <GenerateDocumentationFile>false</GenerateDocumentationFile>
+
+    <!-- Do not require XML doc comments on every public member. -->
+    <NoWarn>$(NoWarn);CS1591</NoWarn>
+  </PropertyGroup>
+
+  <!-- Never treat auto-generated EF Core migration code as a style/quality failure. -->
+  <ItemGroup>
+    <Compile Update="**/Migrations/*.cs">
+      <ExcludeFromStyleCop>true</ExcludeFromStyleCop>
+    </Compile>
+  </ItemGroup>
+
+</Project>

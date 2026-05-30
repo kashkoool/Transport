@@ -1,0 +1,45 @@
+# .NET build output
+bin/
+obj/
+[Dd]ebug/
+[Rr]elease/
+*.user
+artifacts/
+
+# Test results / coverage
+TestResults/
+coverage/
+*.coverage
+*.trx
+
+# Rider / VS / VS Code
+.idea/
+.vs/
+*.suo
+*.userosscache
+
+# Secrets & local config — NEVER commit
+.env
+.env.*
+!.env.example
+appsettings.*.local.json
+secrets.json
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+logs/
+
+# Scratch build/diagnostic logs
+errs*.txt
+build_full.txt
+.build_log.txt
+*_out.txt
+ef_out.txt
+it_diag.txt
+hostrun*.txt
+restore_detail.txt
+versions.txt
