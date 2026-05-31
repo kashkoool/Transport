@@ -23,6 +23,10 @@ public sealed record TripSummary(
 /// </summary>
 public sealed class SearchTripsHandler(IApplicationDbContext db, IClock clock)
 {
+    // A single route+date realistically has a handful of departures; cap the result set so the
+    // query is always bounded regardless of how the trip table grows (DB1). Raise only with a reason.
+    private const int MaxResults = 100;
+
     public async Task<IReadOnlyList<TripSummary>> HandleAsync(SearchTripsQuery query, CancellationToken ct)
     {
         var dayStart = new DateTimeOffset(query.Date.ToDateTime(TimeOnly.MinValue), TimeSpan.Zero);
@@ -45,6 +49,7 @@ public sealed class SearchTripsHandler(IApplicationDbContext db, IClock clock)
                         && t.Origin.ToLower() == origin
                         && t.Destination.ToLower() == destination)
             .OrderBy(t => t.DepartureUtc)
+            .Take(MaxResults)
             .ToListAsync(ct);
 #pragma warning restore CA1304, CA1311, CA1862
 
