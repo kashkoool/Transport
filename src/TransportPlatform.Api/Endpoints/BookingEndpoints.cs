@@ -1,4 +1,5 @@
 using FluentValidation;
+using TransportPlatform.Api.Security;
 using TransportPlatform.Application.Bookings;
 
 namespace TransportPlatform.Api.Endpoints;
@@ -11,7 +12,9 @@ public static class BookingEndpoints
 
     public static IEndpointRouteBuilder MapBookingEndpoints(this IEndpointRouteBuilder app)
     {
-        var group = app.MapGroup("/api/bookings").WithTags("Bookings");
+        // Abuse-sensitive writes (seat holds / booking creation) get a stricter tier.
+        var group = app.MapGroup("/api/bookings").WithTags("Bookings")
+            .RequireRateLimiting(RateLimitPolicies.Sensitive);
 
         group.MapPost("/hold", async (
             HoldRequest body, HoldSeatsHandler handler,

@@ -1,6 +1,7 @@
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
+using System.Text.RegularExpressions;
 using Microsoft.Extensions.Options;
 using TransportPlatform.Application.Abstractions;
 
@@ -20,9 +21,15 @@ public sealed class PaymentOptions
 /// will use, so swapping it later is just another <see cref="IPaymentGateway"/> implementation.
 /// Crucially, it never receives or stores card data.
 /// </summary>
-public sealed class SandboxPaymentGateway(IOptions<PaymentOptions> options) : IPaymentGateway
+public sealed partial class SandboxPaymentGateway(IOptions<PaymentOptions> options) : IPaymentGateway
 {
     private static readonly JsonSerializerOptions WebJsonOptions = new(JsonSerializerDefaults.Web);
+
+    // A valid signature is exactly a hex-encoded SHA-256 (64 chars). The format gate below
+    // rejects anything else in O(1) BEFORE any allocation/hashing, so a flood of oversized
+    // bodies can't burn CPU/memory (DoS-adjacent resource exhaustion).
+    [GeneratedRegex("^[a-f0-9]{64}$", RegexOptions.IgnoreCase)]
+    private static partial Regex SignatureFormat();
 
     private readonly PaymentOptions _options = options.Value;
 
@@ -37,7 +44,10 @@ public sealed class SandboxPaymentGateway(IOptions<PaymentOptions> options) : IP
 
     public PaymentWebhook? VerifyAndParseWebhook(string payload, string? signatureHeader)
     {
-        if (string.IsNullOrWhiteSpace(signatureHeader) || !VerifySignature(payload, signatureHeader))
+        // O(1) upfront format gate: reject wrong-length / non-hex / null before any work.
+        if (string.IsNullOrEmpty(signatureHeader) || !SignatureFormat().IsMatch(signatureHeader))
+            return null;
+        if (!VerifySignature(payload, signatureHeader))
             return null;
 
         var dto = JsonSerializer.Deserialize<WebhookDto>(payload, WebJsonOptions);
@@ -58,9 +68,10 @@ public sealed class SandboxPaymentGateway(IOptions<PaymentOptions> options) : IP
     private bool VerifySignature(string payload, string signatureHeader)
     {
         var expected = ComputeSignature(payload);
-        // Constant-time comparison to avoid timing attacks.
+        // Constant-time comparison on decoded bytes (both 32 bytes for SHA-256) to avoid
+        // signature-comparison timing leaks.
         return CryptographicOperations.FixedTimeEquals(
-            Encoding.UTF8.GetBytes(expected), Encoding.UTF8.GetBytes(signatureHeader));
+            Convert.FromHexString(expected), Convert.FromHexString(signatureHeader));
     }
 
     private sealed record WebhookDto(string? GatewayReference, string BookingReference, bool Succeeded);

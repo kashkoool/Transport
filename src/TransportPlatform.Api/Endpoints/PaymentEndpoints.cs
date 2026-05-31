@@ -1,3 +1,4 @@
+using TransportPlatform.Api.Security;
 using TransportPlatform.Application.Payments;
 
 namespace TransportPlatform.Api.Endpoints;
@@ -16,6 +17,7 @@ public static class PaymentEndpoints
             var result = await handler.HandleAsync(new StartCheckoutCommand(body.BookingId), ct);
             return Results.Ok(result);
         })
+        .RequireRateLimiting(RateLimitPolicies.Sensitive)
         .WithName("StartCheckout")
         .WithSummary("Begin hosted-checkout with the external gateway (no card data stored).");
 

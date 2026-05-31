@@ -1,5 +1,6 @@
 using System.Security.Claims;
 using FluentValidation;
+using TransportPlatform.Api.Security;
 using TransportPlatform.Application.Identity;
 
 namespace TransportPlatform.Api.Endpoints;
@@ -12,7 +13,9 @@ public static class AuthEndpoints
 
     public static IEndpointRouteBuilder MapAuthEndpoints(this IEndpointRouteBuilder app)
     {
-        var group = app.MapGroup("/api/auth").WithTags("Auth");
+        // Brute-force-sensitive: every auth route is capped tighter than the global limit.
+        var group = app.MapGroup("/api/auth").WithTags("Auth")
+            .RequireRateLimiting(RateLimitPolicies.Auth);
 
         group.MapPost("/register", async (
             RegisterRequest body, RegisterHandler handler,

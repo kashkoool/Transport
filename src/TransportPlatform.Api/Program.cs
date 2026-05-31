@@ -1,14 +1,19 @@
 using System.Globalization;
 using System.Threading.RateLimiting;
+using Microsoft.AspNetCore.HttpOverrides;
 using Scalar.AspNetCore;
 using Serilog;
 using TransportPlatform.Api.Endpoints;
 using TransportPlatform.Api.Middleware;
+using TransportPlatform.Api.Security;
 using TransportPlatform.Api.Workers;
 using TransportPlatform.Application;
 using TransportPlatform.Infrastructure;
 
 var builder = WebApplication.CreateBuilder(args);
+
+// Fail fast in production on weak/placeholder secrets rather than booting insecurely.
+StartupGuards.ValidateConfiguration(builder.Configuration, builder.Environment);
 
 // ── Structured logging (Serilog) ───────────────────────────────────────────────
 // CA1305: the Console sink's IFormatProvider is supplied (InvariantCulture); the analyzer
@@ -18,6 +23,22 @@ builder.Host.UseSerilog((context, config) =>
     config.ReadFrom.Configuration(context.Configuration)
         .WriteTo.Console(formatProvider: CultureInfo.InvariantCulture));
 #pragma warning restore CA1305
+
+// ── Real client IP behind a reverse proxy (Nginx/Cloudflare/ALB) ────────────────
+// Without this, every request appears to come from the proxy IP and per-IP rate limits
+// collapse into one shared global bucket. Hop count is configurable per environment.
+builder.Services.Configure<ForwardedHeadersOptions>(options =>
+{
+    options.ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto;
+    options.ForwardLimit = builder.Configuration.GetValue<int?>("Proxy:TrustedHops") ?? 0;
+    // KnownNetworks/KnownProxies are cleared only when a hop count is trusted, so a direct
+    // attacker cannot spoof X-Forwarded-For in environments that don't sit behind a proxy.
+    if (options.ForwardLimit > 0)
+    {
+        options.KnownIPNetworks.Clear();
+        options.KnownProxies.Clear();
+    }
+});
 
 // ── Application + infrastructure (use-cases, EF Core, identity, payment gateway) ─
 builder.Services.AddApplication();
@@ -37,18 +58,29 @@ var allowedOrigins = builder.Configuration.GetSection("Cors:AllowedOrigins").Get
 builder.Services.AddCors(options => options.AddPolicy(corsPolicy, policy =>
     policy.WithOrigins(allowedOrigins).AllowAnyHeader().AllowAnyMethod()));
 
-// ── Rate limiting: a sane global limit per client IP (Valkey-backed later) ───────
+// ── Rate limiting ───────────────────────────────────────────────────────────────
+// A global per-IP fallback covers every endpoint; stricter NAMED policies are applied to
+// brute-force-sensitive routes (auth) and abuse-sensitive mutations (booking/checkout).
 builder.Services.AddRateLimiter(options =>
 {
     options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
-    options.GlobalLimiter = PartitionedRateLimiter.Create<HttpContext, string>(httpContext =>
-        RateLimitPartition.GetFixedWindowLimiter(
-            partitionKey: httpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown",
-            factory: _ => new FixedWindowRateLimiterOptions
-            {
-                PermitLimit = 100,
-                Window = TimeSpan.FromMinutes(1),
-            }));
+
+    static string ClientKey(HttpContext ctx) =>
+        ctx.Connection.RemoteIpAddress?.ToString() ?? "unknown";
+
+    options.GlobalLimiter = PartitionedRateLimiter.Create<HttpContext, string>(ctx =>
+        RateLimitPartition.GetFixedWindowLimiter(ClientKey(ctx),
+            _ => new FixedWindowRateLimiterOptions { PermitLimit = 100, Window = TimeSpan.FromMinutes(1) }));
+
+    // Auth: login / register / refresh — tight, to blunt credential stuffing & brute force.
+    options.AddPolicy(RateLimitPolicies.Auth, ctx =>
+        RateLimitPartition.GetFixedWindowLimiter(ClientKey(ctx),
+            _ => new FixedWindowRateLimiterOptions { PermitLimit = 5, Window = TimeSpan.FromMinutes(1) }));
+
+    // Sensitive writes: booking hold/create, payment checkout.
+    options.AddPolicy(RateLimitPolicies.Sensitive, ctx =>
+        RateLimitPartition.GetFixedWindowLimiter(ClientKey(ctx),
+            _ => new FixedWindowRateLimiterOptions { PermitLimit = 20, Window = TimeSpan.FromMinutes(1) }));
 });
 
 // ── Background workers: seat-hold expiry + outbox publisher ──────────────────────
@@ -58,6 +90,7 @@ builder.Services.AddHostedService<OutboxPublisher>();
 var app = builder.Build();
 
 // ── Middleware pipeline (order matters) ─────────────────────────────────────────
+app.UseForwardedHeaders();
 app.UseExceptionHandler();
 app.UseSerilogRequestLogging();
 
@@ -80,6 +113,9 @@ app.Use(async (context, next) =>
     headers["X-Content-Type-Options"] = "nosniff";
     headers["X-Frame-Options"] = "DENY";
     headers["Referrer-Policy"] = "no-referrer";
+    headers["Cross-Origin-Opener-Policy"] = "same-origin";
+    // API serves JSON only; lock scripting/plugins/framing to nothing.
+    headers["Content-Security-Policy"] = "default-src 'none'; frame-ancestors 'none'";
     await next();
 });
 
