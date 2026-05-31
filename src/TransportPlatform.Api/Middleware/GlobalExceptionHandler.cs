@@ -28,6 +28,7 @@ public sealed class GlobalExceptionHandler(ILogger<GlobalExceptionHandler> logge
             DomainException dex => (StatusCodes.Status400BadRequest, dex.Code, dex.Message),
             ConflictException cex => (StatusCodes.Status409Conflict, cex.Code, cex.Message),
             NotFoundException nex => (StatusCodes.Status404NotFound, nex.Code, nex.Message),
+            UnauthorizedException aex => (StatusCodes.Status401Unauthorized, aex.Code, aex.Message),
             FluentValidation.ValidationException vex => (StatusCodes.Status400BadRequest, "validation_failed", vex.Message),
             _ => (StatusCodes.Status500InternalServerError, "internal_error", "An unexpected error occurred."),
         };

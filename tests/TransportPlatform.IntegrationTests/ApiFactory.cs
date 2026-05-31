@@ -42,6 +42,14 @@ public sealed class ApiFactory : WebApplicationFactory<Program>, IAsyncLifetime
     {
         builder.UseEnvironment("Development");
         builder.UseSetting("ConnectionStrings:Postgres", _postgres.GetConnectionString());
+
+        // The API's Jwt:SigningKey lives in appsettings.Development.json, which is not present
+        // at the test host's content root, so supply the auth settings explicitly here.
+        builder.UseSetting("Jwt:Issuer", "TransportPlatform");
+        builder.UseSetting("Jwt:Audience", "TransportPlatform");
+        builder.UseSetting("Jwt:SigningKey", "integration-tests-signing-key-please-change-0123456789");
+        builder.UseSetting("Jwt:AccessTokenMinutes", "15");
+        builder.UseSetting("Jwt:RefreshTokenDays", "14");
     }
 
     /// <summary>Seed a bookable trip and return its id, seat count and price.</summary>
@@ -50,7 +58,9 @@ public sealed class ApiFactory : WebApplicationFactory<Program>, IAsyncLifetime
         using var scope = Services.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
 
-        var company = new Company("Test Lines", "ops@testlines.example", "+963000000");
+        // Unique email per call: the fixture is shared across a test class, and the company
+        // email is uniquely indexed, so a fixed address collides when a class seeds twice.
+        var company = new Company("Test Lines", $"ops-{Guid.NewGuid():N}@testlines.example", "+963000000");
         company.Activate();
         var bus = new Bus(company.Id, $"BUS-{Guid.NewGuid():N}"[..10], seats, BusType.Standard);
         var trip = new Trip(

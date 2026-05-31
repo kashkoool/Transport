@@ -5,6 +5,7 @@ using TransportPlatform.Application.Common;
 using TransportPlatform.Domain.Bookings;
 using TransportPlatform.Domain.Companies;
 using TransportPlatform.Domain.Fleet;
+using TransportPlatform.Domain.Identity;
 using TransportPlatform.Domain.Outbox;
 using TransportPlatform.Domain.Payments;
 using TransportPlatform.Domain.Trips;
@@ -27,6 +28,7 @@ public sealed class ApplicationDbContext(DbContextOptions<ApplicationDbContext> 
     public DbSet<SeatAssignment> SeatAssignments => Set<SeatAssignment>();
     public DbSet<Payment> Payments => Set<Payment>();
     public DbSet<OutboxMessage> OutboxMessages => Set<OutboxMessage>();
+    public DbSet<RefreshToken> RefreshTokens => Set<RefreshToken>();
 
     protected override void OnModelCreating(ModelBuilder builder)
     {

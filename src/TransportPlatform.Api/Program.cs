@@ -29,12 +29,7 @@ builder.Services.AddProblemDetails();
 builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
 builder.Services.AddHealthChecks();
 
-// ── AuthN/AuthZ ─────────────────────────────────────────────────────────────────
-// Registers the authorization services that UseAuthorization() requires. Authentication
-// scheme wiring (JWT bearer) lands with the Identity login endpoints in the next increment;
-// the booking-slice endpoints are public for now.
-builder.Services.AddAuthentication();
-builder.Services.AddAuthorization();
+// AuthN/AuthZ (JWT bearer + authorization) are registered inside AddInfrastructure.
 
 // ── CORS: locked to configured origins (never "*") ──────────────────────────────
 const string corsPolicy = "DefaultCors";
@@ -95,6 +90,7 @@ app.UseAuthorization();
 
 // ── Endpoints ────────────────────────────────────────────────────────────────
 app.MapHealthChecks("/health");
+app.MapAuthEndpoints();
 app.MapTripEndpoints();
 app.MapBookingEndpoints();
 app.MapPaymentEndpoints();

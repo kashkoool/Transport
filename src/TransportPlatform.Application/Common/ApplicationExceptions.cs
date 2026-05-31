@@ -15,3 +15,12 @@ public sealed class ConflictException(string code, string message) : Exception(m
 {
     public string Code { get; } = code;
 }
+
+/// <summary>
+/// Authentication failed or is required (bad credentials, expired/invalid token, lockout).
+/// Maps to HTTP 401. Messages are deliberately generic to avoid leaking account details.
+/// </summary>
+public sealed class UnauthorizedException(string code, string message) : Exception(message)
+{
+    public string Code { get; } = code;
+}
