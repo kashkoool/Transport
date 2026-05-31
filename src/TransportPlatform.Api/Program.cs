@@ -1,6 +1,8 @@
 using System.Globalization;
+using System.IO.Compression;
 using System.Threading.RateLimiting;
 using Microsoft.AspNetCore.HttpOverrides;
+using Microsoft.AspNetCore.ResponseCompression;
 using Scalar.AspNetCore;
 using Serilog;
 using TransportPlatform.Api.Endpoints;
@@ -50,13 +52,32 @@ builder.Services.AddProblemDetails();
 builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
 builder.Services.AddHealthChecks();
 
+// ── Response compression (gzip/brotli) ──────────────────────────────────────────
+// Cuts JSON payloads ~70-85%. Safe here: short-lived (15-min) bearer tokens are the only
+// secrets in any body and no attacker-controlled input is reflected alongside them, so the
+// BREACH oracle does not apply. (When the web app moves tokens to HttpOnly cookies, bodies
+// carry no secrets at all.)
+builder.Services.AddResponseCompression(options =>
+{
+    options.EnableForHttps = true;
+    options.Providers.Add<BrotliCompressionProvider>();
+    options.Providers.Add<GzipCompressionProvider>();
+});
+builder.Services.Configure<BrotliCompressionProviderOptions>(o => o.Level = CompressionLevel.Fastest);
+builder.Services.Configure<GzipCompressionProviderOptions>(o => o.Level = CompressionLevel.Fastest);
+
+// ── App-level request timeout (defense-in-depth against a hung request/upstream) ──
+builder.Services.AddRequestTimeouts(options =>
+    options.DefaultPolicy = new() { Timeout = TimeSpan.FromSeconds(30) });
+
 // AuthN/AuthZ (JWT bearer + authorization) are registered inside AddInfrastructure.
 
 // ── CORS: locked to configured origins (never "*") ──────────────────────────────
 const string corsPolicy = "DefaultCors";
 var allowedOrigins = builder.Configuration.GetSection("Cors:AllowedOrigins").Get<string[]>() ?? [];
 builder.Services.AddCors(options => options.AddPolicy(corsPolicy, policy =>
-    policy.WithOrigins(allowedOrigins).AllowAnyHeader().AllowAnyMethod()));
+    policy.WithOrigins(allowedOrigins).AllowAnyHeader().AllowAnyMethod()
+        .SetPreflightMaxAge(TimeSpan.FromHours(24)))); // cache OPTIONS preflight for a day
 
 // ── Rate limiting ───────────────────────────────────────────────────────────────
 // A global per-IP fallback covers every endpoint; stricter NAMED policies are applied to
@@ -91,6 +112,8 @@ var app = builder.Build();
 
 // ── Middleware pipeline (order matters) ─────────────────────────────────────────
 app.UseForwardedHeaders();
+app.UseResponseCompression();
+app.UseRequestTimeouts();
 app.UseExceptionHandler();
 app.UseSerilogRequestLogging();
 

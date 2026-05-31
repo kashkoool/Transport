@@ -1,0 +1,10 @@
+  Determining projects to restore...
+  All projects are up-to-date for restore.
+  TransportPlatform.Domain -> C:\Users\loaek\OneDrive\Desktop\Transportation system\transport-platform\src\TransportPlatform.Domain\bin\Debug\net10.0\TransportPlatform.Domain.dll
+  TransportPlatform.Application -> C:\Users\loaek\OneDrive\Desktop\Transportation system\transport-platform\src\TransportPlatform.Application\bin\Debug\net10.0\TransportPlatform.Application.dll
+  TransportPlatform.UnitTests -> C:\Users\loaek\OneDrive\Desktop\Transportation system\transport-platform\tests\TransportPlatform.UnitTests\bin\Debug\net10.0\TransportPlatform.UnitTests.dll
+Test run for C:\Users\loaek\OneDrive\Desktop\Transportation system\transport-platform\tests\TransportPlatform.UnitTests\bin\Debug\net10.0\TransportPlatform.UnitTests.dll (.NETCoreApp,Version=v10.0)
+A total of 1 test files matched the specified pattern.
+
+Passed!  - Failed:     0, Passed:    21, Skipped:     0, Total:    21, Duration: 70 ms - TransportPlatform.UnitTests.dll (net10.0)
+
