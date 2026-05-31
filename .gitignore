@@ -43,3 +43,6 @@ it_diag.txt
 hostrun*.txt
 restore_detail.txt
 versions.txt
+ut.txt
+boot_err.txt
+fmt.txt
