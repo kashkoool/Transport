@@ -21,6 +21,8 @@
   <ItemGroup>
     <ProjectReference Include="..\..\src\TransportPlatform.Domain\TransportPlatform.Domain.csproj" />
     <ProjectReference Include="..\..\src\TransportPlatform.Application\TransportPlatform.Application.csproj" />
+    <!-- For StartupGuards (a pure config-validation function that lives in the Api layer). -->
+    <ProjectReference Include="..\..\src\TransportPlatform.Api\TransportPlatform.Api.csproj" />
   </ItemGroup>
 
 </Project>
