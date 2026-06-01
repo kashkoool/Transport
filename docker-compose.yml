@@ -1,0 +1,78 @@
+# Local full-stack run: Postgres -> migrations -> API -> web (nginx).
+#   docker compose up --build
+# Then open http://localhost:8080  (the API is also exposed on http://localhost:5278).
+#
+# This runs the API in Development so it's immediately usable locally (the dev payment-simulate
+# endpoint is available and the refresh cookie works over plain HTTP). A real production deploy
+# sets ASPNETCORE_ENVIRONMENT=Production and supplies secrets — see DEPLOYMENT.md.
+name: tpx
+
+services:
+  postgres:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_DB: transport
+      POSTGRES_USER: transport
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-change_me_local_only}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U transport -d transport"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  # One-off: applies EF Core migrations via the self-contained bundle, then exits. The API waits
+  # for this to finish successfully before it starts — migrations never run from app startup.
+  migrator:
+    image: tpx-api:local
+    depends_on:
+      postgres:
+        condition: service_healthy
+    entrypoint:
+      - ./efbundle
+      - --connection
+      - "Host=postgres;Port=5432;Database=transport;Username=transport;Password=${POSTGRES_PASSWORD:-change_me_local_only}"
+    restart: "no"
+
+  api:
+    build:
+      context: .
+      dockerfile: src/TransportPlatform.Api/Dockerfile
+    image: tpx-api:local
+    depends_on:
+      postgres:
+        condition: service_healthy
+      migrator:
+        condition: service_completed_successfully
+    environment:
+      ASPNETCORE_ENVIRONMENT: Development
+      ConnectionStrings__Postgres: "Host=postgres;Port=5432;Database=transport;Username=transport;Password=${POSTGRES_PASSWORD:-change_me_local_only}"
+      # Local Development signing key only (StartupGuards relaxes in Development). Production
+      # supplies a real key from a secrets manager — see DEPLOYMENT.md.
+      Jwt__SigningKey: "local_dev_signing_key_at_least_32_chars_long_0123456789"
+      Cors__AllowedOrigins__0: "http://localhost:8080"
+    ports:
+      - "5278:8080"
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 5s
+      start_period: 20s
+      retries: 3
+
+  web:
+    build:
+      context: web/customer
+      dockerfile: Dockerfile
+    image: tpx-web:local
+    depends_on:
+      api:
+        condition: service_healthy
+    ports:
+      - "8080:8080"
+
+volumes:
+  pgdata:
