@@ -1,8 +1,10 @@
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Metadata;
 using TransportPlatform.Application.Common;
 using TransportPlatform.Domain.Bookings;
+using TransportPlatform.Domain.Common;
 using TransportPlatform.Domain.Companies;
 using TransportPlatform.Domain.Fleet;
 using TransportPlatform.Domain.Identity;
@@ -34,6 +36,23 @@ public sealed class ApplicationDbContext(DbContextOptions<ApplicationDbContext> 
     {
         base.OnModelCreating(builder); // Identity tables
         builder.ApplyConfigurationsFromAssembly(typeof(ApplicationDbContext).Assembly);
+
+        // Domain aggregates assign their own Guid identity in the constructor (see Entity.Id).
+        // Mark those keys as NOT store-generated. Otherwise EF assumes the database generates
+        // them, and a *new* child attached to an *already-tracked* aggregate — e.g. a
+        // SeatAssignment created during booking confirmation, where the Booking was loaded
+        // first — is mistaken for an existing row and issued as an UPDATE, which affects 0 rows
+        // and throws DbUpdateConcurrencyException. ValueGeneratedNever makes EF treat such
+        // graph-discovered entities as inserts. No schema change: the columns have no DB default.
+        foreach (var entityType in builder.Model.GetEntityTypes())
+        {
+            if (!typeof(Entity).IsAssignableFrom(entityType.ClrType))
+                continue;
+            var idProperty = entityType.FindPrimaryKey()?.Properties
+                .SingleOrDefault(p => p.Name == nameof(Entity.Id) && p.ClrType == typeof(Guid));
+            if (idProperty is not null)
+                idProperty.ValueGenerated = ValueGenerated.Never;
+        }
     }
 
     public async Task ExecuteInTransactionAsync(
