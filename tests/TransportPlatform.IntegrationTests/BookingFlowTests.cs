@@ -138,7 +138,8 @@ public sealed class BookingFlowTests(ApiFactory factory) : IClassFixture<ApiFact
         };
         req.Headers.Add("X-Signature", signature);
         var resp = await client.SendAsync(req);
-        resp.EnsureSuccessStatusCode();
+        var body = await resp.Content.ReadAsStringAsync();
+        resp.StatusCode.Should().Be(HttpStatusCode.OK, "the signed webhook must confirm the booking; body: {0}", body);
     }
 
     private sealed record BookingDto(Guid BookingId, string Reference, decimal TotalAmount, string Currency);
