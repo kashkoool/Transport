@@ -48,6 +48,15 @@ Then run the customer app — see [web/customer/README.md](web/customer/README.m
 > The repo path contains spaces, which breaks the EF CLI. If `dotnet ef` errors, run it from a
 > junction without spaces, e.g. `mklink /J C:\tmp\tpx "<repo path>"` then work from `C:\tmp\tpx`.
 
+### Or run the whole stack in Docker
+
+```sh
+docker compose up --build   # postgres -> migrations -> API -> web (nginx)
+```
+
+Web app on <http://localhost:8080>, API on <http://localhost:5278>. Containers, CI/CD,
+production config, and cloud deploy targets are documented in [DEPLOYMENT.md](DEPLOYMENT.md).
+
 ## Keeping the architecture clean
 
 The Dependency Rule is enforced automatically by
