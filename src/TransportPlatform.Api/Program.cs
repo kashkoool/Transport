@@ -79,15 +79,29 @@ builder.Services.AddRequestTimeouts(options =>
 // AuthN/AuthZ (JWT bearer + authorization) are registered inside AddInfrastructure.
 
 // ── CORS: locked to configured origins (never "*") ──────────────────────────────
+// AllowCredentials is required so the browser sends/receives the HttpOnly refresh cookie on
+// cross-origin XHR. It is only valid alongside an explicit origin list (never "*") — which is
+// exactly what WithOrigins enforces here.
 const string corsPolicy = "DefaultCors";
 var allowedOrigins = builder.Configuration.GetSection("Cors:AllowedOrigins").Get<string[]>() ?? [];
 builder.Services.AddCors(options => options.AddPolicy(corsPolicy, policy =>
     policy.WithOrigins(allowedOrigins).AllowAnyHeader().AllowAnyMethod()
+        .AllowCredentials()
         .SetPreflightMaxAge(TimeSpan.FromHours(24)))); // cache OPTIONS preflight for a day
 
 // ── Rate limiting ───────────────────────────────────────────────────────────────
 // A global per-IP fallback covers every endpoint; stricter NAMED policies are applied to
 // brute-force-sensitive routes (auth) and abuse-sensitive mutations (booking/checkout).
+// Permit limits are config-driven (production defaults below) so a non-prod host — e.g. the
+// integration-test server, which has no real client IP and would otherwise bucket every
+// request together — can raise them without touching code.
+int RateLimit(string key, int fallback) =>
+    builder.Configuration.GetValue<int?>($"RateLimiting:{key}") ?? fallback;
+var globalLimit = RateLimit("GlobalPerMinute", 100);
+var authLimit = RateLimit("AuthPerMinute", 5);
+var sensitiveLimit = RateLimit("SensitivePerMinute", 20);
+var webhookLimit = RateLimit("WebhookPerMinute", 60);
+
 builder.Services.AddRateLimiter(options =>
 {
     options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
@@ -97,22 +111,22 @@ builder.Services.AddRateLimiter(options =>
 
     options.GlobalLimiter = PartitionedRateLimiter.Create<HttpContext, string>(ctx =>
         RateLimitPartition.GetFixedWindowLimiter(ClientKey(ctx),
-            _ => new FixedWindowRateLimiterOptions { PermitLimit = 100, Window = TimeSpan.FromMinutes(1) }));
+            _ => new FixedWindowRateLimiterOptions { PermitLimit = globalLimit, Window = TimeSpan.FromMinutes(1) }));
 
     // Auth: login / register / refresh — tight, to blunt credential stuffing & brute force.
     options.AddPolicy(RateLimitPolicies.Auth, ctx =>
         RateLimitPartition.GetFixedWindowLimiter(ClientKey(ctx),
-            _ => new FixedWindowRateLimiterOptions { PermitLimit = 5, Window = TimeSpan.FromMinutes(1) }));
+            _ => new FixedWindowRateLimiterOptions { PermitLimit = authLimit, Window = TimeSpan.FromMinutes(1) }));
 
     // Sensitive writes: booking hold/create, payment checkout.
     options.AddPolicy(RateLimitPolicies.Sensitive, ctx =>
         RateLimitPartition.GetFixedWindowLimiter(ClientKey(ctx),
-            _ => new FixedWindowRateLimiterOptions { PermitLimit = 20, Window = TimeSpan.FromMinutes(1) }));
+            _ => new FixedWindowRateLimiterOptions { PermitLimit = sensitiveLimit, Window = TimeSpan.FromMinutes(1) }));
 
     // Payment webhook: anonymous but signature-verified; generous so gateway retries pass.
     options.AddPolicy(RateLimitPolicies.Webhook, ctx =>
         RateLimitPartition.GetFixedWindowLimiter(ClientKey(ctx),
-            _ => new FixedWindowRateLimiterOptions { PermitLimit = 60, Window = TimeSpan.FromMinutes(1) }));
+            _ => new FixedWindowRateLimiterOptions { PermitLimit = webhookLimit, Window = TimeSpan.FromMinutes(1) }));
 });
 
 // ── HSTS: long max-age incl. subdomains (applied in non-dev via UseHsts below) ───
