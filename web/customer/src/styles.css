@@ -1,0 +1,7 @@
+@import 'tailwindcss';
+
+/* App-wide base. Tailwind utilities cover the rest; this is just the page canvas. */
+html,
+body {
+  @apply h-full bg-slate-50 text-slate-900 antialiased;
+}
