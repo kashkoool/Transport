@@ -93,3 +93,60 @@ export interface ProblemDetails {
   detail?: string;
   code?: string;
 }
+
+// ── Admin + vendor consoles ──────────────────────────────────────────────────────
+
+export interface PagedResult<T> {
+  items: T[];
+  total: number;
+  page: number;
+  limit: number;
+}
+
+export type CompanyStatus = 'Pending' | 'Active' | 'Suspended';
+
+export interface Company {
+  id: string;
+  name: string;
+  email: string;
+  phone: string | null;
+  status: CompanyStatus;
+}
+
+export interface CompanyManager {
+  userId: string;
+  email: string;
+  companyId: string;
+}
+
+export type BusType = 'Standard' | 'Premium' | 'Luxury' | 'Sleeper';
+
+export interface Bus {
+  id: string;
+  busNumber: string;
+  seatCount: number;
+  type: BusType;
+  model: string | null;
+}
+
+export type TripStatus = 'Scheduled' | 'InProgress' | 'Completed' | 'Cancelled';
+
+export interface VendorTrip {
+  id: string;
+  busId: string;
+  origin: string;
+  destination: string;
+  departureUtc: string;
+  arrivalUtc: string;
+  seatCount: number;
+  price: number;
+  currency: string;
+  status: TripStatus;
+}
+
+export interface CancelTripResult {
+  trip: VendorTrip;
+  releasedHolds: number;
+  cancelledPendingBookings: number;
+  confirmedBookingsAffected: number;
+}

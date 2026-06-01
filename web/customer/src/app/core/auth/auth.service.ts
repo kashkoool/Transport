@@ -4,6 +4,9 @@ import { Observable, of, shareReplay, tap, catchError, map, finalize } from 'rxj
 import { environment } from '../../../environments/environment';
 import { AuthResult, TokenResponse } from '../models';
 
+// ASP.NET emits role claims under this URI when MapInboundClaims is off.
+const ROLE_CLAIM = 'http://schemas.microsoft.com/ws/2008/06/identity/claims/role';
+
 /**
  * Holds the access token in memory ONLY (never localStorage/sessionStorage), so an XSS payload
  * has no persisted token to steal. The long-lived refresh token lives in an HttpOnly cookie the
@@ -17,7 +20,11 @@ export class AuthService {
 
   private readonly accessToken = signal<string | null>(null);
   readonly email = signal<string | null>(null);
+  readonly roles = signal<string[]>([]);
   readonly isAuthenticated = computed(() => this.accessToken() !== null);
+  readonly isAdmin = computed(() => this.hasAny('Admin', 'SuperAdmin'));
+  readonly isVendor = computed(() => this.hasAny('VendorManager'));
+  readonly isCustomer = computed(() => this.hasAny('Customer'));
 
   /** In-flight refresh shared across concurrent 401s so only one refresh request is sent. */
   private refresh$: Observable<string | null> | null = null;
@@ -26,6 +33,18 @@ export class AuthService {
 
   token(): string | null {
     return this.accessToken();
+  }
+
+  hasAny(...roles: string[]): boolean {
+    const mine = this.roles();
+    return roles.some((r) => mine.includes(r));
+  }
+
+  /** Landing route for the signed-in user's primary role. */
+  homeRoute(): string {
+    if (this.isAdmin()) return '/admin/companies';
+    if (this.isVendor()) return '/vendor/trips';
+    return '/search';
   }
 
   register(email: string, password: string, fullName: string): Observable<void> {
@@ -52,7 +71,8 @@ export class AuthService {
       .pipe(
         map((r) => {
           this.accessToken.set(r.accessToken);
-          this.email.set(this.emailFromJwt(r.accessToken) ?? this.email());
+          this.email.set(this.claim(r.accessToken, 'email') ?? this.email());
+          this.roles.set(this.rolesFromJwt(r.accessToken));
           return r.accessToken;
         }),
         catchError(() => {
@@ -82,21 +102,35 @@ export class AuthService {
   private acceptAuth(r: AuthResult): void {
     this.accessToken.set(r.accessToken);
     this.email.set(r.email);
+    this.roles.set(r.roles ?? []);
   }
 
   private clear(): void {
     this.accessToken.set(null);
     this.email.set(null);
+    this.roles.set([]);
   }
 
-  /** Read the `email` claim from a JWT for display only (no validation — the server validates). */
-  private emailFromJwt(token: string): string | null {
+  /** Read a single string claim from a JWT for display only (the server validates the token). */
+  private claim(token: string, name: string): string | null {
+    const claims = this.decode(token);
+    const value = claims?.[name];
+    return typeof value === 'string' ? value : null;
+  }
+
+  /** Normalize the role claim (single string or array) to a string[]. */
+  private rolesFromJwt(token: string): string[] {
+    const claims = this.decode(token);
+    const value = claims?.[ROLE_CLAIM] ?? claims?.['role'] ?? claims?.['roles'];
+    if (Array.isArray(value)) return value.filter((v): v is string => typeof v === 'string');
+    return typeof value === 'string' ? [value] : [];
+  }
+
+  private decode(token: string): Record<string, unknown> | null {
     try {
       const payload = token.split('.')[1];
       const json = atob(payload.replace(/-/g, '+').replace(/_/g, '/'));
-      const claims = JSON.parse(json) as Record<string, unknown>;
-      const email = claims['email'];
-      return typeof email === 'string' ? email : null;
+      return JSON.parse(json) as Record<string, unknown>;
     } catch {
       return null;
     }

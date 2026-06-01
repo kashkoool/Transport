@@ -1,5 +1,6 @@
 import { Routes } from '@angular/router';
 import { authGuard } from './core/auth/auth.guard';
+import { roleGuard } from './core/auth/role.guard';
 
 /**
  * Search is public so anyone can browse departures; everything from booking onward requires a
@@ -39,5 +40,27 @@ export const routes: Routes = [
     canActivate: [authGuard],
     loadComponent: () => import('./features/tickets/my-bookings').then((m) => m.MyBookingsComponent),
   },
+
+  // ── Vendor console (VendorManager only) ──
+  { path: 'vendor', pathMatch: 'full', redirectTo: 'vendor/trips' },
+  {
+    path: 'vendor/trips',
+    canActivate: [roleGuard('VendorManager')],
+    loadComponent: () => import('./features/vendor/trips').then((m) => m.VendorTripsComponent),
+  },
+  {
+    path: 'vendor/buses',
+    canActivate: [roleGuard('VendorManager')],
+    loadComponent: () => import('./features/vendor/buses').then((m) => m.VendorBusesComponent),
+  },
+
+  // ── Admin console (Admin / SuperAdmin only) ──
+  { path: 'admin', pathMatch: 'full', redirectTo: 'admin/companies' },
+  {
+    path: 'admin/companies',
+    canActivate: [roleGuard('Admin', 'SuperAdmin')],
+    loadComponent: () => import('./features/admin/companies').then((m) => m.AdminCompaniesComponent),
+  },
+
   { path: '**', redirectTo: 'search' },
 ];

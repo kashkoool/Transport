@@ -11,23 +11,23 @@ import { ToastComponent } from './core/toast/toast';
     <div class="flex min-h-full flex-col">
       <header class="border-b border-slate-200 bg-white">
         <nav class="mx-auto flex max-w-5xl items-center justify-between px-4 py-3">
-          <a routerLink="/search" class="flex items-center gap-2 text-lg font-bold text-indigo-700">
+          <a [routerLink]="auth.homeRoute()" class="flex items-center gap-2 text-lg font-bold text-indigo-700">
             <span class="text-2xl">🚌</span> TPX Travel
           </a>
           <div class="flex items-center gap-4 text-sm">
-            <a
-              routerLink="/search"
-              routerLinkActive="text-indigo-700 font-semibold"
-              class="text-slate-600 hover:text-slate-900"
-              >Search</a
-            >
+            @if (auth.isAdmin()) {
+              <a routerLink="/admin/companies" routerLinkActive="text-indigo-700 font-semibold" class="text-slate-600 hover:text-slate-900">Companies</a>
+            } @else if (auth.isVendor()) {
+              <a routerLink="/vendor/trips" routerLinkActive="text-indigo-700 font-semibold" class="text-slate-600 hover:text-slate-900">Trips</a>
+              <a routerLink="/vendor/buses" routerLinkActive="text-indigo-700 font-semibold" class="text-slate-600 hover:text-slate-900">Fleet</a>
+            } @else {
+              <a routerLink="/search" routerLinkActive="text-indigo-700 font-semibold" class="text-slate-600 hover:text-slate-900">Search</a>
+              @if (auth.isAuthenticated()) {
+                <a routerLink="/my-bookings" routerLinkActive="text-indigo-700 font-semibold" class="text-slate-600 hover:text-slate-900">My bookings</a>
+              }
+            }
+
             @if (auth.isAuthenticated()) {
-              <a
-                routerLink="/my-bookings"
-                routerLinkActive="text-indigo-700 font-semibold"
-                class="text-slate-600 hover:text-slate-900"
-                >My bookings</a
-              >
               <span class="hidden text-slate-400 sm:inline">{{ auth.email() }}</span>
               <button
                 type="button"
