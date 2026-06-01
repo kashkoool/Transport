@@ -149,6 +149,36 @@ public sealed class BookingFlowTests(ApiFactory factory) : IClassFixture<ApiFact
         theirs.Should().NotContain(b => b.BookingId == created!.BookingId);
     }
 
+    [Fact]
+    public async Task Dev_simulate_endpoint_confirms_the_booking_via_the_signer_abstraction()
+    {
+        // Exercises POST /api/payments/dev/simulate, which signs a webhook through the
+        // IPaymentWebhookSigner seam (not the concrete gateway) and runs the real confirmation.
+        var (tripId, _, _) = await factory.SeedTripAsync();
+        var (client, _) = await factory.CreateCustomerClientAsync();
+
+        await client.PostAsJsonAsync("/api/bookings/hold", new { tripId, seatNumbers = SeatFive });
+        var create = new HttpRequestMessage(HttpMethod.Post, "/api/bookings")
+        {
+            Content = JsonContent.Create(new
+            {
+                tripId,
+                passengers = new[] { new { firstName = "Dev", lastName = "Sim", seatNumber = 5 } },
+            }),
+        };
+        create.Headers.Add("Idempotency-Key", Guid.NewGuid().ToString());
+        var booking = await (await client.SendAsync(create)).Content.ReadFromJsonAsync<BookingDto>(Json);
+
+        await client.PostAsJsonAsync("/api/payments/checkout", new { bookingId = booking!.BookingId });
+
+        var simulate = await client.PostAsJsonAsync("/api/payments/dev/simulate",
+            new { bookingReference = booking.Reference, succeeded = true });
+        simulate.StatusCode.Should().Be(HttpStatusCode.OK);
+
+        var ticket = await client.GetFromJsonAsync<TicketDto>($"/api/bookings/{booking.BookingId}/ticket", Json);
+        ticket!.Status.Should().Be("Confirmed");
+    }
+
     private async Task SendWebhookAsync(HttpClient client, string bookingReference, bool succeeded)
     {
         var gateway = factory.Services.GetRequiredService<SandboxPaymentGateway>();

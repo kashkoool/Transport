@@ -21,7 +21,8 @@ public sealed class PaymentOptions
 /// will use, so swapping it later is just another <see cref="IPaymentGateway"/> implementation.
 /// Crucially, it never receives or stores card data.
 /// </summary>
-public sealed partial class SandboxPaymentGateway(IOptions<PaymentOptions> options) : IPaymentGateway
+public sealed partial class SandboxPaymentGateway(IOptions<PaymentOptions> options)
+    : IPaymentGateway, IPaymentWebhookSigner
 {
     private static readonly JsonSerializerOptions WebJsonOptions = new(JsonSerializerDefaults.Web);
 
@@ -56,6 +57,13 @@ public sealed partial class SandboxPaymentGateway(IOptions<PaymentOptions> optio
 
         return new PaymentWebhook(dto.GatewayReference ?? "", dto.BookingReference, dto.Succeeded);
     }
+
+    /// <summary>
+    /// <see cref="IPaymentWebhookSigner"/> seam: sign a payload as the gateway would, so a
+    /// simulated dev callback passes <see cref="VerifyAndParseWebhook"/>. Delegates to the same
+    /// HMAC used to verify, so simulation and verification can never drift apart.
+    /// </summary>
+    public string Sign(string payload) => ComputeSignature(payload);
 
     /// <summary>HMAC-SHA256 of the body, hex-encoded — the shape most gateways use.</summary>
     public string ComputeSignature(string payload)

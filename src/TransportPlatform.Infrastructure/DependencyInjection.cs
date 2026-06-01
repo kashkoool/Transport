@@ -102,8 +102,11 @@ public static class DependencyInjection
             options.WebhookSecret = paymentSection[nameof(PaymentOptions.WebhookSecret)] ?? options.WebhookSecret;
             options.CheckoutBaseUrl = paymentSection[nameof(PaymentOptions.CheckoutBaseUrl)] ?? options.CheckoutBaseUrl;
         });
-        services.AddSingleton<IPaymentGateway, SandboxPaymentGateway>();
-        services.AddSingleton<SandboxPaymentGateway>(); // for tests that need to sign payloads
+        services.AddSingleton<SandboxPaymentGateway>();
+        services.AddSingleton<IPaymentGateway>(sp => sp.GetRequiredService<SandboxPaymentGateway>());
+        // Dev/test seam so the API can simulate a signed gateway callback without referencing
+        // the concrete gateway type (keeps the Api layer on Application abstractions only).
+        services.AddSingleton<IPaymentWebhookSigner>(sp => sp.GetRequiredService<SandboxPaymentGateway>());
 
         return services;
     }
