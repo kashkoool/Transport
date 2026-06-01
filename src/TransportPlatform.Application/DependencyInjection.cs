@@ -22,6 +22,7 @@ public static class DependencyInjection
         services.AddScoped<HoldSeatsHandler>();
         services.AddScoped<CreateBookingHandler>();
         services.AddScoped<GetTicketHandler>();
+        services.AddScoped<ListMyBookingsHandler>();
         services.AddScoped<StartCheckoutHandler>();
         services.AddScoped<ProcessPaymentWebhookHandler>();
 
