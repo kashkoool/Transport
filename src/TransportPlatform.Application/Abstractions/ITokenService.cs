@@ -12,7 +12,7 @@ public interface ITokenService
     /// for the given user. The refresh token's raw value is returned to the caller once;
     /// only its hash is persisted.
     /// </summary>
-    Task<AuthTokens> IssueAsync(Guid userId, string email, IReadOnlyList<string> roles, CancellationToken ct = default);
+    Task<AuthTokens> IssueAsync(Guid userId, string email, IReadOnlyList<string> roles, Guid? companyId, CancellationToken ct = default);
 
     /// <summary>
     /// Exchange a valid refresh token for a fresh access+refresh pair (rotation). Throws if
