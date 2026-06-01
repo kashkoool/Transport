@@ -121,6 +121,34 @@ public sealed class BookingFlowTests(ApiFactory factory) : IClassFixture<ApiFact
         resp.StatusCode.Should().Be(HttpStatusCode.NotFound);
     }
 
+    [Fact]
+    public async Task My_bookings_lists_only_my_own_bookings()
+    {
+        var (tripId, _, _) = await factory.SeedTripAsync();
+        var (alice, _) = await factory.CreateCustomerClientAsync();
+
+        await alice.PostAsJsonAsync("/api/bookings/hold", new { tripId, seatNumbers = SeatThree });
+        var create = new HttpRequestMessage(HttpMethod.Post, "/api/bookings")
+        {
+            Content = JsonContent.Create(new
+            {
+                tripId,
+                passengers = new[] { new { firstName = "Alice", lastName = "Khan", seatNumber = 3 } },
+            }),
+        };
+        create.Headers.Add("Idempotency-Key", Guid.NewGuid().ToString());
+        var created = await (await alice.SendAsync(create)).Content.ReadFromJsonAsync<BookingDto>(Json);
+
+        // Alice sees her booking.
+        var mine = await alice.GetFromJsonAsync<List<BookingSummaryDto>>("/api/bookings", Json);
+        mine.Should().ContainSingle(b => b.BookingId == created!.BookingId);
+
+        // A different customer's list does not include it.
+        var (mallory, _) = await factory.CreateCustomerClientAsync();
+        var theirs = await mallory.GetFromJsonAsync<List<BookingSummaryDto>>("/api/bookings", Json);
+        theirs.Should().NotContain(b => b.BookingId == created!.BookingId);
+    }
+
     private async Task SendWebhookAsync(HttpClient client, string bookingReference, bool succeeded)
     {
         var gateway = factory.Services.GetRequiredService<SandboxPaymentGateway>();
@@ -144,4 +172,5 @@ public sealed class BookingFlowTests(ApiFactory factory) : IClassFixture<ApiFact
 
     private sealed record BookingDto(Guid BookingId, string Reference, decimal TotalAmount, string Currency);
     private sealed record TicketDto(Guid BookingId, string Reference, string Status, string QrPayload);
+    private sealed record BookingSummaryDto(Guid BookingId, string Reference, string Status, string Origin, string Destination);
 }

@@ -48,6 +48,11 @@ public static class BookingEndpoints
         .WithName("CreateBooking")
         .WithSummary("Create a pending booking from held seats (idempotent).");
 
+        group.MapGet("/", async (ListMyBookingsHandler handler, CancellationToken ct) =>
+            Results.Ok(await handler.HandleAsync(new ListMyBookingsQuery(), ct)))
+        .WithName("ListMyBookings")
+        .WithSummary("List the authenticated customer's bookings (newest first).");
+
         group.MapGet("/{id:guid}/ticket", async (
             Guid id, GetTicketHandler handler, CancellationToken ct) =>
         {
