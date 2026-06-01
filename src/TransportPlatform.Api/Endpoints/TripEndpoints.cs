@@ -1,3 +1,4 @@
+using FluentValidation;
 using TransportPlatform.Application.Trips;
 
 namespace TransportPlatform.Api.Endpoints;
@@ -11,9 +12,11 @@ public static class TripEndpoints
         // Public: browse trips on a route/date.
         group.MapGet("/search", async (
             string origin, string destination, DateOnly date,
-            SearchTripsHandler handler, CancellationToken ct) =>
+            SearchTripsHandler handler, IValidator<SearchTripsQuery> validator, CancellationToken ct) =>
         {
-            var results = await handler.HandleAsync(new SearchTripsQuery(origin, destination, date), ct);
+            var query = new SearchTripsQuery(origin, destination, date);
+            await validator.ValidateAndThrowAsync(query, ct);
+            var results = await handler.HandleAsync(query, ct);
             return Results.Ok(results);
         })
         .WithName("SearchTrips")

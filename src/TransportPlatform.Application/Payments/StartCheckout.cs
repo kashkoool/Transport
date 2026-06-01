@@ -12,14 +12,18 @@ public sealed record StartCheckoutResult(string CheckoutUrl, string GatewayRefer
 
 /// <summary>
 /// Creates (or re-uses) the payment record for a pending booking and asks the external
-/// gateway for a hosted-checkout URL. No card data is ever handled here.
+/// gateway for a hosted-checkout URL. No card data is ever handled here. The booking is
+/// scoped to the authenticated owner so a caller can only pay for their own booking.
 /// </summary>
-public sealed class StartCheckoutHandler(IApplicationDbContext db, IPaymentGateway gateway)
+public sealed class StartCheckoutHandler(IApplicationDbContext db, IPaymentGateway gateway, ICurrentUser currentUser)
 {
     public async Task<StartCheckoutResult> HandleAsync(StartCheckoutCommand command, CancellationToken ct)
     {
-        var booking = await db.Bookings.FirstOrDefaultAsync(b => b.Id == command.BookingId, ct)
-                      ?? throw new NotFoundException("Booking", command.BookingId);
+        var email = currentUser.RequireEmail();
+
+        var booking = await db.Bookings
+            .FirstOrDefaultAsync(b => b.Id == command.BookingId && b.CustomerEmail == email, ct)
+            ?? throw new NotFoundException("Booking", command.BookingId);
 
         if (booking.Status == BookingStatus.Confirmed)
             throw new ConflictException("booking.already_paid", "This booking is already paid.");

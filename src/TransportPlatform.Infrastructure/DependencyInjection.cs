@@ -30,7 +30,11 @@ public static class DependencyInjection
         {
             var cs = config.GetConnectionString("Postgres")
                      ?? throw new InvalidOperationException("ConnectionStrings:Postgres is not configured.");
-            opts.UseNpgsql(cs, npgsql => npgsql.EnableRetryOnFailure());
+            opts.UseNpgsql(cs, npgsql =>
+            {
+                npgsql.EnableRetryOnFailure(maxRetryCount: 3);
+                npgsql.CommandTimeout(30); // cap a runaway query so it can't drain the pool
+            });
             opts.AddInterceptors(
                 sp.GetRequiredService<AuditableEntityInterceptor>(),
                 sp.GetRequiredService<DomainEventsToOutboxInterceptor>());

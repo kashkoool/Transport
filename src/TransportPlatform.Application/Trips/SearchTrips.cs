@@ -1,5 +1,7 @@
+using FluentValidation;
 using Microsoft.EntityFrameworkCore;
 using TransportPlatform.Application.Common;
+using TransportPlatform.Domain.Companies;
 using TransportPlatform.Domain.Trips;
 
 namespace TransportPlatform.Application.Trips;
@@ -17,9 +19,19 @@ public sealed record TripSummary(
     int SeatCount,
     int AvailableSeats);
 
+public sealed class SearchTripsValidator : AbstractValidator<SearchTripsQuery>
+{
+    public SearchTripsValidator()
+    {
+        RuleFor(x => x.Origin).NotEmpty().MaximumLength(120);
+        RuleFor(x => x.Destination).NotEmpty().MaximumLength(120);
+    }
+}
+
 /// <summary>
 /// Finds bookable trips on a route/date and reports live availability
-/// (capacity minus confirmed seats minus active holds) without N+1 queries.
+/// (capacity minus confirmed seats minus active holds) without N+1 queries. Only trips of
+/// ACTIVE companies are returned — a suspended vendor's trips disappear from search.
 /// </summary>
 public sealed class SearchTripsHandler(IApplicationDbContext db, IClock clock)
 {
@@ -36,6 +48,12 @@ public sealed class SearchTripsHandler(IApplicationDbContext db, IClock clock)
         var origin = query.Origin.Trim().ToLowerInvariant();
         var destination = query.Destination.Trim().ToLowerInvariant();
 
+        // Only active companies are sellable; filter via the company set so suspended vendors'
+        // trips never surface. (Join expressed as a subquery on company ids for clarity.)
+        var activeCompanyIds = db.Companies
+            .Where(c => c.Status == CompanyStatus.Active)
+            .Select(c => c.Id);
+
         // These string-comparison analyzers are false positives inside an EF expression tree:
         // t.Origin.ToLower() is translated to SQL lower() and runs server-side, so there is no
         // client culture involved (CA1304/CA1311), and the StringComparison overload CA1862
@@ -43,6 +61,7 @@ public sealed class SearchTripsHandler(IApplicationDbContext db, IClock clock)
 #pragma warning disable CA1304, CA1311, CA1862
         var trips = await db.Trips
             .Where(t => t.Status == TripStatus.Scheduled
+                        && activeCompanyIds.Contains(t.CompanyId)
                         && t.DepartureUtc > now
                         && t.DepartureUtc >= dayStart
                         && t.DepartureUtc < dayEnd

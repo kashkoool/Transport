@@ -43,4 +43,17 @@ public sealed class SeatHold : AggregateRoot
             throw new DomainException("hold.expired", "This seat hold has expired.");
         Consumed = true;
     }
+
+    /// <summary>
+    /// Consume the hold during payment confirmation, tolerating a just-expired hold. Once the
+    /// gateway confirms payment the seat IS the customer's, so a hold that expired a moment
+    /// before the webhook arrived (a sweeper race) must not fail confirmation. The unique
+    /// (trip, seat) constraint on seat_assignment remains the real double-sell guard.
+    /// </summary>
+    public void ConsumeOnConfirmation()
+    {
+        if (Consumed)
+            throw new DomainException("hold.already_consumed", "This hold was already used.");
+        Consumed = true;
+    }
 }

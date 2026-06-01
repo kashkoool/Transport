@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using TransportPlatform.Domain.Bookings;
+using TransportPlatform.Domain.Trips;
 
 namespace TransportPlatform.Infrastructure.Persistence.Configurations;
 
@@ -11,6 +12,11 @@ internal sealed class SeatHoldConfiguration : IEntityTypeConfiguration<SeatHold>
         builder.ToTable("seat_hold");
         builder.HasKey(h => h.Id);
         builder.Property(h => h.HeldBy).HasMaxLength(256).IsRequired();
+
+        // FK → trip, Cascade: a hold is transient and meaningless without its trip.
+        builder.HasOne<Trip>().WithMany()
+            .HasForeignKey(h => h.TripId)
+            .OnDelete(DeleteBehavior.Cascade);
 
         // THE concurrency lock: a (trip, seat) can be actively held only once.
         // A filtered unique index lets a seat be re-held after a prior hold is consumed.

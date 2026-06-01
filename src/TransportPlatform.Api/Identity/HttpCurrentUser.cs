@@ -16,11 +16,17 @@ public sealed class HttpCurrentUser(IHttpContextAccessor accessor) : ICurrentUse
     public Guid? UserId =>
         Guid.TryParse(Principal?.FindFirstValue("sub"), out var id) ? id : null;
 
+    public string? Email => Principal?.FindFirstValue("email");
+
     public Guid? CompanyId =>
         Guid.TryParse(Principal?.FindFirstValue("company_id"), out var id) ? id : null;
 
     public Guid RequireUserId() =>
         UserId ?? throw new UnauthorizedException("auth.required", "Authentication is required.");
+
+    public string RequireEmail() =>
+        Email is { Length: > 0 } e ? e
+            : throw new UnauthorizedException("auth.required", "Authentication is required.");
 
     public Guid RequireCompanyId() =>
         CompanyId ?? throw new UnauthorizedException("auth.company_required",

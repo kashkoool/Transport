@@ -19,14 +19,20 @@ public sealed record TicketResult(
     IReadOnlyList<TicketPassenger> Passengers,
     string QrPayload);
 
-/// <summary>Returns the boarding ticket for a booking, with a QR payload encoding its reference.</summary>
-public sealed class GetTicketHandler(IApplicationDbContext db)
+/// <summary>
+/// Returns the boarding ticket for a booking, scoped to the authenticated owner. Ownership
+/// is baked into the where-clause (customer_email == caller), so another user's booking id
+/// resolves to 404 — never a 403 oracle, and no passenger PII leaks across customers.
+/// </summary>
+public sealed class GetTicketHandler(IApplicationDbContext db, ICurrentUser currentUser)
 {
     public async Task<TicketResult> HandleAsync(GetTicketQuery query, CancellationToken ct)
     {
+        var email = currentUser.RequireEmail();
+
         var booking = await db.Bookings
             .Include(b => b.Passengers)
-            .FirstOrDefaultAsync(b => b.Id == query.BookingId, ct)
+            .FirstOrDefaultAsync(b => b.Id == query.BookingId && b.CustomerEmail == email, ct)
             ?? throw new NotFoundException("Booking", query.BookingId);
 
         var trip = await db.Trips.FirstOrDefaultAsync(t => t.Id == booking.TripId, ct)

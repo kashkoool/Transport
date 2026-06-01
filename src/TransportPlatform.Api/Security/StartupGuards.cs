@@ -8,11 +8,13 @@ public static class StartupGuards
 {
     private const int MinSigningKeyLength = 32;
 
-    // Placeholder values shipped in appsettings/.env.example that must never reach production.
+    // Placeholder fragments shipped in appsettings/.env.example that must never reach production.
     private static readonly string[] KnownPlaceholders =
     [
         "change_me",
-        "change_me_to_a_long_random_secret_at_least_32_chars",
+        "dev_only",
+        "dev_sandbox",
+        "integration-tests",
     ];
 
     public static void ValidateConfiguration(IConfiguration config, IHostEnvironment env)
@@ -40,6 +42,10 @@ public static class StartupGuards
 
         if (config.GetValue<int?>("Proxy:TrustedHops") is null or 0)
             problems.Add("Proxy:TrustedHops must be a positive integer in production so rate limits key on the real client IP.");
+
+        var allowedHosts = config["AllowedHosts"] ?? string.Empty;
+        if (allowedHosts.Trim() is "" or "*")
+            problems.Add("AllowedHosts must be an explicit host allow-list in production (not '*'), to prevent host-header injection.");
 
         if (problems.Count > 0)
             throw new InvalidOperationException(

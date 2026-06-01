@@ -11,4 +11,10 @@ public static class RateLimitPolicies
 
     /// <summary>Sensitive writes (booking hold/create, payment checkout).</summary>
     public const string Sensitive = "sensitive";
+
+    /// <summary>
+    /// Payment gateway webhook — anonymous but signature-verified. Generous so legitimate
+    /// gateway retries pass, but bounded so a flood of forged payloads can't exhaust the box.
+    /// </summary>
+    public const string Webhook = "webhook";
 }

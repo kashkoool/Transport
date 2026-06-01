@@ -8,6 +8,9 @@ public interface ICurrentUser
 {
     Guid? UserId { get; }
 
+    /// <summary>The caller's email (from the JWT), used to bind/scope their own bookings.</summary>
+    string? Email { get; }
+
     /// <summary>The vendor company the caller belongs to (vendor managers/staff); null otherwise.</summary>
     Guid? CompanyId { get; }
 
@@ -15,6 +18,9 @@ public interface ICurrentUser
 
     /// <summary>The caller's user id, or throws if unauthenticated.</summary>
     Guid RequireUserId();
+
+    /// <summary>The caller's email, or throws if unauthenticated.</summary>
+    string RequireEmail();
 
     /// <summary>
     /// The caller's company id, or throws if absent. Used by vendor-scoped handlers so a

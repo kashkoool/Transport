@@ -10,8 +10,6 @@ public sealed record PassengerInput(string FirstName, string LastName, int SeatN
 
 public sealed record CreateBookingCommand(
     Guid TripId,
-    string CustomerEmail,
-    string HeldBy,
     IReadOnlyList<PassengerInput> Passengers,
     string IdempotencyKey);
 
@@ -19,30 +17,37 @@ public sealed record CreateBookingResult(Guid BookingId, string Reference, decim
 
 public sealed class CreateBookingValidator : AbstractValidator<CreateBookingCommand>
 {
+    /// <summary>Max passengers (= seats) per booking — mirrors the hold cap.</summary>
+    public const int MaxPassengers = 10;
+
     public CreateBookingValidator()
     {
         RuleFor(x => x.TripId).NotEmpty();
-        RuleFor(x => x.CustomerEmail).NotEmpty().EmailAddress();
-        RuleFor(x => x.HeldBy).NotEmpty();
-        RuleFor(x => x.IdempotencyKey).NotEmpty();
+        RuleFor(x => x.IdempotencyKey).NotEmpty().MaximumLength(100);
         RuleFor(x => x.Passengers).NotEmpty();
+        RuleFor(x => x.Passengers).Must(p => p.Count <= MaxPassengers)
+            .WithMessage($"A booking can have at most {MaxPassengers} passengers.");
         RuleForEach(x => x.Passengers).ChildRules(p =>
         {
-            p.RuleFor(x => x.FirstName).NotEmpty();
-            p.RuleFor(x => x.LastName).NotEmpty();
-            p.RuleFor(x => x.SeatNumber).GreaterThan(0);
+            p.RuleFor(x => x.FirstName).NotEmpty().MaximumLength(100);
+            p.RuleFor(x => x.LastName).NotEmpty().MaximumLength(100);
+            p.RuleFor(x => x.SeatNumber).InclusiveBetween(1, 1000);
         });
     }
 }
 
 /// <summary>
-/// Turns active seat holds into a pending booking. Idempotent: replaying the same
-/// Idempotency-Key returns the original booking instead of creating a duplicate.
+/// Turns the caller's active seat holds into a pending booking. Idempotent: replaying the
+/// same Idempotency-Key returns the original booking instead of creating a duplicate. The
+/// booking is bound to the authenticated caller (email + hold ownership come from the JWT).
 /// </summary>
-public sealed class CreateBookingHandler(IApplicationDbContext db, IClock clock, IReferenceGenerator references)
+public sealed class CreateBookingHandler(
+    IApplicationDbContext db, IClock clock, IReferenceGenerator references, ICurrentUser currentUser)
 {
     public async Task<CreateBookingResult> HandleAsync(CreateBookingCommand command, CancellationToken ct)
     {
+        var customerEmail = currentUser.RequireEmail();
+
         // Fast idempotency path: already created for this key?
         var existing = await db.Bookings
             .FirstOrDefaultAsync(b => b.IdempotencyKey == command.IdempotencyKey, ct);
@@ -58,11 +63,11 @@ public sealed class CreateBookingHandler(IApplicationDbContext db, IClock clock,
         var seatNumbers = command.Passengers.Select(p => p.SeatNumber).ToList();
         trip.EnsureSeatsAreValid(seatNumbers);
 
-        // Every requested seat must be covered by an active hold owned by this caller.
+        // Every requested seat must be covered by an active hold owned by THIS caller.
         var holds = await db.SeatHolds
             .Where(h => h.TripId == trip.Id
                         && seatNumbers.Contains(h.SeatNumber)
-                        && h.HeldBy == command.HeldBy
+                        && h.HeldBy == customerEmail
                         && !h.Consumed
                         && h.ExpiresAtUtc > now)
             .ToListAsync(ct);
@@ -76,7 +81,7 @@ public sealed class CreateBookingHandler(IApplicationDbContext db, IClock clock,
             .ToList();
 
         var booking = Booking.Create(
-            trip.Id, command.CustomerEmail, references.NewBookingReference(),
+            trip.Id, customerEmail, references.NewBookingReference(),
             passengers, trip.Fare, command.IdempotencyKey);
 
         foreach (var hold in holds)
