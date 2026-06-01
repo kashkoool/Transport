@@ -1,7 +1,7 @@
 using System.Text.Json;
 using TransportPlatform.Api.Security;
+using TransportPlatform.Application.Abstractions;
 using TransportPlatform.Application.Payments;
-using TransportPlatform.Infrastructure.Payments;
 
 namespace TransportPlatform.Api.Endpoints;
 
@@ -52,7 +52,7 @@ public static class PaymentEndpoints
         if (env?.IsDevelopment() == true)
         {
             group.MapPost("/dev/simulate", async (
-                SimulatePaymentBody body, SandboxPaymentGateway sandbox,
+                SimulatePaymentBody body, IPaymentWebhookSigner signer,
                 ProcessPaymentWebhookHandler handler, CancellationToken ct) =>
             {
                 var payload = JsonSerializer.Serialize(new
@@ -61,7 +61,7 @@ public static class PaymentEndpoints
                     bookingReference = body.BookingReference,
                     succeeded = body.Succeeded,
                 });
-                var signature = sandbox.ComputeSignature(payload);
+                var signature = signer.Sign(payload);
                 var result = await handler.HandleAsync(new ProcessWebhookCommand(payload, signature), ct);
                 return Results.Ok(new { status = result.Status });
             })
