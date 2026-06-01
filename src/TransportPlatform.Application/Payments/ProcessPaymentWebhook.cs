@@ -15,7 +15,7 @@ public sealed record ProcessWebhookResult(bool Handled, string Status);
 /// permanent seat assignments — protected by the DB unique constraint). Idempotent: a
 /// re-delivered webhook is a no-op.
 /// </summary>
-public sealed class ProcessPaymentWebhookHandler(IApplicationDbContext db, IPaymentGateway gateway, IClock clock)
+public sealed class ProcessPaymentWebhookHandler(IApplicationDbContext db, IPaymentGateway gateway)
 {
     public async Task<ProcessWebhookResult> HandleAsync(ProcessWebhookCommand command, CancellationToken ct)
     {
@@ -35,18 +35,20 @@ public sealed class ProcessPaymentWebhookHandler(IApplicationDbContext db, IPaym
 
         await db.ExecuteInTransactionAsync(async token =>
         {
-            var now = clock.UtcNow;
             var payment = await db.Payments.FirstOrDefaultAsync(p => p.BookingId == booking.Id, token);
 
             if (webhook.Succeeded)
             {
                 payment?.MarkCompleted(webhook.GatewayReference);
 
+                // Consume any still-present holds. Tolerate a just-expired hold (sweeper race):
+                // payment is authoritative, and the unique seat_assignment constraint below is
+                // the real guard against a double-sell.
                 var holds = await db.SeatHolds
                     .Where(h => h.BookingId == booking.Id && !h.Consumed)
                     .ToListAsync(token);
                 foreach (var hold in holds)
-                    hold.Consume(now);
+                    hold.ConsumeOnConfirmation();
 
                 booking.Confirm(); // creates seat_assignment rows + raises BookingConfirmedDomainEvent
                 resultStatus = "confirmed";

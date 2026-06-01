@@ -108,6 +108,19 @@ builder.Services.AddRateLimiter(options =>
     options.AddPolicy(RateLimitPolicies.Sensitive, ctx =>
         RateLimitPartition.GetFixedWindowLimiter(ClientKey(ctx),
             _ => new FixedWindowRateLimiterOptions { PermitLimit = 20, Window = TimeSpan.FromMinutes(1) }));
+
+    // Payment webhook: anonymous but signature-verified; generous so gateway retries pass.
+    options.AddPolicy(RateLimitPolicies.Webhook, ctx =>
+        RateLimitPartition.GetFixedWindowLimiter(ClientKey(ctx),
+            _ => new FixedWindowRateLimiterOptions { PermitLimit = 60, Window = TimeSpan.FromMinutes(1) }));
+});
+
+// ── HSTS: long max-age incl. subdomains (applied in non-dev via UseHsts below) ───
+builder.Services.AddHsts(options =>
+{
+    options.MaxAge = TimeSpan.FromDays(730); // 2 years
+    options.IncludeSubDomains = true;
+    options.Preload = true;
 });
 
 // ── Background workers: seat-hold expiry + outbox publisher ──────────────────────
@@ -143,6 +156,7 @@ app.Use(async (context, next) =>
     headers["X-Frame-Options"] = "DENY";
     headers["Referrer-Policy"] = "no-referrer";
     headers["Cross-Origin-Opener-Policy"] = "same-origin";
+    headers["X-Permitted-Cross-Domain-Policies"] = "none";
     // API serves JSON only; lock scripting/plugins/framing to nothing.
     headers["Content-Security-Policy"] = "default-src 'none'; frame-ancestors 'none'";
     await next();

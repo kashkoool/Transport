@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
+using TransportPlatform.Domain.Bookings;
 using TransportPlatform.Domain.Payments;
 
 namespace TransportPlatform.Infrastructure.Persistence.Configurations;
@@ -21,5 +22,10 @@ internal sealed class PaymentConfiguration : IEntityTypeConfiguration<Payment>
         builder.HasIndex(p => p.BookingId).IsUnique();
         builder.HasIndex(p => p.IdempotencyKey).IsUnique();
         builder.HasIndex(p => p.GatewayTxnRef);
+
+        // FK → booking, Cascade: a payment record belongs to its booking.
+        builder.HasOne<Booking>().WithMany()
+            .HasForeignKey(p => p.BookingId)
+            .OnDelete(DeleteBehavior.Cascade);
     }
 }

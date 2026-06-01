@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using TransportPlatform.Domain.Bookings;
+using TransportPlatform.Domain.Trips;
 
 namespace TransportPlatform.Infrastructure.Persistence.Configurations;
 
@@ -20,6 +21,11 @@ internal sealed class BookingConfiguration : IEntityTypeConfiguration<Booking>
         builder.HasIndex(b => b.Reference).IsUnique();
         builder.HasIndex(b => b.IdempotencyKey).IsUnique();  // idempotent booking creation
         builder.HasIndex(b => b.CustomerEmail);
+
+        // FK → trip, Restrict: a trip with bookings can't be hard-deleted.
+        builder.HasOne<Trip>().WithMany()
+            .HasForeignKey(b => b.TripId)
+            .OnDelete(DeleteBehavior.Restrict);
 
         builder.HasMany(b => b.Passengers)
             .WithOne()

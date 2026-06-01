@@ -19,12 +19,16 @@ public sealed class ConcurrencyTests(ApiFactory factory) : IClassFixture<ApiFact
         const int seat = 12;
         const int contenders = 20;
 
+        // Each contender is a distinct authenticated customer; the hold owner comes from the JWT.
+        var clients = new List<HttpClient>();
+        for (var i = 0; i < contenders; i++)
+            clients.Add((await factory.CreateCustomerClientAsync()).Client);
+
         // Fire many simultaneous hold requests for the SAME seat.
-        var tasks = Enumerable.Range(0, contenders).Select(async i =>
+        var tasks = clients.Select(async client =>
         {
-            var client = factory.CreateClient();
             var resp = await client.PostAsJsonAsync("/api/bookings/hold",
-                new { tripId, seatNumbers = new[] { seat }, heldBy = $"user{i}@example.com" });
+                new { tripId, seatNumbers = new[] { seat } });
             return resp.StatusCode;
         });
 

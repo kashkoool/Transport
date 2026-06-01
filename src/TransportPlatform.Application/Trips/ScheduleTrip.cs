@@ -2,6 +2,7 @@ using FluentValidation;
 using Microsoft.EntityFrameworkCore;
 using TransportPlatform.Application.Common;
 using TransportPlatform.Domain.Common;
+using TransportPlatform.Domain.Companies;
 using TransportPlatform.Domain.Trips;
 
 namespace TransportPlatform.Application.Trips;
@@ -22,7 +23,7 @@ public sealed class ScheduleTripValidator : AbstractValidator<ScheduleTripComman
         RuleFor(x => x.BusId).NotEmpty();
         RuleFor(x => x.Origin).NotEmpty().MaximumLength(120);
         RuleFor(x => x.Destination).NotEmpty().MaximumLength(120);
-        RuleFor(x => x.Price).GreaterThanOrEqualTo(0);
+        RuleFor(x => x.Price).GreaterThanOrEqualTo(0).LessThanOrEqualTo(9_999_999.99m);
         RuleFor(x => x.Currency).NotEmpty().Length(3);
     }
 }
@@ -30,13 +31,22 @@ public sealed class ScheduleTripValidator : AbstractValidator<ScheduleTripComman
 /// <summary>
 /// A vendor manager schedules a trip on one of their OWN buses. The bus is looked up with
 /// the company id baked into the where clause (IDOR-safe: another tenant's bus is simply
-/// "not found"). Seat count is taken from the bus, never the request.
+/// "not found"). Seat count is taken from the bus, never the request. A suspended company
+/// cannot schedule, and the departure must be in the future.
 /// </summary>
-public sealed class ScheduleTripHandler(IApplicationDbContext db, ICurrentUser currentUser)
+public sealed class ScheduleTripHandler(IApplicationDbContext db, ICurrentUser currentUser, IClock clock)
 {
     public async Task<TripDto> HandleAsync(ScheduleTripCommand command, CancellationToken ct)
     {
         var companyId = currentUser.RequireCompanyId();
+
+        if (command.DepartureUtc <= clock.UtcNow)
+            throw new ConflictException("trip.in_past", "Departure must be in the future.");
+
+        var company = await db.Companies.FirstOrDefaultAsync(c => c.Id == companyId, ct)
+                      ?? throw new NotFoundException("Company", companyId);
+        if (!company.CanOperate)
+            throw new ConflictException("company.suspended", "A suspended company cannot schedule trips.");
 
         var bus = await db.Buses
             .FirstOrDefaultAsync(b => b.Id == command.BusId && b.CompanyId == companyId, ct)

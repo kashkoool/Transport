@@ -1,3 +1,6 @@
+using System.Net.Http.Headers;
+using System.Net.Http.Json;
+using System.Text.Json;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.EntityFrameworkCore;
@@ -27,9 +30,9 @@ public sealed class ApiFactory : WebApplicationFactory<Program>, IAsyncLifetime
         await _postgres.StartAsync();
         using var scope = Services.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
-        // Each run gets a pristine container, so materialize the current model directly.
-        // This still exercises the real mappings + unique indexes that enforce no-overbooking.
-        await db.Database.EnsureCreatedAsync();
+        // Apply migrations (not EnsureCreated) so the test schema is exactly what production
+        // builds — this catches migration/model drift and exercises the FK constraints.
+        await db.Database.MigrateAsync();
     }
 
     async Task IAsyncLifetime.DisposeAsync()
@@ -75,4 +78,26 @@ public sealed class ApiFactory : WebApplicationFactory<Program>, IAsyncLifetime
 
         return (trip.Id, seats, trip.Price);
     }
+
+    private static readonly JsonSerializerOptions Json = new(JsonSerializerDefaults.Web);
+
+    /// <summary>
+    /// Register a fresh customer through the real endpoint and return an HttpClient whose
+    /// Authorization header carries their bearer token, plus the email they registered with.
+    /// </summary>
+    public async Task<(HttpClient Client, string Email)> CreateCustomerClientAsync()
+    {
+        var email = $"u{Guid.NewGuid():N}@example.com";
+        var client = CreateClient();
+
+        var resp = await client.PostAsJsonAsync("/api/auth/register",
+            new { email, password = "Str0ng!Passw0rd", fullName = "Test Customer" });
+        resp.EnsureSuccessStatusCode();
+
+        var auth = await resp.Content.ReadFromJsonAsync<AuthDto>(Json);
+        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", auth!.AccessToken);
+        return (client, email);
+    }
+
+    private sealed record AuthDto(string AccessToken, string RefreshToken, string Email);
 }
