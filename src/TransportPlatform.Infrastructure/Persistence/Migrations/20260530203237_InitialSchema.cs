@@ -459,7 +459,10 @@ namespace TransportPlatform.Infrastructure.Persistence.Migrations
                 table: "seat_hold",
                 columns: new[] { "TripId", "SeatNumber" },
                 unique: true,
-                filter: "consumed = false");
+                // The column is created as "Consumed" (EF quotes identifiers, so Postgres stores
+                // it case-sensitively). The filter must quote it too — an unquoted `consumed`
+                // folds to lowercase and the index build fails with 42703 (column not found).
+                filter: "\"Consumed\" = false");
 
             migrationBuilder.CreateIndex(
                 name: "IX_trip_CompanyId",
