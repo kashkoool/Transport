@@ -1,9 +1,11 @@
 using System.Globalization;
 using System.IO.Compression;
 using System.Threading.RateLimiting;
+using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.ResponseCompression;
 using Scalar.AspNetCore;
+using TransportPlatform.Api.Health;
 using Serilog;
 using TransportPlatform.Api.Endpoints;
 using TransportPlatform.Api.Identity;
@@ -56,7 +58,10 @@ builder.Services.AddScoped<ICurrentUser, HttpCurrentUser>();
 builder.Services.AddOpenApi();
 builder.Services.AddProblemDetails();
 builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
-builder.Services.AddHealthChecks();
+// Liveness has no checks (process-up only). The database check is tagged "ready" so it runs on
+// /health/ready (deep) but not on /health (liveness) — see the two MapHealthChecks calls below.
+builder.Services.AddHealthChecks()
+    .AddCheck<DatabaseHealthCheck>("database", tags: ["ready"]);
 
 // ── Response compression (gzip/brotli) ──────────────────────────────────────────
 // Cuts JSON payloads ~70-85%. Safe here: short-lived (15-min) bearer tokens are the only
@@ -182,7 +187,12 @@ app.UseAuthentication();
 app.UseAuthorization();
 
 // ── Endpoints ────────────────────────────────────────────────────────────────
-app.MapHealthChecks("/health");
+// Liveness: returns 200 if the process is up — NO dependency checks, so a degraded DB never
+// causes the orchestrator to kill an otherwise-healthy container.
+app.MapHealthChecks("/health", new HealthCheckOptions { Predicate = _ => false });
+// Readiness: runs the "ready"-tagged checks (DB connectivity). Used by orchestrator readiness
+// probes / compose healthchecks to gate traffic until dependencies are actually reachable.
+app.MapHealthChecks("/health/ready", new HealthCheckOptions { Predicate = check => check.Tags.Contains("ready") });
 app.MapAuthEndpoints();
 app.MapAdminEndpoints();
 app.MapVendorEndpoints();
