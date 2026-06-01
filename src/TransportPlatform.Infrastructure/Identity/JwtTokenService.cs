@@ -26,7 +26,7 @@ public sealed class JwtTokenService(
 {
     private readonly JwtOptions _options = options.Value;
 
-    public async Task<AuthTokens> IssueAsync(Guid userId, string email, IReadOnlyList<string> roles, CancellationToken ct = default)
+    public async Task<AuthTokens> IssueAsync(Guid userId, string email, IReadOnlyList<string> roles, Guid? companyId, CancellationToken ct = default)
     {
         var now = clock.UtcNow;
         var (raw, hash) = GenerateRefreshToken();
@@ -35,7 +35,7 @@ public sealed class JwtTokenService(
         db.RefreshTokens.Add(new RefreshToken(userId, hash, now, refreshExpires));
         await db.SaveChangesAsync(ct);
 
-        var access = CreateAccessToken(userId, email, roles, now);
+        var access = CreateAccessToken(userId, email, roles, companyId, now);
         return new AuthTokens(access, now.AddMinutes(_options.AccessTokenMinutes), raw, refreshExpires);
     }
 
@@ -68,7 +68,7 @@ public sealed class JwtTokenService(
         db.RefreshTokens.Add(new RefreshToken(user.Id, newHash, now, refreshExpires));
         await db.SaveChangesAsync(ct);
 
-        var access = CreateAccessToken(user.Id, user.Email!, roles, now);
+        var access = CreateAccessToken(user.Id, user.Email!, roles, user.CompanyId, now);
         return new AuthTokens(access, now.AddMinutes(_options.AccessTokenMinutes), raw, refreshExpires);
     }
 
@@ -93,7 +93,7 @@ public sealed class JwtTokenService(
         await db.SaveChangesAsync(ct);
     }
 
-    private string CreateAccessToken(Guid userId, string email, IReadOnlyList<string> roles, DateTimeOffset now)
+    private string CreateAccessToken(Guid userId, string email, IReadOnlyList<string> roles, Guid? companyId, DateTimeOffset now)
     {
         var claims = new List<Claim>
         {
@@ -101,6 +101,8 @@ public sealed class JwtTokenService(
             new("email", email),
             new(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
         };
+        if (companyId is { } cid)
+            claims.Add(new Claim("company_id", cid.ToString()));
         claims.AddRange(roles.Select(r => new Claim(ClaimTypes.Role, r)));
 
         var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_options.SigningKey));

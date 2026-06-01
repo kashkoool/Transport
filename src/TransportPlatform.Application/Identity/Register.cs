@@ -22,7 +22,7 @@ public sealed class RegisterHandler(IIdentityService identity, ITokenService tok
     public async Task<AuthResult> HandleAsync(RegisterCommand command, CancellationToken ct)
     {
         var user = await identity.RegisterCustomerAsync(command.Email, command.Password, command.FullName, ct);
-        var issued = await tokens.IssueAsync(user.UserId, user.Email, user.Roles, ct);
+        var issued = await tokens.IssueAsync(user.UserId, user.Email, user.Roles, user.CompanyId, ct);
         return AuthResult.From(issued, user);
     }
 }

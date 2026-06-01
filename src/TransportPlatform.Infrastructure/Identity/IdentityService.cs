@@ -50,7 +50,33 @@ public sealed class IdentityService(
 
         await users.ResetAccessFailedCountAsync(user);
         var userRoles = await users.GetRolesAsync(user);
-        return new AuthenticatedUser(user.Id, user.Email!, [.. userRoles]);
+        return new AuthenticatedUser(user.Id, user.Email!, [.. userRoles], user.CompanyId);
+    }
+
+    public async Task<AuthenticatedUser> RegisterVendorManagerAsync(
+        string email, string password, string fullName, Guid companyId, CancellationToken ct = default)
+    {
+        ct.ThrowIfCancellationRequested();
+
+        if (await users.FindByEmailAsync(email) is not null)
+            throw new ConflictException("auth.email_taken", "An account with this email already exists.");
+
+        var user = new ApplicationUser
+        {
+            UserName = email,
+            Email = email,
+            FullName = fullName,
+            CompanyId = companyId,
+        };
+        var result = await users.CreateAsync(user, password);
+        if (!result.Succeeded)
+            throw new ConflictException("auth.registration_failed",
+                string.Join("; ", result.Errors.Select(e => e.Description)));
+
+        await EnsureRoleAsync(UserRoles.VendorManager);
+        await users.AddToRoleAsync(user, UserRoles.VendorManager);
+
+        return new AuthenticatedUser(user.Id, email, [UserRoles.VendorManager], companyId);
     }
 
     private async Task EnsureRoleAsync(string role)

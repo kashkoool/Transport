@@ -15,7 +15,11 @@ public interface IIdentityService
     /// UnauthorizedException if the account is locked out.
     /// </summary>
     Task<AuthenticatedUser?> ValidateCredentialsAsync(string email, string password, CancellationToken ct = default);
+
+    /// <summary>Create a vendor-manager account bound to a company (admin-invoked).</summary>
+    Task<AuthenticatedUser> RegisterVendorManagerAsync(
+        string email, string password, string fullName, Guid companyId, CancellationToken ct = default);
 }
 
-/// <summary>An authenticated principal: their id, email and role names.</summary>
-public sealed record AuthenticatedUser(Guid UserId, string Email, IReadOnlyList<string> Roles);
+/// <summary>An authenticated principal: id, email, role names and (for vendor staff) company.</summary>
+public sealed record AuthenticatedUser(Guid UserId, string Email, IReadOnlyList<string> Roles, Guid? CompanyId = null);

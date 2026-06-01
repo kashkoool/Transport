@@ -8,6 +8,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.IdentityModel.Tokens;
 using TransportPlatform.Application.Abstractions;
 using TransportPlatform.Application.Common;
+using TransportPlatform.Domain.Identity;
 using TransportPlatform.Infrastructure.Identity;
 using TransportPlatform.Infrastructure.Payments;
 using TransportPlatform.Infrastructure.Persistence;
@@ -84,7 +85,11 @@ public static class DependencyInjection
                     NameClaimType = "sub",
                 };
             });
-        services.AddAuthorization();
+        services.AddAuthorizationBuilder()
+            .AddPolicy(AuthorizationPolicies.AdminOnly, p =>
+                p.RequireRole(UserRoles.Admin, UserRoles.SuperAdmin))
+            .AddPolicy(AuthorizationPolicies.VendorOnly, p =>
+                p.RequireRole(UserRoles.VendorManager));
 
         var paymentSection = config.GetSection(PaymentOptions.SectionName);
         services.Configure<PaymentOptions>(options =>

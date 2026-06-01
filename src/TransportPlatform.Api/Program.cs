@@ -6,10 +6,12 @@ using Microsoft.AspNetCore.ResponseCompression;
 using Scalar.AspNetCore;
 using Serilog;
 using TransportPlatform.Api.Endpoints;
+using TransportPlatform.Api.Identity;
 using TransportPlatform.Api.Middleware;
 using TransportPlatform.Api.Security;
 using TransportPlatform.Api.Workers;
 using TransportPlatform.Application;
+using TransportPlatform.Application.Common;
 using TransportPlatform.Infrastructure;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -45,6 +47,10 @@ builder.Services.Configure<ForwardedHeadersOptions>(options =>
 // ── Application + infrastructure (use-cases, EF Core, identity, payment gateway) ─
 builder.Services.AddApplication();
 builder.Services.AddInfrastructure(builder.Configuration);
+
+// Resolve the authenticated caller from request claims, for tenant-scoped handlers.
+builder.Services.AddHttpContextAccessor();
+builder.Services.AddScoped<ICurrentUser, HttpCurrentUser>();
 
 // ── API surface ────────────────────────────────────────────────────────────────
 builder.Services.AddOpenApi();
@@ -150,6 +156,8 @@ app.UseAuthorization();
 // ── Endpoints ────────────────────────────────────────────────────────────────
 app.MapHealthChecks("/health");
 app.MapAuthEndpoints();
+app.MapAdminEndpoints();
+app.MapVendorEndpoints();
 app.MapTripEndpoints();
 app.MapBookingEndpoints();
 app.MapPaymentEndpoints();
