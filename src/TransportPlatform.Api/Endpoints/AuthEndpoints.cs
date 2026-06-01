@@ -9,7 +9,9 @@ public static class AuthEndpoints
 {
     public sealed record RegisterRequest(string Email, string Password, string FullName);
     public sealed record LoginRequest(string Email, string Password);
-    public sealed record RefreshRequest(string RefreshToken);
+    // Optional: a browser SPA carries the refresh token in the HttpOnly `rt` cookie and sends
+    // no body; API/native clients may still pass it in the body. Either source is accepted.
+    public sealed record RefreshRequest(string? RefreshToken);
 
     public static IEndpointRouteBuilder MapAuthEndpoints(this IEndpointRouteBuilder app)
     {
@@ -18,45 +20,61 @@ public static class AuthEndpoints
             .RequireRateLimiting(RateLimitPolicies.Auth);
 
         group.MapPost("/register", async (
-            RegisterRequest body, RegisterHandler handler,
-            IValidator<RegisterCommand> validator, CancellationToken ct) =>
+            RegisterRequest body, RegisterHandler handler, HttpResponse response,
+            IValidator<RegisterCommand> validator, IHostEnvironment env, CancellationToken ct) =>
         {
             var command = new RegisterCommand(body.Email, body.Password, body.FullName);
             await validator.ValidateAndThrowAsync(command, ct);
-            return Results.Ok(await handler.HandleAsync(command, ct));
+            var result = await handler.HandleAsync(command, ct);
+            RefreshCookie.Set(response, result.RefreshToken, result.RefreshTokenExpiresAtUtc, RefreshCookie.SecureFor(env));
+            return Results.Ok(result);
         })
         .WithName("Register")
         .WithSummary("Register a new customer account and receive tokens.");
 
         group.MapPost("/login", async (
-            LoginRequest body, LoginHandler handler,
-            IValidator<LoginCommand> validator, CancellationToken ct) =>
+            LoginRequest body, LoginHandler handler, HttpResponse response,
+            IValidator<LoginCommand> validator, IHostEnvironment env, CancellationToken ct) =>
         {
             var command = new LoginCommand(body.Email, body.Password);
             await validator.ValidateAndThrowAsync(command, ct);
-            return Results.Ok(await handler.HandleAsync(command, ct));
+            var result = await handler.HandleAsync(command, ct);
+            RefreshCookie.Set(response, result.RefreshToken, result.RefreshTokenExpiresAtUtc, RefreshCookie.SecureFor(env));
+            return Results.Ok(result);
         })
         .WithName("Login")
         .WithSummary("Authenticate and receive access + refresh tokens.");
 
         group.MapPost("/refresh", async (
-            RefreshRequest body, RefreshHandler handler, CancellationToken ct) =>
+            HttpContext http, RefreshHandler handler, IHostEnvironment env, CancellationToken ct,
+            RefreshRequest? body = null) =>
         {
-            if (string.IsNullOrWhiteSpace(body.RefreshToken))
+            // Body first (back-compat for API/native clients and existing tests), then the
+            // HttpOnly cookie used by the SPA.
+            var token = body?.RefreshToken is { Length: > 0 } b ? b : RefreshCookie.Read(http.Request);
+            if (string.IsNullOrWhiteSpace(token))
                 return Results.BadRequest(new { code = "auth.refresh_required", message = "A refresh token is required." });
-            return Results.Ok(await handler.HandleAsync(new RefreshCommand(body.RefreshToken), ct));
+
+            var rotated = await handler.HandleAsync(new RefreshCommand(token), ct);
+            // Rotation: replace the cookie with the new refresh token so the SPA stays logged in.
+            RefreshCookie.Set(http.Response, rotated.RefreshToken, rotated.RefreshTokenExpiresAtUtc, RefreshCookie.SecureFor(env));
+            return Results.Ok(rotated);
         })
         .WithName("Refresh")
         .WithSummary("Exchange a refresh token for a new pair (rotates; detects reuse).");
 
         group.MapPost("/logout", async (
-            RefreshRequest body, LogoutHandler handler, CancellationToken ct) =>
+            HttpContext http, LogoutHandler handler, IHostEnvironment env, CancellationToken ct,
+            RefreshRequest? body = null) =>
         {
-            await handler.HandleAsync(new LogoutCommand(body.RefreshToken ?? string.Empty), ct);
+            var token = body?.RefreshToken is { Length: > 0 } b ? b : RefreshCookie.Read(http.Request);
+            await handler.HandleAsync(new LogoutCommand(token ?? string.Empty), ct);
+            // Always clear the cookie, even if there was no token to revoke (idempotent logout).
+            RefreshCookie.Delete(http.Response, RefreshCookie.SecureFor(env));
             return Results.NoContent();
         })
         .WithName("Logout")
-        .WithSummary("Revoke a refresh token.");
+        .WithSummary("Revoke a refresh token and clear the refresh cookie.");
 
         group.MapGet("/me", (ClaimsPrincipal principal) =>
             Results.Ok(new

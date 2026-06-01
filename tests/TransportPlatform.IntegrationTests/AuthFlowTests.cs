@@ -3,6 +3,7 @@ using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using System.Text.Json;
 using FluentAssertions;
+using Microsoft.AspNetCore.Mvc.Testing;
 
 namespace TransportPlatform.IntegrationTests;
 
@@ -62,6 +63,56 @@ public sealed class AuthFlowTests(ApiFactory factory) : IClassFixture<ApiFactory
             new { refreshToken = registered.RefreshToken });
         reuseResp.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
     }
+
+    [Fact]
+    public async Task Refresh_works_from_the_HttpOnly_cookie_alone_and_rotation_is_detected()
+    {
+        // Manage cookies by hand so we can assert the Set-Cookie attributes and deliberately
+        // replay a stale cookie (the auto cookie container would silently overwrite it).
+        var client = factory.CreateClient(new WebApplicationFactoryClientOptions { HandleCookies = false });
+        var email = $"u{Guid.NewGuid():N}@example.com";
+
+        // 1. Register → the refresh token is delivered as an HttpOnly cookie.
+        var registerResp = await client.PostAsJsonAsync("/api/auth/register",
+            new { email, password = Password, fullName = "Cookie User" });
+        registerResp.StatusCode.Should().Be(HttpStatusCode.OK);
+
+        var setCookie = registerResp.Headers.GetValues("Set-Cookie").Single(c => c.StartsWith("rt=", StringComparison.Ordinal));
+        setCookie.Should().Contain("httponly", "the refresh token must not be reachable from JavaScript");
+        setCookie.Should().Contain("samesite=strict");
+        setCookie.Should().Contain("path=/api/auth");
+        var originalCookie = CookiePair(setCookie);
+
+        // 2. Refresh with ONLY the cookie (empty JSON body, no token field) → succeeds and
+        //    rotates: a fresh rt cookie comes back.
+        var refreshResp = await PostWithCookieAsync(client, "/api/auth/refresh", originalCookie);
+        refreshResp.StatusCode.Should().Be(HttpStatusCode.OK);
+        var rotatedCookie = CookiePair(refreshResp.Headers.GetValues("Set-Cookie").Single(c => c.StartsWith("rt=", StringComparison.Ordinal)));
+        rotatedCookie.Should().NotBe(originalCookie, "rotation must issue a new refresh token");
+
+        // 3. Replaying the now-rotated original cookie → reuse detected, unauthorized.
+        var reuseResp = await PostWithCookieAsync(client, "/api/auth/refresh", originalCookie);
+        reuseResp.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
+
+        // 4. Logout clears the cookie (Set-Cookie with an expired/empty rt).
+        var logoutResp = await PostWithCookieAsync(client, "/api/auth/logout", rotatedCookie);
+        logoutResp.StatusCode.Should().Be(HttpStatusCode.NoContent);
+        logoutResp.Headers.GetValues("Set-Cookie").Should().Contain(c => c.StartsWith("rt=", StringComparison.Ordinal));
+    }
+
+    private static Task<HttpResponseMessage> PostWithCookieAsync(HttpClient client, string path, string rtCookie)
+    {
+        var request = new HttpRequestMessage(HttpMethod.Post, path)
+        {
+            // Send an empty JSON object so model binding for the optional body succeeds.
+            Content = JsonContent.Create(new { }),
+        };
+        request.Headers.Add("Cookie", rtCookie);
+        return client.SendAsync(request);
+    }
+
+    /// <summary>Extract just the `name=value` pair from a Set-Cookie header (drops attributes).</summary>
+    private static string CookiePair(string setCookieHeader) => setCookieHeader.Split(';', 2)[0];
 
     private static Task<HttpResponseMessage> GetMeAsync(HttpClient client, string accessToken)
     {

@@ -53,6 +53,14 @@ public sealed class ApiFactory : WebApplicationFactory<Program>, IAsyncLifetime
         builder.UseSetting("Jwt:SigningKey", "integration-tests-signing-key-please-change-0123456789");
         builder.UseSetting("Jwt:AccessTokenMinutes", "15");
         builder.UseSetting("Jwt:RefreshTokenDays", "14");
+
+        // TestServer has no real client IP, so every request keys into the same rate-limit
+        // bucket. Raise the limits well above any single test's call count so we exercise the
+        // auth/booking FLOW, not the limiter (production keeps the strict config defaults).
+        builder.UseSetting("RateLimiting:GlobalPerMinute", "100000");
+        builder.UseSetting("RateLimiting:AuthPerMinute", "100000");
+        builder.UseSetting("RateLimiting:SensitivePerMinute", "100000");
+        builder.UseSetting("RateLimiting:WebhookPerMinute", "100000");
     }
 
     /// <summary>Seed a bookable trip and return its id, seat count and price.</summary>
