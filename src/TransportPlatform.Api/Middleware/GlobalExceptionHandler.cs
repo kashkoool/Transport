@@ -10,7 +10,8 @@ namespace TransportPlatform.Api.Middleware;
 /// become safe 4xx responses with a stable error code; anything else is a 500 with no
 /// internal details leaked to the client (but fully logged server-side).
 /// </summary>
-public sealed class GlobalExceptionHandler(ILogger<GlobalExceptionHandler> logger) : IExceptionHandler
+public sealed class GlobalExceptionHandler(
+    ILogger<GlobalExceptionHandler> logger, IHostEnvironment env) : IExceptionHandler
 {
     // Cached, allocation-free logging delegates (satisfies CA1848).
     private static readonly Action<ILogger, Exception?> LogUnhandled =
@@ -47,6 +48,29 @@ public sealed class GlobalExceptionHandler(ILogger<GlobalExceptionHandler> logge
         };
         problem.Extensions["code"] = code;
         problem.Extensions["traceId"] = httpContext.TraceIdentifier;
+
+        // In Development only, surface the underlying exception so failures are debuggable
+        // (e.g. from integration tests, which don't capture the server console). Production
+        // never leaks internal details — the 500 body stays generic.
+        if (status >= 500 && env.IsDevelopment())
+        {
+            problem.Detail = exception.Message;
+            problem.Extensions["exceptionType"] = exception.GetType().FullName;
+            // For DbUpdateException/DbUpdateConcurrencyException, list the offending entities
+            // (reflection avoids an EF Core compile dependency in the API layer).
+            if (exception.GetType().GetProperty("Entries")?.GetValue(exception) is System.Collections.IEnumerable entries)
+            {
+                var failed = new List<string>();
+                foreach (var entry in entries)
+                {
+                    var entity = entry.GetType().GetProperty("Entity")?.GetValue(entry)?.GetType().Name;
+                    var state = entry.GetType().GetProperty("State")?.GetValue(entry)?.ToString();
+                    failed.Add($"{entity}:{state}");
+                }
+                problem.Extensions["failedEntries"] = failed;
+            }
+            problem.Extensions["stackTrace"] = exception.ToString();
+        }
 
         httpContext.Response.StatusCode = status;
         await httpContext.Response.WriteAsJsonAsync(problem, cancellationToken);
