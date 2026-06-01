@@ -67,8 +67,10 @@ export class LoginComponent {
     const { email, password } = this.form.getRawValue();
     this.auth.login(email, password).subscribe({
       next: () => {
-        const returnUrl = this.route.snapshot.queryParamMap.get('returnUrl') ?? '/search';
-        this.router.navigateByUrl(returnUrl);
+        // Honor an explicit returnUrl (e.g. bounced from a guarded page), else send the user to
+        // the home for their role (admin → companies, vendor → trips, customer → search).
+        const returnUrl = this.route.snapshot.queryParamMap.get('returnUrl');
+        this.router.navigateByUrl(returnUrl ?? this.auth.homeRoute());
       },
       error: () => this.submitting.set(false),
     });

@@ -98,8 +98,14 @@ export class PayComponent implements OnInit {
       next: (session) => {
         this.busy.set(false);
         if (environment.production) {
-          // Real deployment: hand off to the gateway's hosted checkout page.
-          window.location.href = session.checkoutUrl;
+          // Hand off to the gateway's hosted checkout page. Defense-in-depth: only ever navigate
+          // to an absolute https URL, so a malformed/non-https value can never become a
+          // javascript:/data: redirect.
+          if (/^https:\/\//i.test(session.checkoutUrl)) {
+            window.location.href = session.checkoutUrl;
+          } else {
+            this.toasts.error('The payment provider returned an invalid checkout URL.');
+          }
         } else {
           // Local/dev: the sandbox URL isn't a real page, so reveal the simulate controls.
           this.checkoutStarted.set(true);
