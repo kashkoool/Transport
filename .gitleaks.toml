@@ -1,0 +1,23 @@
+title = "TPX gitleaks config"
+
+# Start from gitleaks' full default ruleset, then allowlist the handful of NON-secret
+# placeholders this repo intentionally ships (dev/test config). No real credential lives in
+# the repo — production secrets come from a secrets manager at runtime (see DEPLOYMENT.md).
+[extend]
+useDefault = true
+
+[allowlist]
+description = "Known non-secret dev/test placeholders"
+regexTarget = "match"
+regexes = [
+  '''change_me[a-z0-9_]*''',
+  '''dev_only_signing_key[a-z0-9_]*''',
+  '''local_dev_signing_key[a-z0-9_]*''',
+  '''integration-tests-signing-key[a-z0-9-]*''',
+  '''dev_sandbox_webhook_secret''',
+  '''change_me_sandbox_webhook_secret''',
+]
+paths = [
+  '''\.env\.example$''',
+  '''\.gitleaks\.toml$''',
+]

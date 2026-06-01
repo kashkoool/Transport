@@ -1,0 +1,37 @@
+# yaml-language-server: $schema=https://coderabbit.ai/integrations/schema.v2.json
+# CodeRabbit AI PR review. Install the GitHub App once (https://github.com/apps/coderabbitai)
+# on this repo; this file tunes it. Free for public repos.
+
+reviews:
+  profile: chill # less nit-picky
+  request_changes_workflow: false
+  poem: false
+  collapse_walkthrough: true
+  auto_review:
+    enabled: true
+    drafts: false
+    base_branches: [main]
+  # Skip generated / vendored / churn paths so reviews focus on real code.
+  path_filters:
+    - "!**/package-lock.json"
+    - "!**/*.lock"
+    - "!**/dist/**"
+    - "!**/bin/**"
+    - "!**/obj/**"
+    - "!**/Migrations/*.Designer.cs"
+    - "!**/Migrations/*ModelSnapshot.cs"
+  # Per-area review priorities for the bits where mistakes are costly.
+  path_instructions:
+    - path: "src/TransportPlatform.Api/Endpoints/**"
+      instructions: "Minimal-API endpoints. Check authorization + rate-limit policies, owner-scoped queries (no IDOR), and that no concrete Infrastructure type is used (Application abstractions only)."
+    - path: "src/**/Identity/**"
+      instructions: "Auth. Verify JWT validation, refresh-token rotation/reuse-detection, HttpOnly+Secure+SameSite cookie flags, and that no secret/PII is logged."
+    - path: "src/**/Payments/**"
+      instructions: "Payments. Verify HMAC webhook signature checks, idempotency, server-side amounts, and that no card data is stored."
+    - path: "src/TransportPlatform.Domain/**"
+      instructions: "Domain must depend on nothing else; flag any reference to Application/Infrastructure/Api."
+    - path: ".github/workflows/**"
+      instructions: "CI/CD. Require least-privilege permissions, no long-lived cloud secrets (prefer OIDC), and pinned actions."
+
+chat:
+  auto_reply: true

@@ -1,0 +1,22 @@
+#!/bin/sh
+# Pre-push secret gate: blocks the push if gitleaks finds a secret, so nothing leaks to the
+# remote. Enable once with:  git config core.hooksPath scripts/git-hooks
+#
+# Uses a local gitleaks binary if installed, else runs it via Docker. Fails closed: if neither
+# is available the push is blocked rather than scanned silently.
+set -e
+
+echo "🔒 pre-push: scanning for secrets with gitleaks..."
+
+if command -v gitleaks >/dev/null 2>&1; then
+  gitleaks detect --source=. --redact --no-banner
+elif command -v docker >/dev/null 2>&1; then
+  docker run --rm -v "$(pwd):/repo" -w /repo ghcr.io/gitleaks/gitleaks:latest \
+    detect --source=. --redact --no-banner
+else
+  echo "❌ pre-push: neither 'gitleaks' nor 'docker' is available — cannot scan. Install one." >&2
+  echo "   (To bypass in a genuine emergency: git push --no-verify)" >&2
+  exit 1
+fi
+
+echo "✅ pre-push: no secrets detected."

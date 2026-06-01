@@ -62,6 +62,29 @@ ghcr.io/<owner>/transport-web:<sha>   ghcr.io/<owner>/transport-web:latest
 CD needs no external cloud account or long-lived secrets — GHCR auth uses the built-in
 `GITHUB_TOKEN`.
 
+### Secret-leak defense (layered)
+
+Three independent gates stop a secret before/at GitHub:
+
+1. **Local pre-push hook** — `scripts/git-hooks/pre-push` runs **gitleaks** and blocks the push
+   if anything is found. Enable it once per clone:
+
+   ```sh
+   git config core.hooksPath scripts/git-hooks
+   ```
+
+   It uses a local `gitleaks` binary if present, else runs it via Docker. Config +
+   dev/test-placeholder allowlist live in `.gitleaks.toml`. Emergency bypass: `git push --no-verify`.
+2. **GitHub push protection + secret scanning** — server-side, blocks a push containing a
+   detected secret even if the hook was skipped.
+3. **CI `gitleaks` job** — scans every PR/push as the last backstop.
+
+### CodeRabbit (AI PR review)
+
+`.coderabbit.yaml` tunes an AI reviewer that comments on every PR (bugs, security, perf), with
+per-area focus on auth/payments/endpoints. One-time setup: install the GitHub App at
+<https://github.com/apps/coderabbitai> on the repo (free for public repos).
+
 ## 4. Production configuration (required)
 
 The API **fails fast on boot** in Production if config is unsafe (see `Security/StartupGuards.cs`).
