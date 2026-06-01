@@ -1,11 +1,14 @@
+using System.Text.Json;
 using TransportPlatform.Api.Security;
 using TransportPlatform.Application.Payments;
+using TransportPlatform.Infrastructure.Payments;
 
 namespace TransportPlatform.Api.Endpoints;
 
 public static class PaymentEndpoints
 {
     public sealed record CheckoutRequestBody(Guid BookingId);
+    public sealed record SimulatePaymentBody(string BookingReference, bool Succeeded);
 
     public static IEndpointRouteBuilder MapPaymentEndpoints(this IEndpointRouteBuilder app)
     {
@@ -40,6 +43,33 @@ public static class PaymentEndpoints
         .RequireRateLimiting(RateLimitPolicies.Webhook)
         .WithName("PaymentWebhook")
         .WithSummary("Receive a signed payment result from the gateway (authoritative).");
+
+        // DEVELOPMENT ONLY: the Sandbox gateway's hosted page isn't real, so this stands in for
+        // it — the SPA calls it to make the gateway "post" a correctly-signed webhook, letting
+        // the full pay → confirm → ticket journey run end-to-end locally. It is never mapped
+        // outside Development, so production has no way to forge a confirmation.
+        var env = app.ServiceProvider.GetService<IHostEnvironment>();
+        if (env?.IsDevelopment() == true)
+        {
+            group.MapPost("/dev/simulate", async (
+                SimulatePaymentBody body, SandboxPaymentGateway sandbox,
+                ProcessPaymentWebhookHandler handler, CancellationToken ct) =>
+            {
+                var payload = JsonSerializer.Serialize(new
+                {
+                    gatewayReference = $"SBX-{Guid.NewGuid():N}",
+                    bookingReference = body.BookingReference,
+                    succeeded = body.Succeeded,
+                });
+                var signature = sandbox.ComputeSignature(payload);
+                var result = await handler.HandleAsync(new ProcessWebhookCommand(payload, signature), ct);
+                return Results.Ok(new { status = result.Status });
+            })
+            .RequireAuthorization()
+            .RequireRateLimiting(RateLimitPolicies.Sensitive)
+            .WithName("DevSimulatePayment")
+            .WithSummary("DEV ONLY: simulate the gateway posting a signed payment result.");
+        }
 
         return app;
     }
