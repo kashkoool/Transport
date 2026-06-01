@@ -2,7 +2,7 @@
 # syntax=docker/dockerfile:1
 
 # ── Stage 1: build the Angular app ───────────────────────────────────────────────
-FROM node:22-alpine AS build
+FROM node:26-alpine AS build
 WORKDIR /app
 # Cache deps on the lockfile; --ignore-scripts blocks postinstall supply-chain vectors.
 COPY package.json package-lock.json ./
