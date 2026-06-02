@@ -57,6 +57,21 @@ docker compose up --build   # postgres -> migrations -> API -> web (nginx)
 Web app on <http://localhost:8080>, API on <http://localhost:5278>. Containers, CI/CD,
 production config, and cloud deploy targets are documented in [DEPLOYMENT.md](DEPLOYMENT.md).
 
+### Demo accounts (Development only)
+
+On first run in Development the API seeds demo data so you can click through every role
+immediately — sign in with password **`Demo!Passw0rd`**:
+
+| Role | Email |
+| --- | --- |
+| Admin | `admin@tpx.local` |
+| Vendor | `vendor@tpx.local` |
+| Customer | `customer@tpx.local` |
+
+It also creates an active **Demo Lines** company with a bus and three upcoming
+Damascus → Latakia trips, so customer search returns results out of the box. The seeder is
+idempotent and **never runs outside Development** (and is disabled during tests).
+
 ## Keeping the architecture clean
 
 The Dependency Rule is enforced automatically by
