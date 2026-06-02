@@ -1,0 +1,258 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model AspNetRoleClaims {
+  Id          Int         @id(map: "PK_AspNetRoleClaims") @default(autoincrement())
+  RoleId      String      @db.Uuid
+  ClaimType   String?
+  ClaimValue  String?
+  AspNetRoles AspNetRoles @relation(fields: [RoleId], references: [Id], onDelete: Cascade, onUpdate: NoAction, map: "FK_AspNetRoleClaims_AspNetRoles_RoleId")
+
+  @@index([RoleId], map: "IX_AspNetRoleClaims_RoleId")
+}
+
+model AspNetRoles {
+  Id               String             @id(map: "PK_AspNetRoles") @db.Uuid
+  Name             String?            @db.VarChar(256)
+  NormalizedName   String?            @unique(map: "RoleNameIndex") @db.VarChar(256)
+  ConcurrencyStamp String?
+  AspNetRoleClaims AspNetRoleClaims[]
+  AspNetUserRoles  AspNetUserRoles[]
+}
+
+model AspNetUserClaims {
+  Id          Int         @id(map: "PK_AspNetUserClaims") @default(autoincrement())
+  UserId      String      @db.Uuid
+  ClaimType   String?
+  ClaimValue  String?
+  AspNetUsers AspNetUsers @relation(fields: [UserId], references: [Id], onDelete: Cascade, onUpdate: NoAction, map: "FK_AspNetUserClaims_AspNetUsers_UserId")
+
+  @@index([UserId], map: "IX_AspNetUserClaims_UserId")
+}
+
+model AspNetUserLogins {
+  LoginProvider       String
+  ProviderKey         String
+  ProviderDisplayName String?
+  UserId              String      @db.Uuid
+  AspNetUsers         AspNetUsers @relation(fields: [UserId], references: [Id], onDelete: Cascade, onUpdate: NoAction, map: "FK_AspNetUserLogins_AspNetUsers_UserId")
+
+  @@id([LoginProvider, ProviderKey], map: "PK_AspNetUserLogins")
+  @@index([UserId], map: "IX_AspNetUserLogins_UserId")
+}
+
+model AspNetUserRoles {
+  UserId      String      @db.Uuid
+  RoleId      String      @db.Uuid
+  AspNetRoles AspNetRoles @relation(fields: [RoleId], references: [Id], onDelete: Cascade, onUpdate: NoAction, map: "FK_AspNetUserRoles_AspNetRoles_RoleId")
+  AspNetUsers AspNetUsers @relation(fields: [UserId], references: [Id], onDelete: Cascade, onUpdate: NoAction, map: "FK_AspNetUserRoles_AspNetUsers_UserId")
+
+  @@id([UserId, RoleId], map: "PK_AspNetUserRoles")
+  @@index([RoleId], map: "IX_AspNetUserRoles_RoleId")
+}
+
+model AspNetUserTokens {
+  UserId        String      @db.Uuid
+  LoginProvider String
+  Name          String
+  Value         String?
+  AspNetUsers   AspNetUsers @relation(fields: [UserId], references: [Id], onDelete: Cascade, onUpdate: NoAction, map: "FK_AspNetUserTokens_AspNetUsers_UserId")
+
+  @@id([UserId, LoginProvider, Name], map: "PK_AspNetUserTokens")
+}
+
+model AspNetUsers {
+  Id                   String             @id(map: "PK_AspNetUsers") @db.Uuid
+  FullName             String?
+  CompanyId            String?            @db.Uuid
+  UserName             String?            @db.VarChar(256)
+  NormalizedUserName   String?            @unique(map: "UserNameIndex") @db.VarChar(256)
+  Email                String?            @db.VarChar(256)
+  NormalizedEmail      String?            @db.VarChar(256)
+  EmailConfirmed       Boolean
+  PasswordHash         String?
+  SecurityStamp        String?
+  ConcurrencyStamp     String?
+  PhoneNumber          String?
+  PhoneNumberConfirmed Boolean
+  TwoFactorEnabled     Boolean
+  LockoutEnd           DateTime?          @db.Timestamptz(6)
+  LockoutEnabled       Boolean
+  AccessFailedCount    Int
+  AspNetUserClaims     AspNetUserClaims[]
+  AspNetUserLogins     AspNetUserLogins[]
+  AspNetUserRoles      AspNetUserRoles[]
+  AspNetUserTokens     AspNetUserTokens[]
+
+  @@index([NormalizedEmail], map: "EmailIndex")
+}
+
+model EFMigrationsHistory {
+  MigrationId    String @id(map: "PK___EFMigrationsHistory") @db.VarChar(150)
+  ProductVersion String @db.VarChar(32)
+
+  @@map("__EFMigrationsHistory")
+}
+
+model booking {
+  Id              String            @id(map: "PK_booking") @db.Uuid
+  TripId          String            @db.Uuid
+  CustomerEmail   String            @db.VarChar(256)
+  Reference       String            @unique(map: "IX_booking_Reference") @db.VarChar(40)
+  Status          String            @db.VarChar(20)
+  TotalAmount     Decimal           @db.Decimal(12, 2)
+  Currency        String            @db.VarChar(3)
+  IdempotencyKey  String            @unique(map: "IX_booking_IdempotencyKey") @db.VarChar(100)
+  CreatedAtUtc    DateTime          @db.Timestamptz(6)
+  UpdatedAtUtc    DateTime?         @db.Timestamptz(6)
+  CreatedBy       String?
+  trip            trip              @relation(fields: [TripId], references: [Id], onUpdate: NoAction, map: "FK_booking_trip_TripId")
+  passenger       passenger[]
+  payment         payment?
+  seat_assignment seat_assignment[]
+
+  @@index([CustomerEmail], map: "IX_booking_CustomerEmail")
+  @@index([TripId], map: "IX_booking_TripId")
+}
+
+model bus {
+  Id           String    @id(map: "PK_bus") @db.Uuid
+  CompanyId    String    @db.Uuid
+  BusNumber    String    @db.VarChar(40)
+  SeatCount    Int
+  Type         String    @db.VarChar(20)
+  Model        String?   @db.VarChar(100)
+  CreatedAtUtc DateTime  @db.Timestamptz(6)
+  UpdatedAtUtc DateTime? @db.Timestamptz(6)
+  CreatedBy    String?
+  company      company   @relation(fields: [CompanyId], references: [Id], onUpdate: NoAction, map: "FK_bus_company_CompanyId")
+  trip         trip[]
+
+  @@unique([CompanyId, BusNumber], map: "IX_bus_CompanyId_BusNumber")
+}
+
+model company {
+  Id           String    @id(map: "PK_company") @db.Uuid
+  Name         String    @db.VarChar(200)
+  Email        String    @unique(map: "IX_company_Email") @db.VarChar(256)
+  Phone        String?   @db.VarChar(40)
+  Status       String    @db.VarChar(20)
+  CreatedAtUtc DateTime  @db.Timestamptz(6)
+  UpdatedAtUtc DateTime? @db.Timestamptz(6)
+  CreatedBy    String?
+  bus          bus[]
+  trip         trip[]
+}
+
+model outbox_message {
+  Id             String    @id(map: "PK_outbox_message") @db.Uuid
+  Type           String    @db.VarChar(200)
+  Payload        String
+  OccurredAtUtc  DateTime  @db.Timestamptz(6)
+  ProcessedAtUtc DateTime? @db.Timestamptz(6)
+  Attempts       Int
+  Error          String?   @db.VarChar(2000)
+
+  @@index([ProcessedAtUtc, OccurredAtUtc], map: "IX_outbox_message_ProcessedAtUtc_OccurredAtUtc")
+}
+
+model passenger {
+  Id         String  @id(map: "PK_passenger") @db.Uuid
+  BookingId  String  @db.Uuid
+  FirstName  String  @db.VarChar(100)
+  LastName   String  @db.VarChar(100)
+  SeatNumber Int
+  booking    booking @relation(fields: [BookingId], references: [Id], onDelete: Cascade, onUpdate: NoAction, map: "FK_passenger_booking_BookingId")
+
+  @@index([BookingId], map: "IX_passenger_BookingId")
+}
+
+model payment {
+  Id             String    @id(map: "PK_payment") @db.Uuid
+  BookingId      String    @unique(map: "IX_payment_BookingId") @db.Uuid
+  Gateway        String    @db.VarChar(50)
+  GatewayTxnRef  String?   @db.VarChar(200)
+  Status         String    @db.VarChar(20)
+  Amount         Decimal   @db.Decimal(12, 2)
+  Currency       String    @db.VarChar(3)
+  IdempotencyKey String    @unique(map: "IX_payment_IdempotencyKey") @db.VarChar(100)
+  CreatedAtUtc   DateTime  @db.Timestamptz(6)
+  UpdatedAtUtc   DateTime? @db.Timestamptz(6)
+  CreatedBy      String?
+  booking        booking   @relation(fields: [BookingId], references: [Id], onDelete: Cascade, onUpdate: NoAction, map: "FK_payment_booking_BookingId")
+
+  @@index([GatewayTxnRef], map: "IX_payment_GatewayTxnRef")
+}
+
+model refresh_token {
+  Id             String    @id(map: "PK_refresh_token") @db.Uuid
+  UserId         String    @db.Uuid
+  TokenHash      String    @unique(map: "IX_refresh_token_TokenHash") @db.VarChar(128)
+  CreatedAtUtc   DateTime  @db.Timestamptz(6)
+  ExpiresAtUtc   DateTime  @db.Timestamptz(6)
+  RevokedAtUtc   DateTime? @db.Timestamptz(6)
+  ReplacedByHash String?   @db.VarChar(128)
+
+  @@index([UserId], map: "IX_refresh_token_UserId")
+}
+
+model seat_assignment {
+  Id         String  @id(map: "PK_seat_assignment") @db.Uuid
+  TripId     String  @db.Uuid
+  SeatNumber Int
+  BookingId  String  @db.Uuid
+  booking    booking @relation(fields: [BookingId], references: [Id], onDelete: Cascade, onUpdate: NoAction, map: "FK_seat_assignment_booking_BookingId")
+  trip       trip    @relation(fields: [TripId], references: [Id], onUpdate: NoAction, map: "FK_seat_assignment_trip_TripId")
+
+  @@unique([TripId, SeatNumber], map: "IX_seat_assignment_TripId_SeatNumber")
+  @@index([BookingId], map: "IX_seat_assignment_BookingId")
+}
+
+model seat_hold {
+  Id           String    @id(map: "PK_seat_hold") @db.Uuid
+  TripId       String    @db.Uuid
+  SeatNumber   Int
+  HeldBy       String    @db.VarChar(256)
+  BookingId    String?   @db.Uuid
+  ExpiresAtUtc DateTime  @db.Timestamptz(6)
+  Consumed     Boolean
+  CreatedAtUtc DateTime  @db.Timestamptz(6)
+  UpdatedAtUtc DateTime? @db.Timestamptz(6)
+  CreatedBy    String?
+  trip         trip      @relation(fields: [TripId], references: [Id], onDelete: Cascade, onUpdate: NoAction, map: "FK_seat_hold_trip_TripId")
+
+  @@index([BookingId], map: "IX_seat_hold_BookingId")
+  @@index([ExpiresAtUtc], map: "IX_seat_hold_ExpiresAtUtc")
+}
+
+model trip {
+  Id              String            @id(map: "PK_trip") @db.Uuid
+  CompanyId       String            @db.Uuid
+  BusId           String            @db.Uuid
+  Origin          String            @db.VarChar(120)
+  Destination     String            @db.VarChar(120)
+  DepartureUtc    DateTime          @db.Timestamptz(6)
+  ArrivalUtc      DateTime          @db.Timestamptz(6)
+  SeatCount       Int
+  Price           Decimal           @db.Decimal(12, 2)
+  Currency        String            @db.VarChar(3)
+  Status          String            @db.VarChar(20)
+  CreatedAtUtc    DateTime          @db.Timestamptz(6)
+  UpdatedAtUtc    DateTime?         @db.Timestamptz(6)
+  CreatedBy       String?
+  booking         booking[]
+  seat_assignment seat_assignment[]
+  seat_hold       seat_hold[]
+  bus             bus               @relation(fields: [BusId], references: [Id], onUpdate: NoAction, map: "FK_trip_bus_BusId")
+  company         company           @relation(fields: [CompanyId], references: [Id], onUpdate: NoAction, map: "FK_trip_company_CompanyId")
+
+  @@index([BusId], map: "IX_trip_BusId")
+  @@index([CompanyId], map: "IX_trip_CompanyId")
+  @@index([Origin, Destination, DepartureUtc], map: "IX_trip_Origin_Destination_DepartureUtc")
+}

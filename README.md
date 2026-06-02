@@ -54,11 +54,18 @@ Then run the customer app — see [web/customer/README.md](web/customer/README.m
 docker compose up --build   # postgres -> migrations -> API -> web (nginx)
 ```
 
-Web app on <http://localhost:8080>, API on <http://localhost:5278>, and a **database browser**
-(Adminer — the Postgres equivalent of Prisma Studio) on <http://localhost:8081> (System:
-PostgreSQL, Server: `postgres`, User/DB: `transport`, Password: your `POSTGRES_PASSWORD`).
+Web app on <http://localhost:8080>, API on <http://localhost:5278>. The compose Postgres is
+published on host port **5433** (so it never clashes with a PostgreSQL already on 5432).
 Containers, CI/CD, production config, and cloud deploy targets are documented in
 [DEPLOYMENT.md](DEPLOYMENT.md).
+
+**Browse the database in your browser** — two options:
+
+- **Prisma Studio** (npm-based, works even when Docker image pulls fail) — `tools/db-studio`
+  → <http://localhost:5555>. See [tools/db-studio/README.md](tools/db-studio/README.md).
+- **Adminer** (containerized, opt-in): `docker compose up -d adminer` → <http://localhost:8081>
+  (System: PostgreSQL, Server: `postgres`, User/DB: `transport`, Password: your
+  `POSTGRES_PASSWORD`).
 
 ### Demo accounts (Development only)
 
