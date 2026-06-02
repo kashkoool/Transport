@@ -74,5 +74,18 @@ services:
     ports:
       - "8080:8080"
 
+  # Dev-only web DB browser (the Postgres equivalent of Prisma Studio). Open http://localhost:8081
+  # — System: PostgreSQL, Server: postgres, User/DB: transport, Password: the POSTGRES_PASSWORD.
+  # Never deploy this; it's a convenience for local development only.
+  adminer:
+    image: adminer:5
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      ADMINER_DEFAULT_SERVER: postgres
+    ports:
+      - "8081:8080"
+
 volumes:
   pgdata:
