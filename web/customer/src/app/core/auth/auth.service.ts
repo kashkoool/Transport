@@ -99,6 +99,28 @@ export class AuthService {
     );
   }
 
+  /** Request a password-reset email. Always succeeds (anti-enumeration) — never reveals the account. */
+  forgotPassword(email: string): Observable<void> {
+    return this.http.post<unknown>(`${this.api}/forgot-password`, { email }).pipe(map(() => void 0));
+  }
+
+  /** Complete a password reset with the emailed token. Errors (invalid/expired) surface via the interceptor. */
+  resetPassword(email: string, token: string, newPassword: string): Observable<void> {
+    return this.http
+      .post<unknown>(`${this.api}/reset-password`, { email, token, newPassword })
+      .pipe(map(() => void 0));
+  }
+
+  /** Confirm an email address with the emailed token. */
+  verifyEmail(email: string, token: string): Observable<void> {
+    return this.http.post<unknown>(`${this.api}/verify-email`, { email, token }).pipe(map(() => void 0));
+  }
+
+  /** Re-send the verification email if applicable. Always succeeds (anti-enumeration). */
+  resendVerification(email: string): Observable<void> {
+    return this.http.post<unknown>(`${this.api}/resend-verification`, { email }).pipe(map(() => void 0));
+  }
+
   private acceptAuth(r: AuthResult): void {
     this.accessToken.set(r.accessToken);
     this.email.set(r.email);

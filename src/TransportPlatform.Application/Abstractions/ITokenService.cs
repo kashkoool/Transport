@@ -23,6 +23,9 @@ public interface ITokenService
 
     /// <summary>Revoke a refresh token (logout). No-op if it does not exist.</summary>
     Task RevokeAsync(string refreshToken, CancellationToken ct = default);
+
+    /// <summary>Revoke ALL active refresh tokens for a user — e.g. after a password reset.</summary>
+    Task RevokeAllForUserAsync(Guid userId, CancellationToken ct = default);
 }
 
 /// <summary>An issued access token plus its companion refresh token.</summary>

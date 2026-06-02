@@ -83,6 +83,10 @@ public sealed class JwtTokenService(
         }
     }
 
+    /// <summary>Public entry point (ITokenService): revoke every active refresh token for a user.</summary>
+    public Task RevokeAllForUserAsync(Guid userId, CancellationToken ct = default) =>
+        RevokeAllForUserAsync(userId, clock.UtcNow, ct);
+
     private async Task RevokeAllForUserAsync(Guid userId, DateTimeOffset now, CancellationToken ct)
     {
         var active = await db.RefreshTokens

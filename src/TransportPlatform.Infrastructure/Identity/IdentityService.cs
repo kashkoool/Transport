@@ -79,6 +79,53 @@ public sealed class IdentityService(
         return new AuthenticatedUser(user.Id, email, [UserRoles.VendorManager], companyId);
     }
 
+    public async Task<string> GenerateEmailConfirmationTokenAsync(Guid userId, CancellationToken ct = default)
+    {
+        ct.ThrowIfCancellationRequested();
+        var user = await users.FindByIdAsync(userId.ToString());
+        return user is null ? string.Empty : await users.GenerateEmailConfirmationTokenAsync(user);
+    }
+
+    public async Task<bool> ConfirmEmailAsync(string email, string token, CancellationToken ct = default)
+    {
+        ct.ThrowIfCancellationRequested();
+        var user = await users.FindByEmailAsync(email);
+        if (user is null)
+            return false;
+        var result = await users.ConfirmEmailAsync(user, token);
+        return result.Succeeded;
+    }
+
+    public async Task<(Guid UserId, string Token)?> CreateEmailVerificationTokenAsync(string email, CancellationToken ct = default)
+    {
+        ct.ThrowIfCancellationRequested();
+        var user = await users.FindByEmailAsync(email);
+        if (user is null || user.EmailConfirmed)
+            return null;
+        var token = await users.GenerateEmailConfirmationTokenAsync(user);
+        return (user.Id, token);
+    }
+
+    public async Task<(Guid UserId, string Token)?> CreatePasswordResetTokenAsync(string email, CancellationToken ct = default)
+    {
+        ct.ThrowIfCancellationRequested();
+        var user = await users.FindByEmailAsync(email);
+        if (user is null)
+            return null;
+        var token = await users.GeneratePasswordResetTokenAsync(user);
+        return (user.Id, token);
+    }
+
+    public async Task<Guid?> ResetPasswordAsync(string email, string token, string newPassword, CancellationToken ct = default)
+    {
+        ct.ThrowIfCancellationRequested();
+        var user = await users.FindByEmailAsync(email);
+        if (user is null)
+            return null;
+        var result = await users.ResetPasswordAsync(user, token, newPassword);
+        return result.Succeeded ? user.Id : null;
+    }
+
     private async Task EnsureRoleAsync(string role)
     {
         if (!await roles.RoleExistsAsync(role))
