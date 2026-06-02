@@ -47,6 +47,16 @@ public static class StartupGuards
         if (allowedHosts.Trim() is "" or "*")
             problems.Add("AllowedHosts must be an explicit host allow-list in production (not '*'), to prevent host-header injection.");
 
+        // Email: production must send real mail (the dev logging sink is for local only) and
+        // build links to the real web app.
+        if (string.IsNullOrWhiteSpace(config["Email:SmtpHost"]))
+            problems.Add("Email:SmtpHost must be set in production (the logging sink is dev-only).");
+        if (string.IsNullOrWhiteSpace(config["Email:FromAddress"]))
+            problems.Add("Email:FromAddress must be set in production.");
+        var frontendUrl = config["Email:FrontendBaseUrl"] ?? string.Empty;
+        if (!Uri.IsWellFormedUriString(frontendUrl, UriKind.Absolute))
+            problems.Add("Email:FrontendBaseUrl must be a valid absolute URL in production (used to build email links).");
+
         if (problems.Count > 0)
             throw new InvalidOperationException(
                 "Insecure production configuration:" + Environment.NewLine +

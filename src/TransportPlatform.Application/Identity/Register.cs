@@ -17,11 +17,18 @@ public sealed class RegisterValidator : AbstractValidator<RegisterCommand>
 }
 
 /// <summary>Registers a new customer and immediately issues their first token pair.</summary>
-public sealed class RegisterHandler(IIdentityService identity, ITokenService tokens)
+public sealed class RegisterHandler(IIdentityService identity, ITokenService tokens, IAuthEmailService authEmail)
 {
     public async Task<AuthResult> HandleAsync(RegisterCommand command, CancellationToken ct)
     {
         var user = await identity.RegisterCustomerAsync(command.Email, command.Password, command.FullName, ct);
+
+        // Send a verification email (best-effort: the sender swallows transport failures, so a
+        // mail hiccup never fails registration). Verification is not enforced for login yet.
+        var verifyToken = await identity.GenerateEmailConfirmationTokenAsync(user.UserId, ct);
+        if (!string.IsNullOrEmpty(verifyToken))
+            await authEmail.SendEmailVerificationAsync(user.Email, verifyToken, ct);
+
         var issued = await tokens.IssueAsync(user.UserId, user.Email, user.Roles, user.CompanyId, ct);
         return AuthResult.From(issued, user);
     }

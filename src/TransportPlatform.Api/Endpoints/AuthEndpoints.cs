@@ -12,6 +12,13 @@ public static class AuthEndpoints
     // Optional: a browser SPA carries the refresh token in the HttpOnly `rt` cookie and sends
     // no body; API/native clients may still pass it in the body. Either source is accepted.
     public sealed record RefreshRequest(string? RefreshToken);
+    public sealed record ForgotPasswordRequest(string Email);
+    public sealed record ResetPasswordRequest(string Email, string Token, string NewPassword);
+    public sealed record VerifyEmailRequest(string Email, string Token);
+    public sealed record ResendVerificationRequest(string Email);
+
+    private static readonly object GenericEmailAck =
+        new { message = "If an account exists for that email, a message has been sent." };
 
     public static IEndpointRouteBuilder MapAuthEndpoints(this IEndpointRouteBuilder app)
     {
@@ -75,6 +82,52 @@ public static class AuthEndpoints
         })
         .WithName("Logout")
         .WithSummary("Revoke a refresh token and clear the refresh cookie.");
+
+        group.MapPost("/forgot-password", async (
+            ForgotPasswordRequest body, RequestPasswordResetHandler handler, CancellationToken ct) =>
+        {
+            // Always the same generic response — never reveal whether the account exists.
+            if (!string.IsNullOrWhiteSpace(body.Email))
+                await handler.HandleAsync(new RequestPasswordResetCommand(body.Email), ct);
+            return Results.Ok(GenericEmailAck);
+        })
+        .WithName("ForgotPassword")
+        .WithSummary("Send a password-reset link if the email maps to an account (always 200).");
+
+        group.MapPost("/reset-password", async (
+            ResetPasswordRequest body, ResetPasswordHandler handler,
+            IValidator<ResetPasswordCommand> validator, CancellationToken ct) =>
+        {
+            var command = new ResetPasswordCommand(body.Email, body.Token, body.NewPassword);
+            await validator.ValidateAndThrowAsync(command, ct);
+            var ok = await handler.HandleAsync(command, ct);
+            return ok
+                ? Results.Ok(new { message = "Your password has been reset." })
+                : Results.BadRequest(new { code = "auth.reset_invalid", message = "This reset link is invalid or has expired." });
+        })
+        .WithName("ResetPassword")
+        .WithSummary("Reset a password using an emailed token; revokes existing sessions.");
+
+        group.MapPost("/verify-email", async (
+            VerifyEmailRequest body, VerifyEmailHandler handler, CancellationToken ct) =>
+        {
+            var ok = await handler.HandleAsync(new VerifyEmailCommand(body.Email, body.Token), ct);
+            return ok
+                ? Results.Ok(new { message = "Your email is verified." })
+                : Results.BadRequest(new { code = "auth.verify_invalid", message = "This verification link is invalid or has expired." });
+        })
+        .WithName("VerifyEmail")
+        .WithSummary("Confirm an email address using an emailed token.");
+
+        group.MapPost("/resend-verification", async (
+            ResendVerificationRequest body, ResendVerificationHandler handler, CancellationToken ct) =>
+        {
+            if (!string.IsNullOrWhiteSpace(body.Email))
+                await handler.HandleAsync(new ResendVerificationCommand(body.Email), ct);
+            return Results.Ok(GenericEmailAck);
+        })
+        .WithName("ResendVerification")
+        .WithSummary("Re-send the verification email if applicable (always 200).");
 
         group.MapGet("/me", (ClaimsPrincipal principal) =>
             Results.Ok(new

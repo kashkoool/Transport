@@ -39,7 +39,12 @@ import { AuthService } from '../../core/auth/auth.service';
           {{ submitting() ? 'Signing in…' : 'Sign in' }}
         </button>
       </form>
-      <p class="mt-4 text-center text-sm text-slate-600">
+      <p class="mt-3 text-center text-sm">
+        <a routerLink="/forgot-password" class="font-medium text-indigo-600 hover:text-indigo-700"
+          >Forgot password?</a
+        >
+      </p>
+      <p class="mt-2 text-center text-sm text-slate-600">
         New here?
         <a routerLink="/register" class="font-medium text-indigo-600 hover:text-indigo-700">Create an account</a>
       </p>

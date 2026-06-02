@@ -3,8 +3,11 @@ using System.Net.Http.Json;
 using System.Text.Json;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
+using Microsoft.AspNetCore.TestHost;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
+using TransportPlatform.Application.Abstractions;
 using Testcontainers.PostgreSql;
 using TransportPlatform.Domain.Common;
 using TransportPlatform.Domain.Companies;
@@ -24,6 +27,9 @@ public sealed class ApiFactory : WebApplicationFactory<Program>, IAsyncLifetime
     private readonly PostgreSqlContainer _postgres = new PostgreSqlBuilder()
         .WithImage("postgres:17-alpine")
         .Build();
+
+    /// <summary>Captures every email the app "sends" so tests can assert + extract tokens.</summary>
+    public CapturingEmailSender Emails { get; } = new();
 
     async Task IAsyncLifetime.InitializeAsync()
     {
@@ -65,6 +71,13 @@ public sealed class ApiFactory : WebApplicationFactory<Program>, IAsyncLifetime
         builder.UseSetting("RateLimiting:AuthPerMinute", "100000");
         builder.UseSetting("RateLimiting:SensitivePerMinute", "100000");
         builder.UseSetting("RateLimiting:WebhookPerMinute", "100000");
+
+        // Capture outgoing email so tests can assert on it and extract verify/reset tokens.
+        builder.ConfigureTestServices(services =>
+        {
+            services.RemoveAll<IEmailSender>();
+            services.AddSingleton<IEmailSender>(Emails);
+        });
     }
 
     /// <summary>Seed a bookable trip and return its id, seat count and price.</summary>

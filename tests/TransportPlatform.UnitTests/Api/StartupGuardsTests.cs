@@ -25,6 +25,9 @@ public class StartupGuardsTests
         ["Payments:WebhookSecret"] = "a-real-production-webhook-secret",
         ["Proxy:TrustedHops"] = "2",
         ["AllowedHosts"] = "api.transport.example",
+        ["Email:SmtpHost"] = "smtp.transport.example",
+        ["Email:FromAddress"] = "noreply@transport.example",
+        ["Email:FrontendBaseUrl"] = "https://app.transport.example",
     };
 
     [Fact]
@@ -50,6 +53,9 @@ public class StartupGuardsTests
     [InlineData("Payments:WebhookSecret", "dev_sandbox_webhook_secret")]
     [InlineData("AllowedHosts", "*")]
     [InlineData("Proxy:TrustedHops", "0")]
+    [InlineData("Email:SmtpHost", "")]
+    [InlineData("Email:FromAddress", "")]
+    [InlineData("Email:FrontendBaseUrl", "not-a-valid-url")]
     public void Each_placeholder_or_unsafe_value_blocks_production_boot(string key, string badValue)
     {
         var values = ValidProd();

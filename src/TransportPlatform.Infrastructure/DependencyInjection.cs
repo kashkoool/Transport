@@ -9,6 +9,7 @@ using Microsoft.IdentityModel.Tokens;
 using TransportPlatform.Application.Abstractions;
 using TransportPlatform.Application.Common;
 using TransportPlatform.Domain.Identity;
+using TransportPlatform.Infrastructure.Email;
 using TransportPlatform.Infrastructure.Identity;
 using TransportPlatform.Infrastructure.Payments;
 using TransportPlatform.Infrastructure.Persistence;
@@ -53,7 +54,8 @@ public static class DependencyInjection
                 o.Lockout.MaxFailedAccessAttempts = 5;
             })
             .AddRoles<IdentityRole<Guid>>()
-            .AddEntityFrameworkStores<ApplicationDbContext>();
+            .AddEntityFrameworkStores<ApplicationDbContext>()
+            .AddDefaultTokenProviders(); // enables password-reset + email-confirmation tokens
 
         // ── Auth: token + identity services and JWT bearer validation ───────────────
         var jwtSection = config.GetSection(JwtOptions.SectionName);
@@ -110,6 +112,30 @@ public static class DependencyInjection
         // Dev/test seam so the API can simulate a signed gateway callback without referencing
         // the concrete gateway type (keeps the Api layer on Application abstractions only).
         services.AddSingleton<IPaymentWebhookSigner>(sp => sp.GetRequiredService<SandboxPaymentGateway>());
+
+        // ── Email: SMTP when a host is configured, else a dev logging sink ──────────────
+        var emailSection = config.GetSection(EmailOptions.SectionName);
+        services.Configure<EmailOptions>(o =>
+        {
+            o.SmtpHost = emailSection[nameof(EmailOptions.SmtpHost)] ?? o.SmtpHost;
+            if (int.TryParse(emailSection[nameof(EmailOptions.SmtpPort)], out var port)) o.SmtpPort = port;
+            o.SmtpUsername = emailSection[nameof(EmailOptions.SmtpUsername)] ?? o.SmtpUsername;
+            o.SmtpPassword = emailSection[nameof(EmailOptions.SmtpPassword)] ?? o.SmtpPassword;
+            if (bool.TryParse(emailSection[nameof(EmailOptions.UseStartTls)], out var tls)) o.UseStartTls = tls;
+            o.FromAddress = emailSection[nameof(EmailOptions.FromAddress)] ?? o.FromAddress;
+            o.FromName = emailSection[nameof(EmailOptions.FromName)] ?? o.FromName;
+            o.FrontendBaseUrl = emailSection[nameof(EmailOptions.FrontendBaseUrl)] ?? o.FrontendBaseUrl;
+            o.PasswordResetPath = emailSection[nameof(EmailOptions.PasswordResetPath)] ?? o.PasswordResetPath;
+            o.VerifyEmailPath = emailSection[nameof(EmailOptions.VerifyEmailPath)] ?? o.VerifyEmailPath;
+        });
+        if (string.IsNullOrWhiteSpace(emailSection[nameof(EmailOptions.SmtpHost)]))
+            services.AddSingleton<IEmailSender, LoggingEmailSender>();
+        else
+            services.AddSingleton<IEmailSender, SmtpEmailSender>();
+        services.AddSingleton<IAuthEmailService, AuthEmailService>();
+
+        // Dispatches outbox events (e.g. booking-confirmed) to side effects like email.
+        services.AddScoped<IIntegrationEventDispatcher, OutboxEventDispatcher>();
 
         return services;
     }

@@ -31,6 +31,10 @@ public static class DependencyInjection
         services.AddScoped<LoginHandler>();
         services.AddScoped<RefreshHandler>();
         services.AddScoped<LogoutHandler>();
+        services.AddScoped<RequestPasswordResetHandler>();
+        services.AddScoped<ResetPasswordHandler>();
+        services.AddScoped<VerifyEmailHandler>();
+        services.AddScoped<ResendVerificationHandler>();
 
         // Admin · companies
         services.AddScoped<CreateCompanyHandler>();
