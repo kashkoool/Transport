@@ -15,6 +15,13 @@ public sealed class EmailOptions
     public string SmtpPassword { get; set; } = string.Empty;
     public bool UseStartTls { get; set; } // false for local Mailpit; true for most real providers
 
+    /// <summary>
+    /// Hard bound on a single SMTP send. <c>SmtpClient.Timeout</c> only governs the synchronous
+    /// path, so the sender also cancels the awaited send via a linked token after this window —
+    /// a stalled relay can never hang the request thread or the outbox drain.
+    /// </summary>
+    public int SmtpTimeoutSeconds { get; set; } = 30;
+
     public string FromAddress { get; set; } = "noreply@tpx.local";
     public string FromName { get; set; } = "TPX Travel";
 

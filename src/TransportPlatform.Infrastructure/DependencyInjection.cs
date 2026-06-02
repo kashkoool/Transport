@@ -122,6 +122,7 @@ public static class DependencyInjection
             o.SmtpUsername = emailSection[nameof(EmailOptions.SmtpUsername)] ?? o.SmtpUsername;
             o.SmtpPassword = emailSection[nameof(EmailOptions.SmtpPassword)] ?? o.SmtpPassword;
             if (bool.TryParse(emailSection[nameof(EmailOptions.UseStartTls)], out var tls)) o.UseStartTls = tls;
+            if (int.TryParse(emailSection[nameof(EmailOptions.SmtpTimeoutSeconds)], out var timeout)) o.SmtpTimeoutSeconds = timeout;
             o.FromAddress = emailSection[nameof(EmailOptions.FromAddress)] ?? o.FromAddress;
             o.FromName = emailSection[nameof(EmailOptions.FromName)] ?? o.FromName;
             o.FrontendBaseUrl = emailSection[nameof(EmailOptions.FrontendBaseUrl)] ?? o.FrontendBaseUrl;

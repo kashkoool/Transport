@@ -8,5 +8,8 @@ public sealed record VerifyEmailCommand(string Email, string Token);
 public sealed class VerifyEmailHandler(IIdentityService identity)
 {
     public Task<bool> HandleAsync(VerifyEmailCommand command, CancellationToken ct) =>
-        identity.ConfirmEmailAsync(command.Email.Trim(), command.Token, ct);
+        // The endpoint has no validator, so guard a missing email here rather than NRE on Trim().
+        string.IsNullOrWhiteSpace(command.Email)
+            ? Task.FromResult(false)
+            : identity.ConfirmEmailAsync(command.Email.Trim(), command.Token, ct);
 }

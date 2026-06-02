@@ -12,6 +12,9 @@ public sealed class ResendVerificationHandler(IIdentityService identity, IAuthEm
 {
     public async Task HandleAsync(ResendVerificationCommand command, CancellationToken ct)
     {
+        // No validator on this command (anti-enumeration endpoint); guard before Trim().
+        if (string.IsNullOrWhiteSpace(command.Email))
+            return;
         var email = command.Email.Trim();
         var created = await identity.CreateEmailVerificationTokenAsync(email, ct);
         if (created is { } verification)

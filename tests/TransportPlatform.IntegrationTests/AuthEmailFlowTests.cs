@@ -75,6 +75,17 @@ public sealed class AuthEmailFlowTests(ApiFactory factory) : IClassFixture<ApiFa
     }
 
     [Fact]
+    public async Task Verify_email_with_a_missing_email_is_a_clean_400_not_500()
+    {
+        var client = factory.CreateClient();
+
+        // The verify-email endpoint has no validator; a missing email must not NRE into a 500.
+        var verify = await client.PostAsJsonAsync("/api/auth/verify-email", new { token = "anything" });
+
+        verify.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+    }
+
+    [Fact]
     public async Task Booking_confirmed_event_dispatches_a_confirmation_email()
     {
         using var scope = factory.Services.CreateScope();

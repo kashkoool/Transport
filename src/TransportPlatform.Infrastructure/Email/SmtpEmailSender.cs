@@ -16,9 +16,12 @@ public sealed class SmtpEmailSender(IOptions<EmailOptions> options) : IEmailSend
 
     public async Task SendAsync(EmailMessage message, CancellationToken cancellationToken = default)
     {
+        var timeout = TimeSpan.FromSeconds(Math.Max(1, _options.SmtpTimeoutSeconds));
+
         using var client = new SmtpClient(_options.SmtpHost, _options.SmtpPort)
         {
             EnableSsl = _options.UseStartTls,
+            Timeout = (int)timeout.TotalMilliseconds, // bounds the synchronous path
         };
         if (!string.IsNullOrEmpty(_options.SmtpUsername))
             client.Credentials = new NetworkCredential(_options.SmtpUsername, _options.SmtpPassword);
@@ -32,6 +35,10 @@ public sealed class SmtpEmailSender(IOptions<EmailOptions> options) : IEmailSend
         };
         mail.To.Add(message.ToEmail);
 
-        await client.SendMailAsync(mail, cancellationToken);
+        // SmtpClient.Timeout does NOT reliably bound SendMailAsync, so cancel the awaited send
+        // ourselves: a stalled relay surfaces as a cancellation rather than hanging the caller.
+        using var timeoutSource = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+        timeoutSource.CancelAfter(timeout);
+        await client.SendMailAsync(mail, timeoutSource.Token);
     }
 }

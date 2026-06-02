@@ -13,6 +13,9 @@ public sealed class RequestPasswordResetHandler(IIdentityService identity, IAuth
 {
     public async Task HandleAsync(RequestPasswordResetCommand command, CancellationToken ct)
     {
+        // No validator on this command (anti-enumeration endpoint); guard before Trim().
+        if (string.IsNullOrWhiteSpace(command.Email))
+            return;
         var email = command.Email.Trim();
         var created = await identity.CreatePasswordResetTokenAsync(email, ct);
         if (created is { } reset)
