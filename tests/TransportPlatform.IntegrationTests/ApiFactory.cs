@@ -54,6 +54,10 @@ public sealed class ApiFactory : WebApplicationFactory<Program>, IAsyncLifetime
         builder.UseSetting("Jwt:AccessTokenMinutes", "15");
         builder.UseSetting("Jwt:RefreshTokenDays", "14");
 
+        // Tests boot in Development (so StartupGuards relaxes); disable demo-data seeding so it
+        // never pollutes the clean per-test database.
+        builder.UseSetting("DevSeed:Enabled", "false");
+
         // TestServer has no real client IP, so every request keys into the same rate-limit
         // bucket. Raise the limits well above any single test's call count so we exercise the
         // auth/booking FLOW, not the limiter (production keeps the strict config defaults).

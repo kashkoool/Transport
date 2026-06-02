@@ -42,6 +42,9 @@ public static class DependencyInjection
 
         services.AddScoped<IApplicationDbContext>(sp => sp.GetRequiredService<ApplicationDbContext>());
 
+        // Development-only demo-data seeder (invoked from Program.cs only when env is Development).
+        services.AddScoped<DevDataSeeder>();
+
         services.AddIdentityCore<ApplicationUser>(o =>
             {
                 o.Password.RequiredLength = 10;

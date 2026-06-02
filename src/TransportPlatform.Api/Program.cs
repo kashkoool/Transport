@@ -15,6 +15,7 @@ using TransportPlatform.Api.Workers;
 using TransportPlatform.Application;
 using TransportPlatform.Application.Common;
 using TransportPlatform.Infrastructure;
+using TransportPlatform.Infrastructure.Persistence;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -147,6 +148,16 @@ builder.Services.AddHostedService<SeatHoldExpirySweeper>();
 builder.Services.AddHostedService<OutboxPublisher>();
 
 var app = builder.Build();
+
+// Development-only: seed demo data (roles, one user per role, an active company + upcoming
+// trips) so the stack is usable end-to-end on first run. Idempotent and self-contained — it
+// logs and continues on any failure, and is never wired outside Development. The integration
+// test host sets DevSeed:Enabled=false so seeding never pollutes test data.
+if (app.Environment.IsDevelopment() && app.Configuration.GetValue("DevSeed:Enabled", true))
+{
+    using var scope = app.Services.CreateScope();
+    await scope.ServiceProvider.GetRequiredService<DevDataSeeder>().SeedAsync();
+}
 
 // ── Middleware pipeline (order matters) ─────────────────────────────────────────
 app.UseForwardedHeaders();
