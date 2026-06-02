@@ -18,8 +18,11 @@ internal sealed class TripConfiguration : IEntityTypeConfiguration<Trip>
         builder.Property(t => t.Currency).HasMaxLength(3).IsRequired();
         builder.Property(t => t.Status).HasConversion<string>().HasMaxLength(20).IsRequired();
 
-        // Index supports the route+date search query.
-        builder.HasIndex(t => new { t.Origin, t.Destination, t.DepartureUtc });
+        // Route+date search index is created in the migration as raw SQL because it must be a
+        // FUNCTIONAL, PARTIAL index that EF's fluent API can't express: the query compares
+        // lower(origin)/lower(destination) and only ever wants Scheduled trips, so the index is
+        //   (lower("Origin"), lower("Destination"), "DepartureUtc") WHERE "Status" = 'Scheduled'.
+        // A plain (Origin,Destination,DepartureUtc) index would NOT be used for the lower() compare.
         builder.HasIndex(t => t.CompanyId);
 
         // FKs (no navigations). Restrict on both: a company/bus with scheduled trips can't be

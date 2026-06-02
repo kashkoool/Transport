@@ -15,5 +15,9 @@ internal sealed class CompanyConfiguration : IEntityTypeConfiguration<Company>
         builder.Property(c => c.Phone).HasMaxLength(40);
         builder.Property(c => c.Status).HasConversion<string>().HasMaxLength(20).IsRequired();
         builder.HasIndex(c => c.Email).IsUnique();
+
+        // Trip search filters trips to ACTIVE companies (subquery on Status), and admin lists
+        // companies by status — index Status so neither does a full table scan.
+        builder.HasIndex(c => c.Status);
     }
 }
