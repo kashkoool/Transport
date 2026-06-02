@@ -1,6 +1,6 @@
 # Transportation Platform — Full System Status & Checklist
 
-> Snapshot date: 2026-06-02 · Branch scanned: `main` (after PR #17)
+> Snapshot date: 2026-06-02 · Baseline: `main` after PR #17 · index notes updated for PR #18
 > This is the **full-system** checklist (not the MVP slice). It maps everything the requirement
 > docs (`Docs/01–16`, `SYSTEM_MAP.md`, `ARCHITECTURE.md`) describe against what is actually built
 > in code today. Legend: ✅ Done · 🟡 Partial · ❌ Not started.
@@ -166,7 +166,8 @@ NormalizedEmail, EmailConfirmed, PasswordHash, SecurityStamp, LockoutEnd, Access
 ### 4.2 Domain tables (columns → type)
 
 **company** — `Id` uuid PK · `Name` varchar(200) · `Email` varchar(256) **UNIQUE** · `Phone` varchar(40)
-· `Status` varchar(20) (Pending/Active/Suspended) · `CreatedAtUtc` · `UpdatedAtUtc` · `CreatedBy`
+· `Status` varchar(20) (Pending/Active/Suspended) · `CreatedAtUtc` · `UpdatedAtUtc` · `CreatedBy` ·
+index on `Status` (active-companies subquery + admin list-by-status)
 
 **bus** — `Id` PK · `CompanyId` FK→company *(Restrict)* · `BusNumber` varchar(40) · `SeatCount` int ·
 `Type` varchar(20) (Standard/Premium/Luxury/Sleeper) · `Model` varchar(100) · audit cols ·
@@ -175,7 +176,8 @@ NormalizedEmail, EmailConfirmed, PasswordHash, SecurityStamp, LockoutEnd, Access
 **trip** — `Id` PK · `CompanyId` FK→company · `BusId` FK→bus · `Origin` varchar(120) ·
 `Destination` varchar(120) · `DepartureUtc` · `ArrivalUtc` · `SeatCount` int · `Price` numeric(12,2) ·
 `Currency` varchar(3)="SYP" · `Status` (Scheduled/InProgress/Completed/Cancelled) · audit cols ·
-indexes on `CompanyId`, `BusId`, and `(Origin,Destination,DepartureUtc)` for search
+indexes on `CompanyId`, `BusId`, and a **functional partial** search index
+`(lower("Origin"), lower("Destination"), "DepartureUtc") WHERE "Status"='Scheduled'`
 
 **booking** — `Id` PK · `TripId` FK→trip · `CustomerEmail` varchar(256) · `Reference` varchar(40)
 **UNIQUE** · `Status` (PendingPayment/Confirmed/Cancelled/Expired) · `TotalAmount` numeric(12,2) ·
@@ -198,7 +200,8 @@ indexes on `CompanyId`, `BusId`, and `(Origin,Destination,DepartureUtc)` for sea
 `ExpiresAtUtc` · `RevokedAtUtc` · `ReplacedByHash` varchar(128) · index on `UserId`
 
 **outbox_message** — `Id` PK · `Type` varchar(200) · `Payload` text(JSON) · `OccurredAtUtc` ·
-`ProcessedAtUtc` · `Attempts` int · `Error` varchar(2000) · index on `(ProcessedAtUtc, OccurredAtUtc)`
+`ProcessedAtUtc` · `Attempts` int · `Error` varchar(2000) · **filtered** index on
+`OccurredAtUtc WHERE "ProcessedAtUtc" IS NULL` (the publisher's poll predicate)
 
 ### 4.3 Is the schema "fully" designed?
 **For the core flow — yes, and it's well done.** Overbooking is structurally impossible (two layers of
