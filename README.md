@@ -54,8 +54,11 @@ Then run the customer app — see [web/customer/README.md](web/customer/README.m
 docker compose up --build   # postgres -> migrations -> API -> web (nginx)
 ```
 
-Web app on <http://localhost:8080>, API on <http://localhost:5278>. Containers, CI/CD,
-production config, and cloud deploy targets are documented in [DEPLOYMENT.md](DEPLOYMENT.md).
+Web app on <http://localhost:8080>, API on <http://localhost:5278>, and a **database browser**
+(Adminer — the Postgres equivalent of Prisma Studio) on <http://localhost:8081> (System:
+PostgreSQL, Server: `postgres`, User/DB: `transport`, Password: your `POSTGRES_PASSWORD`).
+Containers, CI/CD, production config, and cloud deploy targets are documented in
+[DEPLOYMENT.md](DEPLOYMENT.md).
 
 ### Demo accounts (Development only)
 
