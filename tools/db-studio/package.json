@@ -1,0 +1,12 @@
+{
+  "name": "tpx-db-studio",
+  "private": true,
+  "description": "Dev-only Prisma Studio DB browser for the TPX Postgres database. The application itself uses EF Core — this tool only introspects and browses the live database.",
+  "scripts": {
+    "pull": "prisma db pull",
+    "studio": "prisma studio"
+  },
+  "devDependencies": {
+    "prisma": "^6"
+  }
+}
