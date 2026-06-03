@@ -1,5 +1,6 @@
 using FluentValidation;
 using TransportPlatform.Api.Security;
+using TransportPlatform.Application.Admin;
 using TransportPlatform.Application.Common;
 using TransportPlatform.Application.Companies;
 using TransportPlatform.Application.Notifications;
@@ -104,7 +105,47 @@ public static class AdminEndpoints
         reports.MapGet("/summary", async (AdminSystemSummaryHandler handler, CancellationToken ct) =>
             Results.Ok(await handler.HandleAsync(ct)))
         .WithName("AdminSystemSummary")
-        .WithSummary("Platform-wide totals (companies, trips, bookings, revenue).");
+        .WithSummary("Platform-wide totals (companies, trips, bookings, revenue by currency).");
+
+        reports.MapGet("/companies", async (AdminCompanyReportHandler handler, CancellationToken ct) =>
+            Results.Ok(await handler.HandleAsync(ct)))
+        .WithName("AdminCompanyReport")
+        .WithSummary("Per-company trips, confirmed bookings and revenue (by currency).");
+
+        // ── Admin · customer accounts (management only; customers self-register) ─────────
+        var customers = app.MapGroup("/api/admin/users").WithTags("Admin · Users")
+            .RequireAuthorization(AuthorizationPolicies.AdminOnly)
+            .RequireRateLimiting(RateLimitPolicies.Sensitive);
+
+        customers.MapGet("/", async (
+            int? page, int? limit, string? search, ListCustomersHandler handler, CancellationToken ct) =>
+            Results.Ok(await handler.HandleAsync(new ListCustomersQuery(page, limit, search), ct)))
+        .WithName("ListCustomers")
+        .WithSummary("List customer accounts (paginated, optional search).");
+
+        customers.MapPost("/{id:guid}/suspend", async (Guid id, SetCustomerSuspendedHandler handler, CancellationToken ct) =>
+        {
+            await handler.HandleAsync(new SetCustomerSuspendedCommand(id, Suspended: true), ct);
+            return Results.NoContent();
+        })
+        .WithName("SuspendCustomer")
+        .WithSummary("Suspend a customer account (blocks their login).");
+
+        customers.MapPost("/{id:guid}/reactivate", async (Guid id, SetCustomerSuspendedHandler handler, CancellationToken ct) =>
+        {
+            await handler.HandleAsync(new SetCustomerSuspendedCommand(id, Suspended: false), ct);
+            return Results.NoContent();
+        })
+        .WithName("ReactivateCustomer")
+        .WithSummary("Reactivate a suspended customer account.");
+
+        customers.MapDelete("/{id:guid}", async (Guid id, DeleteCustomerHandler handler, CancellationToken ct) =>
+        {
+            await handler.HandleAsync(new DeleteCustomerCommand(id), ct);
+            return Results.NoContent();
+        })
+        .WithName("DeleteCustomer")
+        .WithSummary("Delete a customer account (blocked while they have active bookings).");
 
         return app;
     }

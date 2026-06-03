@@ -86,4 +86,68 @@ public sealed class ReportExporter : IReportExporter
 
         return document.GeneratePdf();
     }
+
+    public byte[] ToXlsx(string sheetName, IReadOnlyList<string> headers, IEnumerable<IReadOnlyList<string>> rows)
+    {
+        using var workbook = new XLWorkbook();
+        var ws = workbook.AddWorksheet(sheetName);
+
+        for (var c = 0; c < headers.Count; c++)
+            ws.Cell(1, c + 1).Value = headers[c];
+        ws.Row(1).Style.Font.Bold = true;
+
+        var row = 2;
+        foreach (var cells in rows)
+        {
+            for (var c = 0; c < cells.Count; c++)
+                ws.Cell(row, c + 1).SetValue(cells[c]); // inline strings only — never formulas
+            row++;
+        }
+
+        ws.Columns().AdjustToContents();
+        using var stream = new MemoryStream();
+        workbook.SaveAs(stream);
+        return stream.ToArray();
+    }
+
+    public byte[] ToPdf(string title, IReadOnlyList<string> headers, IEnumerable<IReadOnlyList<string>> rows)
+    {
+        var document = Document.Create(container =>
+        {
+            container.Page(page =>
+            {
+                page.Size(PageSizes.A4.Landscape());
+                page.Margin(28);
+                page.DefaultTextStyle(t => t.FontSize(9));
+
+                page.Header().Text(title).FontSize(16).Bold();
+
+                page.Content().PaddingVertical(8).Table(table =>
+                {
+                    table.ColumnsDefinition(columns =>
+                    {
+                        foreach (var _ in headers)
+                            columns.RelativeColumn();
+                    });
+
+                    foreach (var header in headers)
+                        table.Cell().Background(Colors.Grey.Lighten2).Padding(4).Text(header).Bold();
+
+                    foreach (var cells in rows)
+                        foreach (var cell in cells)
+                            table.Cell().BorderBottom(0.5f).BorderColor(Colors.Grey.Lighten2).Padding(4).Text(cell);
+                });
+
+                page.Footer().AlignRight().Text(t =>
+                {
+                    t.Span("Page ");
+                    t.CurrentPageNumber();
+                    t.Span(" / ");
+                    t.TotalPages();
+                });
+            });
+        });
+
+        return document.GeneratePdf();
+    }
 }

@@ -22,6 +22,7 @@ import { RouterLink, RouterLinkActive } from '@angular/router';
 export class AdminNavComponent {
   protected readonly links = [
     { path: '/admin/companies', label: 'Companies' },
+    { path: '/admin/users', label: 'Customers' },
     { path: '/admin/reports', label: 'Reports' },
   ];
 }

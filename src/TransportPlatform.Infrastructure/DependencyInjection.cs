@@ -83,6 +83,15 @@ public static class DependencyInjection
                 o.RequireEmailVerification = require;
         });
 
+        // Accepted currencies (single source of truth). Bind from config if present, else default.
+        var currencySection = config.GetSection(CurrencyOptions.SectionName);
+        services.Configure<CurrencyOptions>(o =>
+        {
+            var configured = currencySection.GetSection(nameof(CurrencyOptions.Supported)).Get<string[]>();
+            if (configured is { Length: > 0 })
+                o.Supported = configured;
+        });
+
         services.AddScoped<ITokenService, JwtTokenService>();
         services.AddScoped<IIdentityService, IdentityService>();
 

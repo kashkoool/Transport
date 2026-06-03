@@ -2,7 +2,15 @@ import { inject, Injectable } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { environment } from '../../../environments/environment';
-import { AdminSystemSummary, Company, CompanyManager, CompanyStatus, PagedResult } from '../models';
+import {
+  AdminCompanyReportRow,
+  AdminSystemSummary,
+  Company,
+  CompanyManager,
+  CompanyStatus,
+  CustomerAccount,
+  PagedResult,
+} from '../models';
 
 export interface CreateCompanyRequest {
   name: string;
@@ -54,5 +62,28 @@ export class AdminApiService {
 
   systemSummary(): Observable<AdminSystemSummary> {
     return this.http.get<AdminSystemSummary>(`${this.base}/reports/summary`);
+  }
+
+  companyReport(): Observable<AdminCompanyReportRow[]> {
+    return this.http.get<AdminCompanyReportRow[]>(`${this.base}/reports/companies`);
+  }
+
+  // ── Customer accounts (management only) ──────────────────────────────────────────
+  listCustomers(page = 1, limit = 20, search?: string): Observable<PagedResult<CustomerAccount>> {
+    let params = new HttpParams().set('page', page).set('limit', limit);
+    if (search) params = params.set('search', search);
+    return this.http.get<PagedResult<CustomerAccount>>(`${this.base}/users`, { params });
+  }
+
+  suspendCustomer(id: string): Observable<void> {
+    return this.http.post<void>(`${this.base}/users/${id}/suspend`, {});
+  }
+
+  reactivateCustomer(id: string): Observable<void> {
+    return this.http.post<void>(`${this.base}/users/${id}/reactivate`, {});
+  }
+
+  deleteCustomer(id: string): Observable<void> {
+    return this.http.delete<void>(`${this.base}/users/${id}`);
   }
 }

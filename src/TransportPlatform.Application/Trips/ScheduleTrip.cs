@@ -1,5 +1,6 @@
 using FluentValidation;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
 using TransportPlatform.Application.Common;
 using TransportPlatform.Domain.Common;
 using TransportPlatform.Domain.Companies;
@@ -18,13 +19,16 @@ public sealed record ScheduleTripCommand(
 
 public sealed class ScheduleTripValidator : AbstractValidator<ScheduleTripCommand>
 {
-    public ScheduleTripValidator()
+    public ScheduleTripValidator(IOptions<CurrencyOptions> currency)
     {
+        var supported = currency.Value;
         RuleFor(x => x.BusId).NotEmpty();
         RuleFor(x => x.Origin).NotEmpty().MaximumLength(120);
         RuleFor(x => x.Destination).NotEmpty().MaximumLength(120);
         RuleFor(x => x.Price).GreaterThanOrEqualTo(0).LessThanOrEqualTo(9_999_999.99m);
-        RuleFor(x => x.Currency).NotEmpty().Length(3);
+        RuleFor(x => x.Currency).NotEmpty().Length(3)
+            .Must(supported.IsSupported)
+            .WithMessage($"Currency must be one of: {string.Join(", ", supported.Supported)}.");
     }
 }
 

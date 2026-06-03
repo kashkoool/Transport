@@ -1,5 +1,6 @@
 using FluentValidation;
 using Microsoft.Extensions.DependencyInjection;
+using TransportPlatform.Application.Admin;
 using TransportPlatform.Application.Bookings;
 using TransportPlatform.Application.Companies;
 using TransportPlatform.Application.Fleet;
@@ -102,8 +103,16 @@ public static class DependencyInjection
         // Reports + demand
         services.AddScoped<VendorReportSummaryHandler>();
         services.AddScoped<VendorTripReportHandler>();
+        services.AddScoped<VendorBookingReportHandler>();
+        services.AddScoped<VendorEmployeeReportHandler>();
         services.AddScoped<AdminSystemSummaryHandler>();
+        services.AddScoped<AdminCompanyReportHandler>();
         services.AddScoped<PredictDemandHandler>();
+
+        // Admin · customers
+        services.AddScoped<ListCustomersHandler>();
+        services.AddScoped<SetCustomerSuspendedHandler>();
+        services.AddScoped<DeleteCustomerHandler>();
 
         // Reviews
         services.AddScoped<CreateReviewHandler>();
