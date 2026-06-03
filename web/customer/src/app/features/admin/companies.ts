@@ -3,14 +3,16 @@ import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { AdminApiService, CreateCompanyRequest, CreateManagerRequest } from '../../core/api/admin-api.service';
 import { ToastService } from '../../core/toast/toast.service';
 import { Company, CompanyStatus } from '../../core/models';
+import { AdminNavComponent } from './admin-nav';
 
 const STATUSES: CompanyStatus[] = ['Pending', 'Active', 'Suspended'];
 
 @Component({
   selector: 'app-admin-companies',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [ReactiveFormsModule],
+  imports: [ReactiveFormsModule, AdminNavComponent],
   template: `
+    <app-admin-nav />
     <h1 class="mb-6 text-2xl font-bold text-slate-900">Companies</h1>
 
     <div class="grid gap-6 lg:grid-cols-3">
@@ -59,6 +61,9 @@ const STATUSES: CompanyStatus[] = ['Pending', 'Active', 'Suspended'];
                   <button type="button" (click)="toggleManager(c.id)" class="rounded-md bg-slate-100 px-3 py-1.5 font-medium text-slate-700 hover:bg-slate-200">
                     {{ managerFor() === c.id ? 'Close' : 'Add manager' }}
                   </button>
+                  <button type="button" (click)="toggleNotify(c.id)" class="rounded-md bg-slate-100 px-3 py-1.5 font-medium text-slate-700 hover:bg-slate-200">
+                    {{ notifyFor() === c.id ? 'Close' : 'Notify' }}
+                  </button>
                 </div>
 
                 @if (managerFor() === c.id) {
@@ -68,6 +73,14 @@ const STATUSES: CompanyStatus[] = ['Pending', 'Active', 'Suspended'];
                     <input type="password" formControlName="password" placeholder="Temp password" autocomplete="new-password" class="w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500" />
                     <p class="text-xs text-slate-500">Min 10 chars with upper, lower, digit, and a symbol.</p>
                     <button type="submit" [disabled]="busyId() === c.id" class="rounded-md bg-indigo-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-indigo-700 disabled:opacity-50">Create manager</button>
+                  </form>
+                }
+
+                @if (notifyFor() === c.id) {
+                  <form [formGroup]="notifyForm" (ngSubmit)="notify(c)" class="mt-3 space-y-2 rounded-lg bg-slate-50 p-3">
+                    <input type="text" formControlName="title" placeholder="Title" class="w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500" />
+                    <textarea formControlName="message" rows="2" placeholder="Message to the company's manager(s)" class="w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"></textarea>
+                    <button type="submit" [disabled]="busyId() === c.id" class="rounded-md bg-indigo-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-indigo-700 disabled:opacity-50">Send notification</button>
                   </form>
                 }
               </div>
@@ -114,6 +127,7 @@ export class AdminCompaniesComponent implements OnInit {
   protected readonly busyId = signal<string | null>(null);
   protected readonly filter = signal<CompanyStatus | null>(null);
   protected readonly managerFor = signal<string | null>(null);
+  protected readonly notifyFor = signal<string | null>(null);
 
   protected readonly form = this.fb.nonNullable.group({
     name: ['', [Validators.required, Validators.maxLength(200)]],
@@ -128,6 +142,11 @@ export class AdminCompaniesComponent implements OnInit {
       '',
       [Validators.required, Validators.pattern(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^a-zA-Z0-9]).{10,}$/)],
     ],
+  });
+
+  protected readonly notifyForm = this.fb.nonNullable.group({
+    title: ['', [Validators.required, Validators.maxLength(200)]],
+    message: ['', [Validators.required, Validators.maxLength(2000)]],
   });
 
   ngOnInit(): void {
@@ -200,7 +219,31 @@ export class AdminCompaniesComponent implements OnInit {
 
   protected toggleManager(companyId: string): void {
     this.managerFor.set(this.managerFor() === companyId ? null : companyId);
+    this.notifyFor.set(null);
     this.managerForm.reset({ fullName: '', email: '', password: '' });
+  }
+
+  protected toggleNotify(companyId: string): void {
+    this.notifyFor.set(this.notifyFor() === companyId ? null : companyId);
+    this.managerFor.set(null);
+    this.notifyForm.reset({ title: '', message: '' });
+  }
+
+  protected notify(c: Company): void {
+    if (this.notifyForm.invalid) {
+      this.notifyForm.markAllAsTouched();
+      return;
+    }
+    const v = this.notifyForm.getRawValue();
+    this.busyId.set(c.id);
+    this.api.notifyCompany(c.id, { title: v.title.trim(), message: v.message.trim(), type: 'info' }).subscribe({
+      next: () => {
+        this.busyId.set(null);
+        this.notifyFor.set(null);
+        this.toasts.success(`Notification sent to ${c.name}.`);
+      },
+      error: () => this.busyId.set(null),
+    });
   }
 
   protected createManager(c: Company): void {
