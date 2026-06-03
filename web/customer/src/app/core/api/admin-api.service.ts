@@ -2,7 +2,7 @@ import { inject, Injectable } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { environment } from '../../../environments/environment';
-import { Company, CompanyManager, CompanyStatus, PagedResult } from '../models';
+import { AdminSystemSummary, Company, CompanyManager, CompanyStatus, PagedResult } from '../models';
 
 export interface CreateCompanyRequest {
   name: string;
@@ -42,5 +42,17 @@ export class AdminApiService {
 
   createManager(companyId: string, body: CreateManagerRequest): Observable<CompanyManager> {
     return this.http.post<CompanyManager>(`${this.base}/companies/${companyId}/manager`, body);
+  }
+
+  /** Send an in-app notification to a company's manager(s). */
+  notifyCompany(
+    companyId: string,
+    body: { title: string; message: string; type: string | null },
+  ): Observable<unknown> {
+    return this.http.post(`${this.base}/companies/${companyId}/notify`, body);
+  }
+
+  systemSummary(): Observable<AdminSystemSummary> {
+    return this.http.get<AdminSystemSummary>(`${this.base}/reports/summary`);
   }
 }

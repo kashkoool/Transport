@@ -217,3 +217,72 @@ export interface CancelTripResult {
   cancelledPendingBookings: number;
   confirmedBookingsAffected: number;
 }
+
+// ── Reports, demand, promotions, desk ────────────────────────────────────────────
+
+export interface VendorReportSummary {
+  from: string;
+  to: string;
+  trips: number;
+  confirmedBookings: number;
+  seatsSold: number;
+  seatsOffered: number;
+  revenue: number;
+  currency: string;
+  occupancyPct: number;
+}
+
+export interface TripReportRow {
+  tripId: string;
+  origin: string;
+  destination: string;
+  departureUtc: string;
+  seatCount: number;
+  seatsSold: number;
+  revenue: number;
+  currency: string;
+  status: string;
+}
+
+export interface DemandPrediction {
+  origin: string;
+  destination: string;
+  date: string;
+  predictedBookings: number;
+  confidence: string;
+  sampleSize: number;
+}
+
+export type DiscountType = 'Percent' | 'Fixed';
+
+export interface PromoCodeDto {
+  id: string;
+  code: string;
+  discountType: string;
+  discountValue: number;
+  maxRedemptions: number | null;
+  redemptionCount: number;
+  expiresAtUtc: string | null;
+  active: boolean;
+}
+
+export interface CompanyBooking {
+  bookingId: string;
+  reference: string;
+  customerEmail: string;
+  status: string;
+  totalAmount: number;
+  currency: string;
+  origin: string;
+  destination: string;
+  departureUtc: string;
+  createdAtUtc: string;
+}
+
+export interface AdminSystemSummary {
+  companies: number;
+  activeCompanies: number;
+  trips: number;
+  confirmedBookings: number;
+  revenue: number;
+}

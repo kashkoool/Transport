@@ -86,6 +86,22 @@ export const routes: Routes = [
     canActivate: [roleGuard('VendorManager')],
     loadComponent: () => import('./features/vendor/company').then((m) => m.VendorCompanyComponent),
   },
+  {
+    path: 'vendor/promo',
+    canActivate: [roleGuard('VendorManager')],
+    loadComponent: () => import('./features/vendor/promo').then((m) => m.VendorPromoComponent),
+  },
+  {
+    path: 'vendor/reports',
+    canActivate: [roleGuard('VendorManager')],
+    loadComponent: () => import('./features/vendor/reports').then((m) => m.VendorReportsComponent),
+  },
+  {
+    // The desk is for managers AND staff (counter sales).
+    path: 'vendor/desk',
+    canActivate: [roleGuard('VendorManager', 'Staff')],
+    loadComponent: () => import('./features/vendor/desk').then((m) => m.VendorDeskComponent),
+  },
 
   // ── Admin console (Admin / SuperAdmin only) ──
   { path: 'admin', pathMatch: 'full', redirectTo: 'admin/companies' },
@@ -93,6 +109,11 @@ export const routes: Routes = [
     path: 'admin/companies',
     canActivate: [roleGuard('Admin', 'SuperAdmin')],
     loadComponent: () => import('./features/admin/companies').then((m) => m.AdminCompaniesComponent),
+  },
+  {
+    path: 'admin/reports',
+    canActivate: [roleGuard('Admin', 'SuperAdmin')],
+    loadComponent: () => import('./features/admin/reports').then((m) => m.AdminReportsComponent),
   },
 
   { path: '**', redirectTo: 'search' },
