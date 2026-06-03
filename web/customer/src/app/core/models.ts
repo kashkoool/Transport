@@ -41,6 +41,38 @@ export interface PassengerInput {
   firstName: string;
   lastName: string;
   seatNumber: number;
+  documentType?: string | null;
+  documentNumber?: string | null;
+}
+
+/** Seating layout + currently-unavailable seats for a trip (public; seat numbers only). */
+export interface SeatMap {
+  tripId: string;
+  seatCount: number;
+  seatsPerRow: number;
+  takenSeats: number[];
+}
+
+/** An ordered intermediate waypoint on a trip's route. */
+export interface TripStop {
+  sequence: number;
+  name: string;
+  arrivalUtc: string | null;
+  departureUtc: string | null;
+}
+
+/** A promo code's effect on a trip's fare, previewed before booking. */
+export interface PromoPreview {
+  code: string;
+  originalTotal: number;
+  discount: number;
+  total: number;
+  currency: string;
+}
+
+export interface CancelBookingResult {
+  status: string;
+  refundInitiated: boolean;
 }
 
 export interface BookingResult {
@@ -84,6 +116,22 @@ export interface BookingSummary {
   totalAmount: number;
   currency: string;
   createdAtUtc: string;
+}
+
+/** A single public review (display name only — no PII). */
+export interface ReviewDto {
+  id: string;
+  rating: number;
+  comment: string | null;
+  displayName: string;
+  createdAtUtc: string;
+}
+
+/** Average rating + count + the page of reviews for a trip or company. */
+export interface ReviewSummary {
+  averageRating: number;
+  count: number;
+  reviews: ReviewDto[];
 }
 
 /** RFC 7807 ProblemDetails as the API returns it, plus the stable `code` extension. */
