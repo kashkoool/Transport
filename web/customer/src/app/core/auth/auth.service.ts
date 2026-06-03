@@ -121,6 +121,16 @@ export class AuthService {
     return this.http.post<unknown>(`${this.api}/resend-verification`, { email }).pipe(map(() => void 0));
   }
 
+  /**
+   * Start the Google sign-in/sign-up flow with a full-page navigation to the backend, which
+   * redirects to Google and, on success, sets the refresh cookie and bounces back to /auth/callback.
+   * `returnUrl` is where the SPA should land afterwards (must be an app-relative path).
+   */
+  loginWithGoogle(returnUrl?: string): void {
+    const query = returnUrl ? `?returnUrl=${encodeURIComponent(returnUrl)}` : '';
+    window.location.href = `${this.api}/google/start${query}`;
+  }
+
   private acceptAuth(r: AuthResult): void {
     this.accessToken.set(r.accessToken);
     this.email.set(r.email);

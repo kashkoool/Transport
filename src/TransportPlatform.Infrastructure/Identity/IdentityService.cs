@@ -126,6 +126,62 @@ public sealed class IdentityService(
         return result.Succeeded ? user.Id : null;
     }
 
+    public async Task<AuthenticatedUser> FindOrCreateExternalUserAsync(
+        string provider, string providerKey, string email, string? fullName,
+        bool providerEmailVerified, CancellationToken ct = default)
+    {
+        ct.ThrowIfCancellationRequested();
+
+        // 1) Already linked → just sign that user in.
+        var linked = await users.FindByLoginAsync(provider, providerKey);
+        if (linked is not null)
+            return await ToAuthenticatedUserAsync(linked);
+
+        // 2) An account already exists for this email → link the external login to it, but only
+        //    when the email is proven. Refusing to link an UNVERIFIED local account stops an
+        //    attacker who pre-registered a victim's email from hijacking it via OAuth.
+        var byEmail = string.IsNullOrWhiteSpace(email) ? null : await users.FindByEmailAsync(email);
+        if (byEmail is not null)
+        {
+            if (!byEmail.EmailConfirmed && !providerEmailVerified)
+                throw new ConflictException("auth.link_requires_verification",
+                    "An account with this email exists but isn't verified. Sign in with your password (or verify your email) first.");
+
+            await users.AddLoginAsync(byEmail, new UserLoginInfo(provider, providerKey, provider));
+            if (!byEmail.EmailConfirmed && providerEmailVerified)
+            {
+                byEmail.EmailConfirmed = true; // the provider proved ownership of the address
+                await users.UpdateAsync(byEmail);
+            }
+            return await ToAuthenticatedUserAsync(byEmail);
+        }
+
+        // 3) Brand-new, passwordless account (sign-in is only ever via the external provider).
+        var user = new ApplicationUser
+        {
+            UserName = email,
+            Email = email,
+            FullName = fullName,
+            EmailConfirmed = providerEmailVerified,
+        };
+        var created = await users.CreateAsync(user);
+        if (!created.Succeeded)
+            throw new ConflictException("auth.external_registration_failed",
+                string.Join("; ", created.Errors.Select(e => e.Description)));
+
+        await users.AddLoginAsync(user, new UserLoginInfo(provider, providerKey, provider));
+        await EnsureRoleAsync(UserRoles.Customer);
+        await users.AddToRoleAsync(user, UserRoles.Customer);
+
+        return new AuthenticatedUser(user.Id, email, [UserRoles.Customer]);
+    }
+
+    private async Task<AuthenticatedUser> ToAuthenticatedUserAsync(ApplicationUser user)
+    {
+        var userRoles = await users.GetRolesAsync(user);
+        return new AuthenticatedUser(user.Id, user.Email!, [.. userRoles], user.CompanyId);
+    }
+
     private async Task EnsureRoleAsync(string role)
     {
         if (!await roles.RoleExistsAsync(role))

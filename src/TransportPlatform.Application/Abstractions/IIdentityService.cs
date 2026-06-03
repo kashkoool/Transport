@@ -40,6 +40,17 @@ public interface IIdentityService
 
     /// <summary>Apply a password reset. Returns the user id on success, null on failure.</summary>
     Task<Guid?> ResetPasswordAsync(string email, string token, string newPassword, CancellationToken ct = default);
+
+    /// <summary>
+    /// Resolve (or provision) the local account behind an external login (e.g. Google).
+    /// Order: already-linked login → existing account by email (link it) → new passwordless account.
+    /// Links to an existing account only when its email is proven (already confirmed, or the provider
+    /// asserts the email is verified) — never silently linking to an unverified local account, which
+    /// would enable account takeover. New external accounts default to the Customer role.
+    /// </summary>
+    Task<AuthenticatedUser> FindOrCreateExternalUserAsync(
+        string provider, string providerKey, string email, string? fullName,
+        bool providerEmailVerified, CancellationToken ct = default);
 }
 
 /// <summary>An authenticated principal: id, email, role names and (for vendor staff) company.</summary>

@@ -1,6 +1,8 @@
 using System.Security.Claims;
 using System.Text;
+using System.Text.Json;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
@@ -76,8 +78,8 @@ public static class DependencyInjection
         services.AddScoped<ITokenService, JwtTokenService>();
         services.AddScoped<IIdentityService, IdentityService>();
 
-        services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
-            .AddJwtBearer(o =>
+        var authBuilder = services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme);
+        authBuilder.AddJwtBearer(o =>
             {
                 o.MapInboundClaims = false; // keep "sub"/"email" claims literal
                 o.TokenValidationParameters = new TokenValidationParameters
@@ -94,6 +96,50 @@ public static class DependencyInjection
                     NameClaimType = "sub",
                 };
             });
+
+        // ── Google sign-in (optional: wired only when a client id is configured) ────────
+        var googleSection = config.GetSection(GoogleAuthOptions.SectionName);
+        services.Configure<GoogleAuthOptions>(o =>
+        {
+            o.ClientId = googleSection[nameof(GoogleAuthOptions.ClientId)] ?? o.ClientId;
+            o.ClientSecret = googleSection[nameof(GoogleAuthOptions.ClientSecret)] ?? o.ClientSecret;
+            o.CallbackPath = googleSection[nameof(GoogleAuthOptions.CallbackPath)] ?? o.CallbackPath;
+        });
+        var googleClientId = googleSection[nameof(GoogleAuthOptions.ClientId)];
+        if (!string.IsNullOrWhiteSpace(googleClientId))
+        {
+            // Short-lived cookie that carries the external identity from Google's callback to our
+            // /api/auth/google/callback endpoint, where it's read once and signed out.
+            authBuilder.AddCookie(GoogleAuthOptions.ExternalCookieScheme, o =>
+            {
+                o.Cookie.Name = "tpx.external";
+                o.Cookie.HttpOnly = true;
+                o.Cookie.SameSite = SameSiteMode.Lax; // survives the top-level GET redirect from Google
+                o.Cookie.SecurePolicy = CookieSecurePolicy.SameAsRequest;
+                o.ExpireTimeSpan = TimeSpan.FromMinutes(5);
+                o.SlidingExpiration = false;
+            });
+            authBuilder.AddGoogle(GoogleAuthOptions.Scheme, o =>
+            {
+                o.ClientId = googleClientId;
+                o.ClientSecret = googleSection[nameof(GoogleAuthOptions.ClientSecret)] ?? string.Empty;
+                o.CallbackPath = googleSection[nameof(GoogleAuthOptions.CallbackPath)] ?? "/signin-google";
+                o.SignInScheme = GoogleAuthOptions.ExternalCookieScheme;
+                o.SaveTokens = false; // we don't need Google's access/refresh tokens after sign-in
+                // Capture whether Google says the email is verified, so the link/create decision
+                // can require a proven email (see IdentityService.FindOrCreateExternalUserAsync).
+                o.Events.OnCreatingTicket = context =>
+                {
+                    if (context.User.TryGetProperty("email_verified", out var verified)
+                        && verified.ValueKind == JsonValueKind.True)
+                    {
+                        context.Identity?.AddClaim(new Claim("email_verified", "true"));
+                    }
+                    return Task.CompletedTask;
+                };
+            });
+        }
+
         services.AddAuthorizationBuilder()
             .AddPolicy(AuthorizationPolicies.AdminOnly, p =>
                 p.RequireRole(UserRoles.Admin, UserRoles.SuperAdmin))

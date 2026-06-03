@@ -2,6 +2,7 @@ import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/cor
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { AuthService } from '../../core/auth/auth.service';
+import { ToastService } from '../../core/toast/toast.service';
 
 @Component({
   selector: 'app-login',
@@ -39,6 +40,16 @@ import { AuthService } from '../../core/auth/auth.service';
           {{ submitting() ? 'Signing in…' : 'Sign in' }}
         </button>
       </form>
+      <div class="my-4 flex items-center gap-3 text-xs text-slate-400">
+        <span class="h-px flex-1 bg-slate-200"></span>OR<span class="h-px flex-1 bg-slate-200"></span>
+      </div>
+      <button
+        type="button"
+        (click)="googleSignIn()"
+        class="flex w-full items-center justify-center gap-2 rounded-md border border-slate-300 px-4 py-2 font-medium text-slate-700 hover:bg-slate-50"
+      >
+        <span class="font-bold text-indigo-600">G</span> Continue with Google
+      </button>
       <p class="mt-3 text-center text-sm">
         <a routerLink="/forgot-password" class="font-medium text-indigo-600 hover:text-indigo-700"
           >Forgot password?</a
@@ -56,12 +67,28 @@ export class LoginComponent {
   private readonly auth = inject(AuthService);
   private readonly router = inject(Router);
   private readonly route = inject(ActivatedRoute);
+  private readonly toasts = inject(ToastService);
 
   protected readonly submitting = signal(false);
   protected readonly form = this.fb.nonNullable.group({
     email: ['', [Validators.required, Validators.email]],
     password: ['', [Validators.required]],
   });
+
+  constructor() {
+    // Surface failures bounced back from the Google OAuth callback.
+    const error = this.route.snapshot.queryParamMap.get('error');
+    if (error === 'google') {
+      this.toasts.error('Google sign-in failed. Please try again.');
+    } else if (error === 'google_link') {
+      this.toasts.error('That email already has an account. Sign in with your password first, then link Google.');
+    }
+  }
+
+  /** Full-page redirect into the Google flow, preserving any returnUrl. */
+  protected googleSignIn(): void {
+    this.auth.loginWithGoogle(this.route.snapshot.queryParamMap.get('returnUrl') ?? undefined);
+  }
 
   protected submit(): void {
     if (this.form.invalid) {
