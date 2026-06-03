@@ -230,6 +230,10 @@ public static class VendorEndpoints
             Results.Ok(await handler.HandleAsync(new CompleteTripCommand(id), ct)))
         .WithName("CompleteTrip").WithSummary("Mark an in-progress trip as completed.");
 
+        group.MapPost("/trips/{id:guid}/revert", async (Guid id, RevertTripHandler handler, CancellationToken ct) =>
+            Results.Ok(await handler.HandleAsync(new RevertTripCommand(id), ct)))
+        .WithName("RevertTrip").WithSummary("Re-activate a cancelled trip (Cancelled → Scheduled), if the bus is free.");
+
         group.MapPut("/trips/{id:guid}/stops", async (
             Guid id, SetTripStopsRequest body, SetTripStopsHandler handler,
             IValidator<SetTripStopsCommand> validator, CancellationToken ct) =>

@@ -2,6 +2,7 @@ using FluentValidation;
 using Microsoft.EntityFrameworkCore;
 using TransportPlatform.Application.Common;
 using TransportPlatform.Domain.Fleet;
+using TransportPlatform.Domain.Trips;
 
 namespace TransportPlatform.Application.Fleet;
 
@@ -28,7 +29,33 @@ public sealed class UpdateBusHandler(IApplicationDbContext db, ICurrentUser curr
         var bus = await db.Buses.FirstOrDefaultAsync(b => b.Id == command.BusId && b.CompanyId == companyId, ct)
             ?? throw new NotFoundException("Bus", command.BusId);
 
+        // The new capacity cascades to the bus's still-scheduled trips (a trip copies its bus's seat
+        // count at schedule time). Block a reduction that would drop below an already-sold seat.
+        var scheduledTripIds = await db.Trips
+            .Where(t => t.BusId == bus.Id && t.Status == TripStatus.Scheduled)
+            .Select(t => t.Id)
+            .ToListAsync(ct);
+
+        if (scheduledTripIds.Count > 0)
+        {
+            var maxSoldSeat = await db.SeatAssignments
+                .Where(a => scheduledTripIds.Contains(a.TripId))
+                .Select(a => (int?)a.SeatNumber)
+                .MaxAsync(ct) ?? 0;
+            if (command.SeatCount < maxSoldSeat)
+                throw new ConflictException("bus.seats_occupied",
+                    $"Can't reduce to {command.SeatCount} seats — seat {maxSoldSeat} is already sold on a scheduled trip.");
+        }
+
         bus.Update(command.SeatCount, command.Type, command.Model, command.SeatsPerRow);
+
+        if (scheduledTripIds.Count > 0)
+        {
+            var trips = await db.Trips.Where(t => scheduledTripIds.Contains(t.Id)).ToListAsync(ct);
+            foreach (var trip in trips)
+                trip.SyncSeatCount(command.SeatCount);
+        }
+
         await db.SaveChangesAsync(ct);
         return BusDto.From(bus);
     }

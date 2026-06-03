@@ -73,6 +73,7 @@ public static class DependencyInjection
         services.AddScoped<DeleteTripHandler>();
         services.AddScoped<StartTripHandler>();
         services.AddScoped<CompleteTripHandler>();
+        services.AddScoped<RevertTripHandler>();
         services.AddScoped<GetSeatMapHandler>();
         services.AddScoped<SetTripStopsHandler>();
         services.AddScoped<ListTripStopsHandler>();

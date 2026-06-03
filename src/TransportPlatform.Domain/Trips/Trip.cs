@@ -138,4 +138,25 @@ public sealed class Trip : AggregateRoot
             throw new DomainException("trip.not_completable", "Only an in-progress trip can be completed.");
         Status = TripStatus.Completed;
     }
+
+    /// <summary>Cancelled → Scheduled ("re-activate"). Caller must first ensure the bus is free again.</summary>
+    public void Revert()
+    {
+        if (Status != TripStatus.Cancelled)
+            throw new DomainException("trip.not_revertable", "Only a cancelled trip can be reverted to scheduled.");
+        Status = TripStatus.Scheduled;
+    }
+
+    /// <summary>
+    /// Re-sync the seat count from the bus (used when a bus's capacity is edited). Only valid while
+    /// the trip is still Scheduled; the caller guards against shrinking below already-sold seats.
+    /// </summary>
+    public void SyncSeatCount(int seatCount)
+    {
+        if (Status != TripStatus.Scheduled)
+            throw new DomainException("trip.not_editable", "Only a scheduled trip's seat count can change.");
+        if (seatCount <= 0)
+            throw new DomainException("trip.seats_invalid", "Seat count must be greater than zero.");
+        SeatCount = seatCount;
+    }
 }
