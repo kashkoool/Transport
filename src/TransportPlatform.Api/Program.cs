@@ -221,6 +221,7 @@ app.MapTripEndpoints();
 app.MapBookingEndpoints();
 app.MapPaymentEndpoints();
 app.MapNotificationEndpoints();
+app.MapReviewEndpoints();
 app.MapHub<RealtimeHub>("/hubs/realtime").RequireCors(corsPolicy);
 
 // Prometheus scrape endpoint. Gated by config (default on) and intended to be reached only from
