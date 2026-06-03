@@ -24,6 +24,7 @@ public sealed class ApplicationDbContext(DbContextOptions<ApplicationDbContext> 
 {
     public DbSet<Company> Companies => Set<Company>();
     public DbSet<Bus> Buses => Set<Bus>();
+    public DbSet<Driver> Drivers => Set<Driver>();
     public DbSet<Trip> Trips => Set<Trip>();
     public DbSet<SeatHold> SeatHolds => Set<SeatHold>();
     public DbSet<Booking> Bookings => Set<Booking>();

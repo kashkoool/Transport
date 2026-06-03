@@ -11,6 +11,9 @@ public sealed class Bus : AggregateRoot
     public BusType Type { get; private set; }
     public string? Model { get; private set; }
 
+    /// <summary>The assigned driver, if any (drivers belong to the same company).</summary>
+    public Guid? DriverId { get; private set; }
+
     private Bus() { } // EF
 
     public Bus(Guid companyId, string busNumber, int seatCount, BusType type, string? model = null)
@@ -28,4 +31,7 @@ public sealed class Bus : AggregateRoot
         Type = type;
         Model = model?.Trim();
     }
+
+    /// <summary>Assign (or clear, when null) the driver for this bus.</summary>
+    public void AssignDriver(Guid? driverId) => DriverId = driverId;
 }

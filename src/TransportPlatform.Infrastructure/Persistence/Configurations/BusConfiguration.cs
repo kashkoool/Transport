@@ -21,5 +21,10 @@ internal sealed class BusConfiguration : IEntityTypeConfiguration<Bus>
         builder.HasOne<Company>().WithMany()
             .HasForeignKey(b => b.CompanyId)
             .OnDelete(DeleteBehavior.Restrict);
+
+        // Optional assigned driver. SetNull so deleting a driver simply unassigns their buses.
+        builder.HasOne<Driver>().WithMany()
+            .HasForeignKey(b => b.DriverId)
+            .OnDelete(DeleteBehavior.SetNull);
     }
 }

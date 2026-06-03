@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Identity;
+using Microsoft.EntityFrameworkCore;
 using TransportPlatform.Application.Abstractions;
 using TransportPlatform.Application.Common;
 using TransportPlatform.Domain.Identity;
@@ -8,7 +9,8 @@ namespace TransportPlatform.Infrastructure.Identity;
 /// <summary>ASP.NET Core Identity-backed implementation of <see cref="IIdentityService"/>.</summary>
 public sealed class IdentityService(
     UserManager<ApplicationUser> users,
-    RoleManager<IdentityRole<Guid>> roles) : IIdentityService
+    RoleManager<IdentityRole<Guid>> roles,
+    IClock clock) : IIdentityService
 {
     public async Task<AuthenticatedUser> RegisterCustomerAsync(
         string email, string password, string fullName, CancellationToken ct = default)
@@ -190,6 +192,70 @@ public sealed class IdentityService(
         await users.AddToRoleAsync(user, UserRoles.Customer);
 
         return new AuthenticatedUser(user.Id, email, [UserRoles.Customer]);
+    }
+
+    public async Task<Guid> RegisterStaffAsync(
+        Guid companyId, string email, string password, string fullName, StaffType staffType, CancellationToken ct = default)
+    {
+        ct.ThrowIfCancellationRequested();
+
+        if (await users.FindByEmailAsync(email) is not null)
+            throw new ConflictException("auth.email_taken", "An account with this email already exists.");
+
+        var user = new ApplicationUser
+        {
+            UserName = email,
+            Email = email,
+            FullName = fullName,
+            CompanyId = companyId,
+            StaffType = staffType,
+        };
+        var result = await users.CreateAsync(user, password);
+        if (!result.Succeeded)
+            throw new ConflictException("auth.registration_failed",
+                string.Join("; ", result.Errors.Select(e => e.Description)));
+
+        await EnsureRoleAsync(UserRoles.Staff);
+        await users.AddToRoleAsync(user, UserRoles.Staff);
+
+        return user.Id;
+    }
+
+    public async Task<IReadOnlyList<StaffMember>> ListStaffAsync(Guid companyId, int skip, int take, CancellationToken ct = default)
+    {
+        // Staff are the company's users that carry a StaffType (the manager shares the company id
+        // but has no StaffType, so this excludes them).
+        var page = await users.Users
+            .Where(u => u.CompanyId == companyId && u.StaffType != null)
+            .OrderBy(u => u.Email)
+            .Skip(skip)
+            .Take(take)
+            .ToListAsync(ct);
+
+        var now = clock.UtcNow;
+        return page
+            .Select(u => new StaffMember(
+                u.Id, u.Email!, u.FullName ?? string.Empty, u.StaffType!.Value.ToString(),
+                u.LockoutEnd is { } end && end > now))
+            .ToList();
+    }
+
+    public Task<int> CountStaffAsync(Guid companyId, CancellationToken ct = default) =>
+        users.Users.CountAsync(u => u.CompanyId == companyId && u.StaffType != null, ct);
+
+    public async Task<bool> SetStaffSuspendedAsync(Guid companyId, Guid staffId, bool suspended, CancellationToken ct = default)
+    {
+        ct.ThrowIfCancellationRequested();
+
+        var user = await users.FindByIdAsync(staffId.ToString());
+        // Tenancy guard: only a staff member OF THIS company can be toggled.
+        if (user is null || user.CompanyId != companyId || user.StaffType is null)
+            return false;
+
+        await users.SetLockoutEnabledAsync(user, true);
+        var until = suspended ? DateTimeOffset.MaxValue : (DateTimeOffset?)null;
+        var result = await users.SetLockoutEndDateAsync(user, until);
+        return result.Succeeded;
     }
 
     private async Task<AuthenticatedUser> ToAuthenticatedUserAsync(ApplicationUser user)

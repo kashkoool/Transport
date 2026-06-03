@@ -11,4 +11,7 @@ public static class AuthorizationPolicies
 
     /// <summary>A vendor company manager (acts only within their own company).</summary>
     public const string VendorOnly = "VendorOnly";
+
+    /// <summary>A vendor manager OR their staff (both scoped to the same company).</summary>
+    public const string VendorOrStaff = "VendorOrStaff";
 }

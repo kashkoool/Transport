@@ -5,6 +5,7 @@ using TransportPlatform.Application.Companies;
 using TransportPlatform.Application.Fleet;
 using TransportPlatform.Application.Identity;
 using TransportPlatform.Application.Payments;
+using TransportPlatform.Application.Staff;
 using TransportPlatform.Application.Trips;
 
 namespace TransportPlatform.Application;
@@ -49,6 +50,14 @@ public static class DependencyInjection
         services.AddScoped<ScheduleTripHandler>();
         services.AddScoped<ListVendorTripsHandler>();
         services.AddScoped<CancelTripHandler>();
+
+        // Vendor · staff + drivers
+        services.AddScoped<CreateStaffHandler>();
+        services.AddScoped<ListStaffHandler>();
+        services.AddScoped<SetStaffSuspendedHandler>();
+        services.AddScoped<AddDriverHandler>();
+        services.AddScoped<ListDriversHandler>();
+        services.AddScoped<AssignDriverHandler>();
 
         return services;
     }

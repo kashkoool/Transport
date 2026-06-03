@@ -1,3 +1,5 @@
+using TransportPlatform.Domain.Identity;
+
 namespace TransportPlatform.Application.Abstractions;
 
 /// <summary>
@@ -51,7 +53,26 @@ public interface IIdentityService
     Task<AuthenticatedUser> FindOrCreateExternalUserAsync(
         string provider, string providerKey, string email, string? fullName,
         bool providerEmailVerified, CancellationToken ct = default);
+
+    /// <summary>Create a company staff account (role <c>Staff</c>) bound to the company.</summary>
+    Task<Guid> RegisterStaffAsync(
+        Guid companyId, string email, string password, string fullName, StaffType staffType, CancellationToken ct = default);
+
+    /// <summary>List a company's staff (page slice), ordered by email.</summary>
+    Task<IReadOnlyList<StaffMember>> ListStaffAsync(Guid companyId, int skip, int take, CancellationToken ct = default);
+
+    /// <summary>Count a company's staff (for pagination totals).</summary>
+    Task<int> CountStaffAsync(Guid companyId, CancellationToken ct = default);
+
+    /// <summary>
+    /// Suspend (lock out) or reactivate a staff member — scoped to the given company so a manager
+    /// can only ever touch their OWN staff. Returns false if no such staff member exists there.
+    /// </summary>
+    Task<bool> SetStaffSuspendedAsync(Guid companyId, Guid staffId, bool suspended, CancellationToken ct = default);
 }
 
 /// <summary>An authenticated principal: id, email, role names and (for vendor staff) company.</summary>
 public sealed record AuthenticatedUser(Guid UserId, string Email, IReadOnlyList<string> Roles, Guid? CompanyId = null);
+
+/// <summary>Read model for a company staff member.</summary>
+public sealed record StaffMember(Guid Id, string Email, string FullName, string StaffType, bool Suspended);

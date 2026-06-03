@@ -146,7 +146,9 @@ public static class DependencyInjection
             .AddPolicy(AuthorizationPolicies.AdminOnly, p =>
                 p.RequireRole(UserRoles.Admin, UserRoles.SuperAdmin))
             .AddPolicy(AuthorizationPolicies.VendorOnly, p =>
-                p.RequireRole(UserRoles.VendorManager));
+                p.RequireRole(UserRoles.VendorManager))
+            .AddPolicy(AuthorizationPolicies.VendorOrStaff, p =>
+                p.RequireRole(UserRoles.VendorManager, UserRoles.Staff));
 
         var paymentSection = config.GetSection(PaymentOptions.SectionName);
         services.Configure<PaymentOptions>(options =>
