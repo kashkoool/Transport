@@ -24,6 +24,7 @@ export class AuthService {
   readonly isAuthenticated = computed(() => this.accessToken() !== null);
   readonly isAdmin = computed(() => this.hasAny('Admin', 'SuperAdmin'));
   readonly isVendor = computed(() => this.hasAny('VendorManager'));
+  readonly isStaff = computed(() => this.hasAny('Staff'));
   readonly isCustomer = computed(() => this.hasAny('Customer'));
 
   /** In-flight refresh shared across concurrent 401s so only one refresh request is sent. */
@@ -44,6 +45,7 @@ export class AuthService {
   homeRoute(): string {
     if (this.isAdmin()) return '/admin/companies';
     if (this.isVendor()) return '/vendor/trips';
+    if (this.isStaff()) return '/vendor/desk';
     return '/search';
   }
 

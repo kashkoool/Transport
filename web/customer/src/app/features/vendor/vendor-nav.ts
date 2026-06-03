@@ -34,7 +34,11 @@ export class VendorNavComponent {
     { path: '/vendor/company', label: 'Company' },
   ];
 
-  protected readonly links = computed(() =>
-    this.auth.isVendor() ? this.managerLinks : [{ path: '/vendor/desk', label: 'Desk' }],
-  );
+  // Staff share trip management with managers (docs: Manager + Employee) plus the Desk.
+  private readonly staffLinks = [
+    { path: '/vendor/trips', label: 'Trips' },
+    { path: '/vendor/desk', label: 'Desk' },
+  ];
+
+  protected readonly links = computed(() => (this.auth.isVendor() ? this.managerLinks : this.staffLinks));
 }

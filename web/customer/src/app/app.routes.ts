@@ -67,8 +67,9 @@ export const routes: Routes = [
   // ── Vendor console (VendorManager only) ──
   { path: 'vendor', pathMatch: 'full', redirectTo: 'vendor/trips' },
   {
+    // Trip management is shared by managers and staff (docs: Manager + Employee).
     path: 'vendor/trips',
-    canActivate: [roleGuard('VendorManager')],
+    canActivate: [roleGuard('VendorManager', 'Staff')],
     loadComponent: () => import('./features/vendor/trips').then((m) => m.VendorTripsComponent),
   },
   {

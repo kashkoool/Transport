@@ -3,7 +3,7 @@ using TransportPlatform.Application.Common;
 
 namespace TransportPlatform.Application.Staff;
 
-public sealed record ListStaffQuery(int? Page, int? Limit);
+public sealed record ListStaffQuery(int? Page, int? Limit, string? Search = null);
 
 /// <summary>Lists the calling manager's own company staff (scoped to their company id).</summary>
 public sealed class ListStaffHandler(IIdentityService identity, ICurrentUser currentUser)
@@ -13,8 +13,8 @@ public sealed class ListStaffHandler(IIdentityService identity, ICurrentUser cur
         var companyId = currentUser.RequireCompanyId();
         var page = new PageRequest(query.Page, query.Limit);
 
-        var total = await identity.CountStaffAsync(companyId, ct);
-        var members = await identity.ListStaffAsync(companyId, page.Skip, page.Limit, ct);
+        var total = await identity.CountStaffAsync(companyId, query.Search, ct);
+        var members = await identity.ListStaffAsync(companyId, page.Skip, page.Limit, query.Search, ct);
         var items = members
             .Select(m => new StaffDto(m.Id, m.Email, m.FullName, m.StaffType, m.Suspended))
             .ToList();

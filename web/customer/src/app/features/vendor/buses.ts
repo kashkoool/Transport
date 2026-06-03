@@ -21,10 +21,17 @@ const BUS_TYPES: BusType[] = ['Standard', 'Premium', 'Luxury', 'Sleeper'];
 
     <div class="grid gap-6 lg:grid-cols-3">
       <section class="lg:col-span-2">
+        <input
+          type="search"
+          [value]="search()"
+          (input)="onSearch($event)"
+          placeholder="Search by bus number or model…"
+          class="mb-3 w-full max-w-sm rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+        />
         @if (loading()) {
           <p class="text-slate-500">Loading…</p>
         } @else if (buses().length === 0) {
-          <p class="rounded-lg bg-slate-100 p-4 text-slate-600">No buses yet. Add your first one →</p>
+          <p class="rounded-lg bg-slate-100 p-4 text-slate-600">No buses found.</p>
         } @else {
           <div class="overflow-x-auto rounded-xl border border-slate-200 bg-white">
             <table class="w-full text-sm">
@@ -129,6 +136,8 @@ export class VendorBusesComponent implements OnInit {
   protected readonly editingId = signal<string | null>(null);
   protected readonly confirmingDelete = signal<string | null>(null);
   protected readonly busy = signal(false);
+  protected readonly search = signal('');
+  private searchTimer?: ReturnType<typeof setTimeout>;
 
   protected readonly form = this.fb.nonNullable.group({
     busNumber: ['', [Validators.required, Validators.maxLength(40)]],
@@ -140,14 +149,20 @@ export class VendorBusesComponent implements OnInit {
 
   ngOnInit(): void {
     this.load();
-    this.api.listDrivers().subscribe({ next: (p) => this.drivers.set(p.items) });
+    this.api.listDrivers().subscribe({ next: (p) => this.drivers.set(p.data) });
+  }
+
+  protected onSearch(event: Event): void {
+    this.search.set((event.target as HTMLInputElement).value);
+    clearTimeout(this.searchTimer);
+    this.searchTimer = setTimeout(() => this.load(), 250); // debounce
   }
 
   private load(): void {
     this.loading.set(true);
-    this.api.listBuses(1, 100).subscribe({
+    this.api.listBuses(1, 100, this.search().trim() || undefined).subscribe({
       next: (page) => {
-        this.buses.set(page.items);
+        this.buses.set(page.data);
         this.total.set(page.total);
         this.loading.set(false);
       },

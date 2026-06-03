@@ -10,6 +10,7 @@ import {
   HoldResult,
   PassengerInput,
   PromoPreview,
+  PublicCompany,
   ReviewDto,
   ReviewSummary,
   SeatMap,
@@ -24,12 +25,25 @@ export class ApiService {
   private readonly http = inject(HttpClient);
   private readonly base = environment.apiBaseUrl;
 
-  searchTrips(origin: string, destination: string, date: string): Observable<TripSummary[]> {
-    const params = new HttpParams()
+  searchTrips(
+    origin: string,
+    destination: string,
+    date: string,
+    filters?: { companyId?: string; maxPrice?: number; departAfter?: string },
+  ): Observable<TripSummary[]> {
+    let params = new HttpParams()
       .set('origin', origin)
       .set('destination', destination)
       .set('date', date);
+    if (filters?.companyId) params = params.set('companyId', filters.companyId);
+    if (filters?.maxPrice != null) params = params.set('maxPrice', filters.maxPrice);
+    if (filters?.departAfter) params = params.set('departAfter', filters.departAfter);
     return this.http.get<TripSummary[]>(`${this.base}/trips/search`, { params });
+  }
+
+  /** Active companies (id + name) for the search "filter by company" control. */
+  companies(): Observable<PublicCompany[]> {
+    return this.http.get<PublicCompany[]>(`${this.base}/companies`);
   }
 
   /** Seating layout + taken seats for the seat picker (public). */

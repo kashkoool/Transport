@@ -21,6 +21,9 @@ import { NotificationBellComponent } from './core/notifications/notification-bel
             } @else if (auth.isVendor()) {
               <a routerLink="/vendor/trips" routerLinkActive="text-indigo-700 font-semibold" class="text-slate-600 hover:text-slate-900">Trips</a>
               <a routerLink="/vendor/buses" routerLinkActive="text-indigo-700 font-semibold" class="text-slate-600 hover:text-slate-900">Fleet</a>
+            } @else if (auth.isStaff()) {
+              <a routerLink="/vendor/desk" routerLinkActive="text-indigo-700 font-semibold" class="text-slate-600 hover:text-slate-900">Desk</a>
+              <a routerLink="/vendor/trips" routerLinkActive="text-indigo-700 font-semibold" class="text-slate-600 hover:text-slate-900">Trips</a>
             } @else {
               <a routerLink="/search" routerLinkActive="text-indigo-700 font-semibold" class="text-slate-600 hover:text-slate-900">Search</a>
               @if (auth.isAuthenticated()) {

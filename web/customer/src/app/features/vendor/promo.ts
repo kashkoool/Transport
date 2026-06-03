@@ -126,7 +126,7 @@ export class VendorPromoComponent implements OnInit {
     this.loading.set(true);
     this.api.listPromoCodes().subscribe({
       next: (page) => {
-        this.codes.set(page.items);
+        this.codes.set(page.data);
         this.total.set(page.total);
         this.loading.set(false);
       },
