@@ -3,6 +3,7 @@ using FluentValidation;
 using TransportPlatform.Api.Security;
 using TransportPlatform.Application.Bookings;
 using TransportPlatform.Application.Common;
+using TransportPlatform.Application.Companies;
 using TransportPlatform.Application.Fleet;
 using TransportPlatform.Application.Reports;
 using TransportPlatform.Application.Staff;
@@ -22,6 +23,10 @@ public static class VendorEndpoints
     public sealed record AddDriverRequest(string FullName, string? Phone, string? LicenseNumber);
     public sealed record AssignDriverRequest(Guid? DriverId);
     public sealed record CounterBookingRequest(Guid TripId, IReadOnlyList<PassengerInput> Passengers, string CustomerEmail);
+    public sealed record UpdateBusRequest(int SeatCount, BusType Type, string? Model);
+    public sealed record UpdateTripRequest(
+        string Origin, string Destination, DateTimeOffset DepartureUtc, DateTimeOffset ArrivalUtc, decimal Price, string Currency);
+    public sealed record UpdateCompanyProfileRequest(string Name, string? Phone);
 
     public static IEndpointRouteBuilder MapVendorEndpoints(this IEndpointRouteBuilder app)
     {
@@ -165,6 +170,65 @@ public static class VendorEndpoints
         })
         .WithName("PredictDemand")
         .WithSummary("Forecast demand for a route/date from your company's history.");
+
+        // ── Fleet + trip management (edit/delete/lifecycle) ───────────────────────────
+        group.MapPut("/buses/{id:guid}", async (
+            Guid id, UpdateBusRequest body, UpdateBusHandler handler,
+            IValidator<UpdateBusCommand> validator, CancellationToken ct) =>
+        {
+            var command = new UpdateBusCommand(id, body.SeatCount, body.Type, body.Model);
+            await validator.ValidateAndThrowAsync(command, ct);
+            return Results.Ok(await handler.HandleAsync(command, ct));
+        })
+        .WithName("UpdateBus").WithSummary("Edit one of your buses.");
+
+        group.MapDelete("/buses/{id:guid}", async (Guid id, DeleteBusHandler handler, CancellationToken ct) =>
+        {
+            await handler.HandleAsync(new DeleteBusCommand(id), ct);
+            return Results.NoContent();
+        })
+        .WithName("DeleteBus").WithSummary("Delete a bus (blocked while used by trips).");
+
+        group.MapPut("/trips/{id:guid}", async (
+            Guid id, UpdateTripRequest body, UpdateTripHandler handler,
+            IValidator<UpdateTripCommand> validator, CancellationToken ct) =>
+        {
+            var command = new UpdateTripCommand(id, body.Origin, body.Destination,
+                body.DepartureUtc, body.ArrivalUtc, body.Price, body.Currency);
+            await validator.ValidateAndThrowAsync(command, ct);
+            return Results.Ok(await handler.HandleAsync(command, ct));
+        })
+        .WithName("UpdateTrip").WithSummary("Edit a scheduled trip (blocked once it has bookings).");
+
+        group.MapDelete("/trips/{id:guid}", async (Guid id, DeleteTripHandler handler, CancellationToken ct) =>
+        {
+            await handler.HandleAsync(new DeleteTripCommand(id), ct);
+            return Results.NoContent();
+        })
+        .WithName("DeleteTrip").WithSummary("Delete a trip (blocked if it has bookings — cancel instead).");
+
+        group.MapPost("/trips/{id:guid}/start", async (Guid id, StartTripHandler handler, CancellationToken ct) =>
+            Results.Ok(await handler.HandleAsync(new StartTripCommand(id), ct)))
+        .WithName("StartTrip").WithSummary("Mark a scheduled trip as in-progress.");
+
+        group.MapPost("/trips/{id:guid}/complete", async (Guid id, CompleteTripHandler handler, CancellationToken ct) =>
+            Results.Ok(await handler.HandleAsync(new CompleteTripCommand(id), ct)))
+        .WithName("CompleteTrip").WithSummary("Mark an in-progress trip as completed.");
+
+        // ── Company profile ───────────────────────────────────────────────────────────
+        group.MapGet("/company", async (GetMyCompanyHandler handler, CancellationToken ct) =>
+            Results.Ok(await handler.HandleAsync(ct)))
+        .WithName("GetMyCompany").WithSummary("View your company profile.");
+
+        group.MapPut("/company", async (
+            UpdateCompanyProfileRequest body, UpdateMyCompanyHandler handler,
+            IValidator<UpdateMyCompanyCommand> validator, CancellationToken ct) =>
+        {
+            var command = new UpdateMyCompanyCommand(body.Name, body.Phone);
+            await validator.ValidateAndThrowAsync(command, ct);
+            return Results.Ok(await handler.HandleAsync(command, ct));
+        })
+        .WithName("UpdateMyCompany").WithSummary("Edit your company profile (name, phone).");
 
         // ── Counter / desk (manager OR staff) ────────────────────────────────────────
         var desk = app.MapGroup("/api/vendor/bookings").WithTags("Vendor · Desk")

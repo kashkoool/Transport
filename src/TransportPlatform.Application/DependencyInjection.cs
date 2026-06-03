@@ -49,13 +49,25 @@ public static class DependencyInjection
         services.AddScoped<ListCompaniesHandler>();
         services.AddScoped<SetCompanyStatusHandler>();
         services.AddScoped<CreateCompanyManagerHandler>();
+        services.AddScoped<UpdateCompanyHandler>();
+        services.AddScoped<DeleteCompanyHandler>();
+
+        // Vendor · company profile
+        services.AddScoped<GetMyCompanyHandler>();
+        services.AddScoped<UpdateMyCompanyHandler>();
 
         // Vendor · fleet + trips
         services.AddScoped<AddBusHandler>();
         services.AddScoped<ListBusesHandler>();
+        services.AddScoped<UpdateBusHandler>();
+        services.AddScoped<DeleteBusHandler>();
         services.AddScoped<ScheduleTripHandler>();
         services.AddScoped<ListVendorTripsHandler>();
         services.AddScoped<CancelTripHandler>();
+        services.AddScoped<UpdateTripHandler>();
+        services.AddScoped<DeleteTripHandler>();
+        services.AddScoped<StartTripHandler>();
+        services.AddScoped<CompleteTripHandler>();
 
         // Vendor · staff + drivers
         services.AddScoped<CreateStaffHandler>();

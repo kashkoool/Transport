@@ -82,4 +82,40 @@ public sealed class Trip : AggregateRoot
     }
 
     public void Cancel() => Status = TripStatus.Cancelled;
+
+    /// <summary>Edit route / times / fare. Only allowed while the trip is still Scheduled.</summary>
+    public void Update(string origin, string destination, DateTimeOffset departureUtc, DateTimeOffset arrivalUtc, Money fare)
+    {
+        if (Status != TripStatus.Scheduled)
+            throw new DomainException("trip.not_editable", "Only a scheduled trip can be edited.");
+        if (string.IsNullOrWhiteSpace(origin) || string.IsNullOrWhiteSpace(destination))
+            throw new DomainException("trip.route_required", "Origin and destination are required.");
+        if (string.Equals(origin.Trim(), destination.Trim(), StringComparison.OrdinalIgnoreCase))
+            throw new DomainException("trip.route_invalid", "Origin and destination must differ.");
+        if (arrivalUtc <= departureUtc)
+            throw new DomainException("trip.time_invalid", "Arrival must be after departure.");
+
+        Origin = origin.Trim();
+        Destination = destination.Trim();
+        DepartureUtc = departureUtc;
+        ArrivalUtc = arrivalUtc;
+        Price = fare.Amount;
+        Currency = fare.Currency;
+    }
+
+    /// <summary>Scheduled → InProgress (the bus has set off).</summary>
+    public void Start()
+    {
+        if (Status != TripStatus.Scheduled)
+            throw new DomainException("trip.not_startable", "Only a scheduled trip can be started.");
+        Status = TripStatus.InProgress;
+    }
+
+    /// <summary>InProgress → Completed (the trip has finished).</summary>
+    public void Complete()
+    {
+        if (Status != TripStatus.InProgress)
+            throw new DomainException("trip.not_completable", "Only an in-progress trip can be completed.");
+        Status = TripStatus.Completed;
+    }
 }

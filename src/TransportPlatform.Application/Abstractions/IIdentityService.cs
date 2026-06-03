@@ -64,6 +64,9 @@ public interface IIdentityService
     /// <summary>The user ids of a company's manager(s) — recipients of admin → company messages.</summary>
     Task<IReadOnlyList<Guid>> ListCompanyManagerIdsAsync(Guid companyId, CancellationToken ct = default);
 
+    /// <summary>Delete every account (manager + staff) bound to a company — used when deleting the company.</summary>
+    Task DeleteCompanyUsersAsync(Guid companyId, CancellationToken ct = default);
+
     /// <summary>List a company's staff (page slice), ordered by email.</summary>
     Task<IReadOnlyList<StaffMember>> ListStaffAsync(Guid companyId, int skip, int take, CancellationToken ct = default);
 

@@ -13,6 +13,7 @@ public static class AdminEndpoints
     public sealed record CreateCompanyRequest(string Name, string Email, string? Phone);
     public sealed record CreateManagerRequest(string Email, string Password, string FullName);
     public sealed record NotifyCompanyRequest(string Title, string Message, string? Type);
+    public sealed record UpdateCompanyRequest(string Name, string? Phone);
 
     public static IEndpointRouteBuilder MapAdminEndpoints(this IEndpointRouteBuilder app)
     {
@@ -64,6 +65,25 @@ public static class AdminEndpoints
         })
         .WithName("CreateCompanyManager")
         .WithSummary("Create the vendor-manager login bound to a company.");
+
+        group.MapPut("/{id:guid}", async (
+            Guid id, UpdateCompanyRequest body, UpdateCompanyHandler handler,
+            IValidator<UpdateCompanyCommand> validator, CancellationToken ct) =>
+        {
+            var command = new UpdateCompanyCommand(id, body.Name, body.Phone);
+            await validator.ValidateAndThrowAsync(command, ct);
+            return Results.Ok(await handler.HandleAsync(command, ct));
+        })
+        .WithName("UpdateCompany")
+        .WithSummary("Edit a company's profile (name, phone).");
+
+        group.MapDelete("/{id:guid}", async (Guid id, DeleteCompanyHandler handler, CancellationToken ct) =>
+        {
+            await handler.HandleAsync(new DeleteCompanyCommand(id), ct);
+            return Results.NoContent();
+        })
+        .WithName("DeleteCompany")
+        .WithSummary("Delete a company with no buses/trips/drivers (removes its accounts too).");
 
         group.MapPost("/{id:guid}/notify", async (
             Guid id, NotifyCompanyRequest body, NotifyCompanyHandler handler,
