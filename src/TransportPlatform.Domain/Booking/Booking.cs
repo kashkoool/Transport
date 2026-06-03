@@ -96,6 +96,18 @@ public sealed class Booking : AggregateRoot
         Status = BookingStatus.Cancelled;
     }
 
+    /// <summary>
+    /// Cancel a CONFIRMED booking (the refund + seat-freeing is orchestrated by the handler).
+    /// Raises the cancellation event so notifications/refund follow-ups can run.
+    /// </summary>
+    public void CancelConfirmed()
+    {
+        if (Status != BookingStatus.Confirmed)
+            throw new DomainException("booking.not_confirmed", "Only a confirmed booking can be cancelled here.");
+        Status = BookingStatus.Cancelled;
+        Raise(new BookingCancelledDomainEvent(Id, Reference, CustomerEmail));
+    }
+
     public void Expire()
     {
         if (Status == BookingStatus.PendingPayment)

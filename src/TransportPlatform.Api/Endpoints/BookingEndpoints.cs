@@ -62,6 +62,12 @@ public static class BookingEndpoints
         .WithName("GetTicket")
         .WithSummary("Get the boarding ticket (with QR payload) for your booking.");
 
+        group.MapPost("/{id:guid}/cancel", async (
+            Guid id, CancelBookingHandler handler, CancellationToken ct) =>
+            Results.Ok(await handler.HandleAsync(new CancelBookingCommand(id), ct)))
+        .WithName("CancelBooking")
+        .WithSummary("Cancel your booking (confirmed bookings: only ≥48h before departure; refunds if paid).");
+
         return app;
     }
 }

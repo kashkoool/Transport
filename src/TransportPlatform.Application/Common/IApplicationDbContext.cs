@@ -21,6 +21,7 @@ public interface IApplicationDbContext
     DbSet<Booking> Bookings { get; }
     DbSet<SeatAssignment> SeatAssignments { get; }
     DbSet<Payment> Payments { get; }
+    DbSet<Refund> Refunds { get; }
 
     Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);
 

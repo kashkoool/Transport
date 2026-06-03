@@ -10,9 +10,24 @@ namespace TransportPlatform.Infrastructure.Payments;
 public sealed class PaymentOptions
 {
     public const string SectionName = "Payments";
+
+    /// <summary>"Sandbox" (dev/tests) or "PayPal".</summary>
     public string Provider { get; set; } = "Sandbox";
+
+    // ── Sandbox ─────────────────────────────────────────────────────────────────────
     public string WebhookSecret { get; set; } = "dev-secret";
     public string CheckoutBaseUrl { get; set; } = "https://sandbox.local/checkout";
+
+    // ── PayPal (REST v2) ────────────────────────────────────────────────────────────
+    public string ClientId { get; set; } = string.Empty;
+    public string ClientSecret { get; set; } = string.Empty;
+    /// <summary>https://api-m.sandbox.paypal.com (sandbox) or https://api-m.paypal.com (live).</summary>
+    public string ApiBaseUrl { get; set; } = "https://api-m.sandbox.paypal.com";
+    /// <summary>The configured webhook id, used to verify inbound webhook signatures.</summary>
+    public string WebhookId { get; set; } = string.Empty;
+    /// <summary>Where PayPal returns the buyer after approval (a web-app page).</summary>
+    public string ReturnUrl { get; set; } = string.Empty;
+    public string CancelUrl { get; set; } = string.Empty;
 }
 
 /// <summary>
@@ -43,20 +58,27 @@ public sealed partial class SandboxPaymentGateway(IOptions<PaymentOptions> optio
         return Task.FromResult(new CheckoutSession(url, gatewayRef));
     }
 
-    public PaymentWebhook? VerifyAndParseWebhook(string payload, string? signatureHeader)
+    public Task<PaymentWebhook?> VerifyAndParseWebhookAsync(
+        string payload, IReadOnlyDictionary<string, string> headers, CancellationToken cancellationToken = default)
     {
+        headers.TryGetValue("X-Signature", out var signatureHeader);
+
         // O(1) upfront format gate: reject wrong-length / non-hex / null before any work.
         if (string.IsNullOrEmpty(signatureHeader) || !SignatureFormat().IsMatch(signatureHeader))
-            return null;
+            return Task.FromResult<PaymentWebhook?>(null);
         if (!VerifySignature(payload, signatureHeader))
-            return null;
+            return Task.FromResult<PaymentWebhook?>(null);
 
         var dto = JsonSerializer.Deserialize<WebhookDto>(payload, WebJsonOptions);
         if (dto is null || string.IsNullOrWhiteSpace(dto.BookingReference))
-            return null;
+            return Task.FromResult<PaymentWebhook?>(null);
 
-        return new PaymentWebhook(dto.GatewayReference ?? "", dto.BookingReference, dto.Succeeded);
+        return Task.FromResult<PaymentWebhook?>(new PaymentWebhook(dto.GatewayReference ?? "", dto.BookingReference, dto.Succeeded));
     }
+
+    /// <summary>Sandbox refund: always succeeds and mints a fake refund reference.</summary>
+    public Task<RefundResult> RefundAsync(RefundRequest request, CancellationToken cancellationToken = default) =>
+        Task.FromResult(new RefundResult(Succeeded: true, GatewayRefundRef: $"SBX-REF-{Guid.NewGuid():N}", Error: null));
 
     /// <summary>
     /// <see cref="IPaymentWebhookSigner"/> seam: sign a payload as the gateway would, so a
