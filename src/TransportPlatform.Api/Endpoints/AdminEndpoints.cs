@@ -3,6 +3,7 @@ using TransportPlatform.Api.Security;
 using TransportPlatform.Application.Common;
 using TransportPlatform.Application.Companies;
 using TransportPlatform.Application.Notifications;
+using TransportPlatform.Application.Reports;
 using TransportPlatform.Domain.Companies;
 
 namespace TransportPlatform.Api.Endpoints;
@@ -74,6 +75,16 @@ public static class AdminEndpoints
         })
         .WithName("NotifyCompany")
         .WithSummary("Send an in-app notification to a company's manager(s).");
+
+        // ── Admin reports ─────────────────────────────────────────────────────────────
+        var reports = app.MapGroup("/api/admin/reports").WithTags("Admin · Reports")
+            .RequireAuthorization(AuthorizationPolicies.AdminOnly)
+            .RequireRateLimiting(RateLimitPolicies.Sensitive);
+
+        reports.MapGet("/summary", async (AdminSystemSummaryHandler handler, CancellationToken ct) =>
+            Results.Ok(await handler.HandleAsync(ct)))
+        .WithName("AdminSystemSummary")
+        .WithSummary("Platform-wide totals (companies, trips, bookings, revenue).");
 
         return app;
     }
