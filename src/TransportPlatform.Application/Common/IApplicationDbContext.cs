@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using TransportPlatform.Domain.Bookings;
 using TransportPlatform.Domain.Companies;
 using TransportPlatform.Domain.Fleet;
+using TransportPlatform.Domain.Notifications;
 using TransportPlatform.Domain.Payments;
 using TransportPlatform.Domain.Trips;
 
@@ -22,6 +23,7 @@ public interface IApplicationDbContext
     DbSet<SeatAssignment> SeatAssignments { get; }
     DbSet<Payment> Payments { get; }
     DbSet<Refund> Refunds { get; }
+    DbSet<Notification> Notifications { get; }
 
     Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);
 

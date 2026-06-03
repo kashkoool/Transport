@@ -10,9 +10,11 @@ using Serilog;
 using TransportPlatform.Api.Endpoints;
 using TransportPlatform.Api.Identity;
 using TransportPlatform.Api.Middleware;
+using TransportPlatform.Api.Realtime;
 using TransportPlatform.Api.Security;
 using TransportPlatform.Api.Workers;
 using TransportPlatform.Application;
+using TransportPlatform.Application.Abstractions;
 using TransportPlatform.Application.Common;
 using TransportPlatform.Infrastructure;
 using TransportPlatform.Infrastructure.Persistence;
@@ -54,6 +56,10 @@ builder.Services.AddInfrastructure(builder.Configuration);
 // Resolve the authenticated caller from request claims, for tenant-scoped handlers.
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddScoped<ICurrentUser, HttpCurrentUser>();
+
+// Real-time push (SignalR): notifications + live seat availability.
+builder.Services.AddSignalR();
+builder.Services.AddSingleton<IRealtimeNotifier, SignalRRealtimeNotifier>();
 
 // ── API surface ────────────────────────────────────────────────────────────────
 builder.Services.AddOpenApi();
@@ -210,6 +216,8 @@ app.MapVendorEndpoints();
 app.MapTripEndpoints();
 app.MapBookingEndpoints();
 app.MapPaymentEndpoints();
+app.MapNotificationEndpoints();
+app.MapHub<RealtimeHub>("/hubs/realtime").RequireCors(corsPolicy);
 
 app.Run();
 

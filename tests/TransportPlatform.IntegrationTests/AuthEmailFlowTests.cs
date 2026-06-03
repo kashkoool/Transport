@@ -91,7 +91,7 @@ public sealed class AuthEmailFlowTests(ApiFactory factory) : IClassFixture<ApiFa
         using var scope = factory.Services.CreateScope();
         var dispatcher = scope.ServiceProvider.GetRequiredService<IIntegrationEventDispatcher>();
         var rider = $"rider{Guid.NewGuid():N}@example.com";
-        var evt = new BookingConfirmedDomainEvent(Guid.NewGuid(), "BK-EMAILTEST", rider);
+        var evt = new BookingConfirmedDomainEvent(Guid.NewGuid(), Guid.NewGuid(), "BK-EMAILTEST", rider);
 
         await dispatcher.DispatchAsync(typeof(BookingConfirmedDomainEvent).FullName!, JsonSerializer.Serialize(evt));
 

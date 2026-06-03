@@ -8,6 +8,7 @@ using TransportPlatform.Domain.Common;
 using TransportPlatform.Domain.Companies;
 using TransportPlatform.Domain.Fleet;
 using TransportPlatform.Domain.Identity;
+using TransportPlatform.Domain.Notifications;
 using TransportPlatform.Domain.Outbox;
 using TransportPlatform.Domain.Payments;
 using TransportPlatform.Domain.Trips;
@@ -31,6 +32,7 @@ public sealed class ApplicationDbContext(DbContextOptions<ApplicationDbContext> 
     public DbSet<SeatAssignment> SeatAssignments => Set<SeatAssignment>();
     public DbSet<Payment> Payments => Set<Payment>();
     public DbSet<Refund> Refunds => Set<Refund>();
+    public DbSet<Notification> Notifications => Set<Notification>();
     public DbSet<OutboxMessage> OutboxMessages => Set<OutboxMessage>();
     public DbSet<RefreshToken> RefreshTokens => Set<RefreshToken>();
 

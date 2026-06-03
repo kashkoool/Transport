@@ -243,6 +243,22 @@ public sealed class IdentityService(
     public Task<int> CountStaffAsync(Guid companyId, CancellationToken ct = default) =>
         users.Users.CountAsync(u => u.CompanyId == companyId && u.StaffType != null, ct);
 
+    public async Task<Guid?> FindUserIdByEmailAsync(string email, CancellationToken ct = default)
+    {
+        ct.ThrowIfCancellationRequested();
+        var user = string.IsNullOrWhiteSpace(email) ? null : await users.FindByEmailAsync(email);
+        return user?.Id;
+    }
+
+    public async Task<IReadOnlyList<Guid>> ListCompanyManagerIdsAsync(Guid companyId, CancellationToken ct = default)
+    {
+        // Managers share the company id but (unlike staff) carry no StaffType.
+        return await users.Users
+            .Where(u => u.CompanyId == companyId && u.StaffType == null)
+            .Select(u => u.Id)
+            .ToListAsync(ct);
+    }
+
     public async Task<bool> SetStaffSuspendedAsync(Guid companyId, Guid staffId, bool suspended, CancellationToken ct = default)
     {
         ct.ThrowIfCancellationRequested();

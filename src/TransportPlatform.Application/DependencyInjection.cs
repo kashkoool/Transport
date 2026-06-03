@@ -4,6 +4,7 @@ using TransportPlatform.Application.Bookings;
 using TransportPlatform.Application.Companies;
 using TransportPlatform.Application.Fleet;
 using TransportPlatform.Application.Identity;
+using TransportPlatform.Application.Notifications;
 using TransportPlatform.Application.Payments;
 using TransportPlatform.Application.Staff;
 using TransportPlatform.Application.Trips;
@@ -59,6 +60,13 @@ public static class DependencyInjection
         services.AddScoped<AddDriverHandler>();
         services.AddScoped<ListDriversHandler>();
         services.AddScoped<AssignDriverHandler>();
+
+        // Notifications
+        services.AddScoped<ListNotificationsHandler>();
+        services.AddScoped<UnreadCountHandler>();
+        services.AddScoped<MarkNotificationReadHandler>();
+        services.AddScoped<MarkAllNotificationsReadHandler>();
+        services.AddScoped<NotifyCompanyHandler>();
 
         return services;
     }

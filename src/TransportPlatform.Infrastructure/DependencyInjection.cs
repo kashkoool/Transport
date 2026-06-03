@@ -95,6 +95,21 @@ public static class DependencyInjection
                     RoleClaimType = ClaimTypes.Role,
                     NameClaimType = "sub",
                 };
+                // WebSocket clients can't set the Authorization header, so SignalR passes the
+                // access token in the query string for hub connections.
+                o.Events = new JwtBearerEvents
+                {
+                    OnMessageReceived = context =>
+                    {
+                        var accessToken = context.Request.Query["access_token"];
+                        if (!string.IsNullOrEmpty(accessToken)
+                            && context.HttpContext.Request.Path.StartsWithSegments("/hubs"))
+                        {
+                            context.Token = accessToken;
+                        }
+                        return Task.CompletedTask;
+                    },
+                };
             });
 
         // ── Google sign-in (optional: wired only when a client id is configured) ────────

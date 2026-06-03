@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using TransportPlatform.Infrastructure.Persistence;
@@ -11,9 +12,11 @@ using TransportPlatform.Infrastructure.Persistence;
 namespace TransportPlatform.Infrastructure.Persistence.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260603015652_AddNotifications")]
+    partial class AddNotifications
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -514,9 +517,9 @@ namespace TransportPlatform.Infrastructure.Persistence.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("RecipientUserId", "IsRead");
+                    b.HasIndex("CreatedAtUtc");
 
-                    b.HasIndex("RecipientUserId", "CreatedAtUtc");
+                    b.HasIndex("RecipientUserId", "IsRead");
 
                     b.ToTable("notification", (string)null);
                 });

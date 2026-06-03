@@ -2,6 +2,7 @@ using FluentValidation;
 using TransportPlatform.Api.Security;
 using TransportPlatform.Application.Common;
 using TransportPlatform.Application.Companies;
+using TransportPlatform.Application.Notifications;
 using TransportPlatform.Domain.Companies;
 
 namespace TransportPlatform.Api.Endpoints;
@@ -10,6 +11,7 @@ public static class AdminEndpoints
 {
     public sealed record CreateCompanyRequest(string Name, string Email, string? Phone);
     public sealed record CreateManagerRequest(string Email, string Password, string FullName);
+    public sealed record NotifyCompanyRequest(string Title, string Message, string? Type);
 
     public static IEndpointRouteBuilder MapAdminEndpoints(this IEndpointRouteBuilder app)
     {
@@ -61,6 +63,17 @@ public static class AdminEndpoints
         })
         .WithName("CreateCompanyManager")
         .WithSummary("Create the vendor-manager login bound to a company.");
+
+        group.MapPost("/{id:guid}/notify", async (
+            Guid id, NotifyCompanyRequest body, NotifyCompanyHandler handler,
+            IValidator<NotifyCompanyCommand> validator, CancellationToken ct) =>
+        {
+            var command = new NotifyCompanyCommand(id, body.Title, body.Message, body.Type ?? "info");
+            await validator.ValidateAndThrowAsync(command, ct);
+            return Results.Ok(await handler.HandleAsync(command, ct));
+        })
+        .WithName("NotifyCompany")
+        .WithSummary("Send an in-app notification to a company's manager(s).");
 
         return app;
     }
