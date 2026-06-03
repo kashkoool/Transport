@@ -282,6 +282,45 @@ public sealed class IdentityService(
         return result.Succeeded;
     }
 
+    public async Task<bool> ChangePasswordAsync(Guid userId, string currentPassword, string newPassword, CancellationToken ct = default)
+    {
+        ct.ThrowIfCancellationRequested();
+        var user = await users.FindByIdAsync(userId.ToString());
+        if (user is null)
+            return false;
+        // ChangePasswordAsync verifies the current password; a wrong one fails (no enumeration).
+        var result = await users.ChangePasswordAsync(user, currentPassword, newPassword);
+        return result.Succeeded;
+    }
+
+    public async Task<UserProfile?> GetProfileAsync(Guid userId, CancellationToken ct = default)
+    {
+        ct.ThrowIfCancellationRequested();
+        var user = await users.FindByIdAsync(userId.ToString());
+        if (user is null)
+            return null;
+        var userRoles = await users.GetRolesAsync(user);
+        return new UserProfile(user.Email!, user.FullName ?? string.Empty, user.PhoneNumber, [.. userRoles]);
+    }
+
+    public async Task<UserProfile?> UpdateProfileAsync(Guid userId, string fullName, string? phone, CancellationToken ct = default)
+    {
+        ct.ThrowIfCancellationRequested();
+        var user = await users.FindByIdAsync(userId.ToString());
+        if (user is null)
+            return null;
+
+        user.FullName = fullName.Trim();
+        user.PhoneNumber = string.IsNullOrWhiteSpace(phone) ? null : phone.Trim();
+        var result = await users.UpdateAsync(user);
+        if (!result.Succeeded)
+            throw new ConflictException("profile.update_failed",
+                string.Join("; ", result.Errors.Select(e => e.Description)));
+
+        var userRoles = await users.GetRolesAsync(user);
+        return new UserProfile(user.Email!, user.FullName, user.PhoneNumber, [.. userRoles]);
+    }
+
     private async Task<AuthenticatedUser> ToAuthenticatedUserAsync(ApplicationUser user)
     {
         var userRoles = await users.GetRolesAsync(user);

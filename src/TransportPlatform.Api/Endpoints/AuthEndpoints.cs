@@ -20,6 +20,8 @@ public static class AuthEndpoints
     public sealed record ResetPasswordRequest(string Email, string Token, string NewPassword);
     public sealed record VerifyEmailRequest(string Email, string Token);
     public sealed record ResendVerificationRequest(string Email);
+    public sealed record ChangePasswordRequest(string CurrentPassword, string NewPassword);
+    public sealed record UpdateProfileRequest(string FullName, string? Phone);
 
     private static readonly object GenericEmailAck =
         new { message = "If an account exists for that email, a message has been sent." };
@@ -202,6 +204,38 @@ public static class AuthEndpoints
         .RequireAuthorization()
         .WithName("Me")
         .WithSummary("Return the authenticated caller's identity (requires Bearer token).");
+
+        // ── Authenticated self-service (profile + password) ─────────────────────────
+        group.MapGet("/profile", async (GetProfileHandler handler, CancellationToken ct) =>
+            Results.Ok(await handler.HandleAsync(ct)))
+        .RequireAuthorization()
+        .WithName("GetProfile")
+        .WithSummary("Get the authenticated caller's profile (name, phone, email, roles).");
+
+        group.MapPut("/profile", async (
+            UpdateProfileRequest body, UpdateProfileHandler handler,
+            IValidator<UpdateProfileCommand> validator, CancellationToken ct) =>
+        {
+            var command = new UpdateProfileCommand(body.FullName, body.Phone);
+            await validator.ValidateAndThrowAsync(command, ct);
+            return Results.Ok(await handler.HandleAsync(command, ct));
+        })
+        .RequireAuthorization()
+        .WithName("UpdateProfile")
+        .WithSummary("Update the caller's own name and phone (email is read-only).");
+
+        group.MapPost("/change-password", async (
+            ChangePasswordRequest body, ChangePasswordHandler handler,
+            IValidator<ChangePasswordCommand> validator, CancellationToken ct) =>
+        {
+            var command = new ChangePasswordCommand(body.CurrentPassword, body.NewPassword);
+            await validator.ValidateAndThrowAsync(command, ct);
+            await handler.HandleAsync(command, ct);
+            return Results.Ok(new { message = "Your password has been changed." });
+        })
+        .RequireAuthorization()
+        .WithName("ChangePassword")
+        .WithSummary("Change the caller's password (verifies the current one; revokes other sessions).");
 
         return app;
     }

@@ -78,6 +78,18 @@ public interface IIdentityService
     /// can only ever touch their OWN staff. Returns false if no such staff member exists there.
     /// </summary>
     Task<bool> SetStaffSuspendedAsync(Guid companyId, Guid staffId, bool suspended, CancellationToken ct = default);
+
+    /// <summary>
+    /// Change an authenticated user's password (verifies the current one). Returns false if the
+    /// current password is wrong or the user is unknown. On success, existing sessions are revoked.
+    /// </summary>
+    Task<bool> ChangePasswordAsync(Guid userId, string currentPassword, string newPassword, CancellationToken ct = default);
+
+    /// <summary>The caller's own profile (name + phone), or null if the user no longer exists.</summary>
+    Task<UserProfile?> GetProfileAsync(Guid userId, CancellationToken ct = default);
+
+    /// <summary>Update the caller's own profile (full name + optional phone). Returns the new profile, or null if unknown.</summary>
+    Task<UserProfile?> UpdateProfileAsync(Guid userId, string fullName, string? phone, CancellationToken ct = default);
 }
 
 /// <summary>An authenticated principal: id, email, role names and (for vendor staff) company.</summary>
@@ -86,3 +98,6 @@ public sealed record AuthenticatedUser(
 
 /// <summary>Read model for a company staff member.</summary>
 public sealed record StaffMember(Guid Id, string Email, string FullName, string StaffType, bool Suspended);
+
+/// <summary>The caller's editable profile (email is read-only) plus their roles.</summary>
+public sealed record UserProfile(string Email, string FullName, string? Phone, IReadOnlyList<string> Roles);
