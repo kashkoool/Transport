@@ -32,15 +32,21 @@ import { NotificationService } from './notification.service';
           </div>
           <div class="max-h-80 overflow-y-auto">
             @for (n of notifications.notifications(); track n.id) {
-              <button
-                type="button"
-                (click)="notifications.markRead(n.id)"
-                class="block w-full border-b border-slate-50 px-3 py-2 text-left hover:bg-slate-50"
+              <div
+                class="flex items-start gap-2 border-b border-slate-50 px-3 py-2 hover:bg-slate-50"
                 [class.bg-indigo-50]="!n.isRead"
               >
-                <p class="text-sm font-medium text-slate-800">{{ n.title }}</p>
-                <p class="text-xs text-slate-500">{{ n.message }}</p>
-              </button>
+                <button type="button" (click)="notifications.markRead(n.id)" class="flex-1 text-left">
+                  <p class="text-sm font-medium text-slate-800">{{ n.title }}</p>
+                  <p class="text-xs text-slate-500">{{ n.message }}</p>
+                </button>
+                <button
+                  type="button"
+                  (click)="notifications.delete(n.id)"
+                  class="shrink-0 text-slate-400 hover:text-rose-600"
+                  aria-label="Delete notification"
+                >✕</button>
+              </div>
             } @empty {
               <p class="px-3 py-6 text-center text-sm text-slate-400">No notifications</p>
             }

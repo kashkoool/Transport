@@ -45,6 +45,9 @@ public static class DependencyInjection
         services.AddScoped<VerifyEmailHandler>();
         services.AddScoped<ResendVerificationHandler>();
         services.AddScoped<GoogleSignInHandler>();
+        services.AddScoped<ChangePasswordHandler>();
+        services.AddScoped<GetProfileHandler>();
+        services.AddScoped<UpdateProfileHandler>();
 
         // Admin · companies
         services.AddScoped<CreateCompanyHandler>();
@@ -87,6 +90,7 @@ public static class DependencyInjection
         services.AddScoped<UnreadCountHandler>();
         services.AddScoped<MarkNotificationReadHandler>();
         services.AddScoped<MarkAllNotificationsReadHandler>();
+        services.AddScoped<DeleteNotificationHandler>();
         services.AddScoped<NotifyCompanyHandler>();
 
         // Reports + demand

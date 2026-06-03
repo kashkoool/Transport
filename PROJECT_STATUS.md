@@ -82,8 +82,9 @@ trip-search index. Full detail in §4.
 ✅ register · Google sign-in · email verification · login/logout · forgot/reset password · search ·
 **seat map (layout + taken seats)** · hold seats · multi-passenger booking · **passenger ID documents
 (optional)** · **promo-code preview + redemption** · **pay (PayPal real / Sandbox dev)** · QR ticket ·
-my-bookings · **cancel (48h) + refund** · **rate/review a travelled trip** · **in-app notifications (bell, real-time)**.
-❌ profile edit · saved payment methods · mobile app.
+my-bookings · **cancel (48h) + refund** · **rate/review a travelled trip** · **in-app notifications
+(bell, real-time, delete)** · **view/edit profile (name + phone)** · **change password (authenticated)**.
+❌ saved payment methods (by design — external gateway) · mobile app.
 
 ### Vendor / Company Manager
 ✅ login · add/list/**edit/delete** bus (with seat layout) · schedule/list/cancel/**edit/delete** trip ·

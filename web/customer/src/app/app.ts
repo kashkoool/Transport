@@ -30,7 +30,7 @@ import { NotificationBellComponent } from './core/notifications/notification-bel
 
             @if (auth.isAuthenticated()) {
               <app-notification-bell />
-              <span class="hidden text-slate-400 sm:inline">{{ auth.email() }}</span>
+              <a routerLink="/account" routerLinkActive="text-indigo-700 font-semibold" class="hidden text-slate-500 hover:text-slate-900 sm:inline">{{ auth.email() }}</a>
               <button
                 type="button"
                 (click)="logout()"

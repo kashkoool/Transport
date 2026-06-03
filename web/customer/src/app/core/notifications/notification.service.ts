@@ -64,6 +64,14 @@ export class NotificationService {
     });
   }
 
+  delete(id: string): void {
+    const removed = this.notifications().find((n) => n.id === id);
+    this.http.delete(`${this.api}/${id}`).subscribe(() => {
+      this.notifications.update((list) => list.filter((n) => n.id !== id));
+      if (removed && !removed.isRead) this.unreadCount.update((c) => Math.max(0, c - 1));
+    });
+  }
+
   private start(): void {
     this.refresh();
     if (this.connection) return;

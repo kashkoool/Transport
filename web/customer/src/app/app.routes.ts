@@ -58,6 +58,11 @@ export const routes: Routes = [
     canActivate: [authGuard],
     loadComponent: () => import('./features/tickets/my-bookings').then((m) => m.MyBookingsComponent),
   },
+  {
+    path: 'account',
+    canActivate: [authGuard],
+    loadComponent: () => import('./features/account/profile').then((m) => m.ProfileComponent),
+  },
 
   // ── Vendor console (VendorManager only) ──
   { path: 'vendor', pathMatch: 'full', redirectTo: 'vendor/trips' },

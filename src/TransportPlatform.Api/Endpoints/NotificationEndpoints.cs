@@ -38,6 +38,14 @@ public static class NotificationEndpoints
         .WithName("MarkAllNotificationsRead")
         .WithSummary("Mark all the caller's notifications read.");
 
+        group.MapDelete("/{id:guid}", async (Guid id, DeleteNotificationHandler handler, CancellationToken ct) =>
+        {
+            await handler.HandleAsync(new DeleteNotificationCommand(id), ct);
+            return Results.NoContent();
+        })
+        .WithName("DeleteNotification")
+        .WithSummary("Delete one of the caller's notifications.");
+
         return app;
     }
 }

@@ -20,6 +20,14 @@ export interface TokenResponse {
   refreshTokenExpiresAtUtc: string;
 }
 
+/** The caller's editable profile (email is read-only) plus their roles. */
+export interface UserProfile {
+  email: string;
+  fullName: string;
+  phone: string | null;
+  roles: string[];
+}
+
 export interface TripSummary {
   id: string;
   origin: string;

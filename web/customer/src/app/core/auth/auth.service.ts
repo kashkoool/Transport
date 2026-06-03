@@ -2,7 +2,7 @@ import { computed, inject, Injectable, signal } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable, of, shareReplay, tap, catchError, map, finalize } from 'rxjs';
 import { environment } from '../../../environments/environment';
-import { AuthResult, TokenResponse } from '../models';
+import { AuthResult, TokenResponse, UserProfile } from '../models';
 
 // ASP.NET emits role claims under this URI when MapInboundClaims is off.
 const ROLE_CLAIM = 'http://schemas.microsoft.com/ws/2008/06/identity/claims/role';
@@ -119,6 +119,23 @@ export class AuthService {
   /** Re-send the verification email if applicable. Always succeeds (anti-enumeration). */
   resendVerification(email: string): Observable<void> {
     return this.http.post<unknown>(`${this.api}/resend-verification`, { email }).pipe(map(() => void 0));
+  }
+
+  /** The authenticated caller's profile (name, phone, email, roles). */
+  getProfile(): Observable<UserProfile> {
+    return this.http.get<UserProfile>(`${this.api}/profile`);
+  }
+
+  /** Update the caller's own name + phone (email is read-only). */
+  updateProfile(fullName: string, phone: string | null): Observable<UserProfile> {
+    return this.http.put<UserProfile>(`${this.api}/profile`, { fullName, phone });
+  }
+
+  /** Change the caller's password (verifies the current one; the server revokes other sessions). */
+  changePassword(currentPassword: string, newPassword: string): Observable<void> {
+    return this.http
+      .post<unknown>(`${this.api}/change-password`, { currentPassword, newPassword })
+      .pipe(map(() => void 0));
   }
 
   /**
