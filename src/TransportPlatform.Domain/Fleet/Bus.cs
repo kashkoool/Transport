@@ -34,4 +34,14 @@ public sealed class Bus : AggregateRoot
 
     /// <summary>Assign (or clear, when null) the driver for this bus.</summary>
     public void AssignDriver(Guid? driverId) => DriverId = driverId;
+
+    /// <summary>Edit the bus details. (Bus number stays fixed — it's the fleet identifier.)</summary>
+    public void Update(int seatCount, BusType type, string? model)
+    {
+        if (seatCount <= 0)
+            throw new DomainException("bus.seats_invalid", "Seat count must be greater than zero.");
+        SeatCount = seatCount;
+        Type = type;
+        Model = string.IsNullOrWhiteSpace(model) ? null : model.Trim();
+    }
 }

@@ -259,6 +259,14 @@ public sealed class IdentityService(
             .ToListAsync(ct);
     }
 
+    public async Task DeleteCompanyUsersAsync(Guid companyId, CancellationToken ct = default)
+    {
+        ct.ThrowIfCancellationRequested();
+        var companyUsers = await users.Users.Where(u => u.CompanyId == companyId).ToListAsync(ct);
+        foreach (var user in companyUsers)
+            await users.DeleteAsync(user);
+    }
+
     public async Task<bool> SetStaffSuspendedAsync(Guid companyId, Guid staffId, bool suspended, CancellationToken ct = default)
     {
         ct.ThrowIfCancellationRequested();

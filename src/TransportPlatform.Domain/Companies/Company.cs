@@ -27,6 +27,15 @@ public sealed class Company : AggregateRoot
         Phone = phone?.Trim();
     }
 
+    /// <summary>Edit the company profile (name + phone). Email is immutable (it's the unique key).</summary>
+    public void Update(string name, string? phone)
+    {
+        if (string.IsNullOrWhiteSpace(name))
+            throw new DomainException("company.name_required", "Company name is required.");
+        Name = name.Trim();
+        Phone = string.IsNullOrWhiteSpace(phone) ? null : phone.Trim();
+    }
+
     public void Activate() => Status = CompanyStatus.Active;
 
     public void Suspend() => Status = CompanyStatus.Suspended;
