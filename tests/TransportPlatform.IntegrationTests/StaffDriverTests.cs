@@ -137,18 +137,18 @@ public sealed class StaffDriverTests(ApiFactory factory) : IClassFixture<ApiFact
         return (companyId, auth!.AccessToken);
     }
 
-    private static Task<HttpResponseMessage> PostAsync(HttpClient client, string token, string url, object body)
+    private static async Task<HttpResponseMessage> PostAsync(HttpClient client, string token, string url, object body)
     {
-        var req = new HttpRequestMessage(HttpMethod.Post, url) { Content = JsonContent.Create(body) };
+        using var req = new HttpRequestMessage(HttpMethod.Post, url) { Content = JsonContent.Create(body) };
         req.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
-        return client.SendAsync(req);
+        return await client.SendAsync(req);
     }
 
-    private static Task<HttpResponseMessage> GetAsync(HttpClient client, string token, string url)
+    private static async Task<HttpResponseMessage> GetAsync(HttpClient client, string token, string url)
     {
-        var req = new HttpRequestMessage(HttpMethod.Get, url);
+        using var req = new HttpRequestMessage(HttpMethod.Get, url);
         req.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
-        return client.SendAsync(req);
+        return await client.SendAsync(req);
     }
 
     private sealed record AuthDto(string AccessToken, string RefreshToken, string Email);
