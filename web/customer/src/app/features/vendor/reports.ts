@@ -1,6 +1,8 @@
 import { ChangeDetectionStrategy, Component, inject, OnInit, signal } from '@angular/core';
 import { DatePipe, DecimalPipe } from '@angular/common';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
+import { forkJoin, of } from 'rxjs';
+import { catchError } from 'rxjs/operators';
 import { ReportFormat, VendorApiService } from '../../core/api/vendor-api.service';
 import { ToastService } from '../../core/toast/toast.service';
 import {
@@ -208,12 +210,19 @@ export class VendorReportsComponent implements OnInit {
   protected load(): void {
     this.loading.set(true);
     const { from, to } = this.range();
-    this.api.reportSummary(from, to).subscribe({ next: (s) => this.summary.set(s) });
-    this.api.tripReport(from, to).subscribe({ next: (r) => this.trips.set(r) });
-    this.api.bookingReport(from, to).subscribe({ next: (r) => this.bookings.set(r) });
-    this.api.employeeReport(from, to).subscribe({
-      next: (r) => { this.employees.set(r); this.loading.set(false); },
-      error: () => this.loading.set(false),
+    // Load all sections together so no tab waits on another's request; a failed section degrades
+    // to empty (the error interceptor already surfaces the failure) rather than blocking the rest.
+    forkJoin({
+      summary: this.api.reportSummary(from, to).pipe(catchError(() => of(null))),
+      trips: this.api.tripReport(from, to).pipe(catchError(() => of([] as TripReportRow[]))),
+      bookings: this.api.bookingReport(from, to).pipe(catchError(() => of([] as BookingReportRow[]))),
+      employees: this.api.employeeReport(from, to).pipe(catchError(() => of([] as EmployeeReportRow[]))),
+    }).subscribe((r) => {
+      if (r.summary) this.summary.set(r.summary);
+      this.trips.set(r.trips);
+      this.bookings.set(r.bookings);
+      this.employees.set(r.employees);
+      this.loading.set(false);
     });
   }
 

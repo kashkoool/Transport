@@ -65,7 +65,7 @@ import { AdminNavComponent } from './admin-nav';
           </tbody>
         </table>
       </div>
-      <p class="mt-2 text-xs text-slate-400">{{ total() }} customer(s)</p>
+      <p class="mt-2 text-xs text-slate-400">Showing {{ customers().length }} of {{ total() }} customer(s) — refine with search.</p>
     }
   `,
 })

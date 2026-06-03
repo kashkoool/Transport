@@ -60,6 +60,16 @@ public sealed class JwtTokenService(
 
         var user = await users.FindByIdAsync(token.UserId.ToString())
             ?? throw new UnauthorizedException("auth.user_missing", "User no longer exists.");
+
+        // A suspended (locked-out) account must not be able to mint new access tokens via refresh —
+        // otherwise suspension wouldn't take effect until the refresh token naturally expired. Revoke
+        // the family so the session ends now.
+        if (await users.IsLockedOutAsync(user))
+        {
+            await RevokeAllForUserAsync(user.Id, now, ct);
+            throw new UnauthorizedException("auth.locked_out", "This account is suspended.");
+        }
+
         string[] roles = [.. await users.GetRolesAsync(user)];
 
         var (raw, newHash) = GenerateRefreshToken();

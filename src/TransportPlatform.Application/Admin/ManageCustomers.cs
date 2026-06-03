@@ -44,7 +44,9 @@ public sealed class DeleteCustomerHandler(IIdentityService identity, IApplicatio
         var customer = await identity.FindCustomerAsync(command.UserId, ct)
             ?? throw new NotFoundException("Customer", command.UserId);
 
-        if (await db.Bookings.AnyAsync(b => b.CustomerEmail == customer.Email && b.Status != BookingStatus.Cancelled, ct))
+        // Booking.CustomerEmail is persisted normalized (trim + lower), so match on the same key.
+        var email = customer.Email.Trim().ToLowerInvariant();
+        if (await db.Bookings.AnyAsync(b => b.CustomerEmail == email && b.Status != BookingStatus.Cancelled, ct))
             throw new ConflictException("customer.has_bookings",
                 "This customer has active bookings and can't be deleted.");
 

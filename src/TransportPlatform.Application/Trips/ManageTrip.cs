@@ -19,7 +19,7 @@ public sealed class UpdateTripValidator : AbstractValidator<UpdateTripCommand>
         RuleFor(x => x.TripId).NotEmpty();
         RuleFor(x => x.Origin).NotEmpty().MaximumLength(120);
         RuleFor(x => x.Destination).NotEmpty().MaximumLength(120);
-        RuleFor(x => x.Price).GreaterThan(0);
+        RuleFor(x => x.Price).GreaterThanOrEqualTo(0).LessThanOrEqualTo(9_999_999.99m);
         RuleFor(x => x.Currency).NotEmpty().Length(3)
             .Must(supported.IsSupported)
             .WithMessage($"Currency must be one of: {string.Join(", ", supported.Supported)}.");

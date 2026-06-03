@@ -76,25 +76,24 @@ public sealed class VendorEmployeeReportHandler(IApplicationDbContext db, IIdent
         var staffIds = staffById.Keys.ToList();
 
         var tripIds = db.Trips.Where(t => t.CompanyId == companyId).Select(t => t.Id);
-        var currency = await db.Trips.Where(t => t.CompanyId == companyId)
-            .Select(t => t.Currency).FirstOrDefaultAsync(ct) ?? "SYP";
 
-        // Group the company's desk bookings (created by a staff member) by operator (SQL aggregation).
+        // Group desk bookings by (operator, currency) so revenue is never summed across currencies
+        // (a company may sell in SYP/USD/EUR). One row per staff member per currency they sold in.
         var grouped = await db.Bookings
             .Where(b => tripIds.Contains(b.TripId)
                         && b.CreatedBy != null && staffIds.Contains(b.CreatedBy)
                         && b.Status != BookingStatus.Cancelled
                         && b.CreatedAtUtc >= from && b.CreatedAtUtc < to)
-            .GroupBy(b => b.CreatedBy!)
-            .Select(g => new { CreatedBy = g.Key, Bookings = g.Count(), Revenue = g.Sum(b => b.TotalAmount) })
+            .GroupBy(b => new { b.CreatedBy, b.Currency })
+            .Select(g => new { g.Key.CreatedBy, g.Key.Currency, Bookings = g.Count(), Revenue = g.Sum(b => b.TotalAmount) })
             .ToListAsync(ct);
 
         return grouped
-            .Where(g => staffById.ContainsKey(g.CreatedBy))
+            .Where(g => g.CreatedBy != null && staffById.ContainsKey(g.CreatedBy))
             .Select(g =>
             {
-                var s = staffById[g.CreatedBy];
-                return new EmployeeReportRow(s.Id, s.Email, s.FullName, g.Bookings, g.Revenue, currency);
+                var s = staffById[g.CreatedBy!];
+                return new EmployeeReportRow(s.Id, s.Email, s.FullName, g.Bookings, g.Revenue, g.Currency);
             })
             .OrderByDescending(r => r.Revenue)
             .ToList();

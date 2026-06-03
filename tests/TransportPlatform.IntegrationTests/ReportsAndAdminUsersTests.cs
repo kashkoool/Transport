@@ -75,7 +75,7 @@ public sealed class ReportsAndAdminUsersTests(ApiFactory factory) : IClassFixtur
         var admin = await CreateAdminClientAsync();
 
         // A customer with no bookings → deletable.
-        var (_, freeEmail) = await factory.CreateCustomerClientAsync();
+        var (freeClient, freeEmail) = await factory.CreateCustomerClientAsync();
         var freeId = await UserIdByEmailAsync(freeEmail);
 
         var list = await admin.GetFromJsonAsync<PagedDto<CustomerDto>>(
@@ -83,6 +83,8 @@ public sealed class ReportsAndAdminUsersTests(ApiFactory factory) : IClassFixtur
         list!.Data.Should().ContainSingle().Which.Email.Should().Be(freeEmail);
 
         (await admin.PostAsync($"/api/admin/users/{freeId}/suspend", null)).StatusCode.Should().Be(HttpStatusCode.NoContent);
+        // Suspension must end the session: the customer's refresh token can no longer mint tokens.
+        (await freeClient.PostAsync("/api/auth/refresh", null)).StatusCode.Should().Be(HttpStatusCode.Unauthorized);
         (await admin.PostAsync($"/api/admin/users/{freeId}/reactivate", null)).StatusCode.Should().Be(HttpStatusCode.NoContent);
 
         // A customer with a confirmed booking → delete blocked (preserve financial history).
