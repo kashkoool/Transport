@@ -71,6 +71,21 @@ export const routes: Routes = [
     canActivate: [roleGuard('VendorManager')],
     loadComponent: () => import('./features/vendor/buses').then((m) => m.VendorBusesComponent),
   },
+  {
+    path: 'vendor/staff',
+    canActivate: [roleGuard('VendorManager')],
+    loadComponent: () => import('./features/vendor/staff').then((m) => m.VendorStaffComponent),
+  },
+  {
+    path: 'vendor/drivers',
+    canActivate: [roleGuard('VendorManager')],
+    loadComponent: () => import('./features/vendor/drivers').then((m) => m.VendorDriversComponent),
+  },
+  {
+    path: 'vendor/company',
+    canActivate: [roleGuard('VendorManager')],
+    loadComponent: () => import('./features/vendor/company').then((m) => m.VendorCompanyComponent),
+  },
 
   // ── Admin console (Admin / SuperAdmin only) ──
   { path: 'admin', pathMatch: 'full', redirectTo: 'admin/companies' },

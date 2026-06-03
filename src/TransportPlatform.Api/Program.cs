@@ -54,6 +54,12 @@ builder.Services.Configure<ForwardedHeadersOptions>(options =>
 builder.Services.AddApplication();
 builder.Services.AddInfrastructure(builder.Configuration);
 
+// Accept + emit enums by NAME (e.g. "Standard", "Accountant") as well as by number. Keeps the
+// JSON contract readable and lets the SPA send string enum values; numeric values still bind.
+builder.Services.ConfigureHttpJsonOptions(options =>
+    options.SerializerOptions.Converters.Add(
+        new System.Text.Json.Serialization.JsonStringEnumConverter()));
+
 // Resolve the authenticated caller from request claims, for tenant-scoped handlers.
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddScoped<ICurrentUser, HttpCurrentUser>();

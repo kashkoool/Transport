@@ -69,7 +69,8 @@ trip-search index. Full detail in §4.
 | **Observability — metrics (Prometheus) + tracing (OTLP)** | ✅ | #32; OpenTelemetry + custom business counters |
 | Observability — structured logs + health checks | ✅ | Serilog + `/health` + `/health/ready` |
 | Frontend — customer surfaces for newest modules (seat-map picker, trip stops, passenger docs, promo entry, cancel, reviews, live seats) | ✅ | SPA wired to the backend |
-| Frontend — vendor/admin dashboards (reports/demand, staff/driver mgmt, admin notify, promo mgmt, counter booking) | 🟡 | Backend complete; vendor/admin SPA surfaces are the remaining build-out |
+| Frontend — vendor operations (trip lifecycle/stops/edit/delete, bus seat-layout/edit/delete, staff, drivers+assign, company profile) | ✅ | SPA wired to the backend |
+| Frontend — vendor sales/analytics + admin (reports/export, demand, promo mgmt, counter booking, admin notify) | 🟡 | Backend complete; these SPA surfaces are the remaining build-out |
 | Cloud hosting / Infrastructure-as-Code | ❌ | Deferred by decision (images run anywhere; pick a target + add IaC/CD) |
 | **Mobile app (iOS/Android)** | ❌ | Post-MVP |
 
