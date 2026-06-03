@@ -29,18 +29,17 @@ internal static class RefundProcessing
             {
                 refund.MarkCompleted(result.GatewayRefundRef ?? string.Empty);
                 payment.MarkRefunded();
+                await db.SaveChangesAsync(ct);
+                return true;
             }
-            else
-            {
-                refund.MarkFailed();
-            }
-            await db.SaveChangesAsync(ct);
-            return result.Succeeded;
+
+            // Non-success (e.g. a transient gateway error) → leave the refund Pending so a
+            // reconciliation job can retry; the gateway call is idempotent on the refund's key.
+            return false;
         }
         catch (Exception ex) when (ex is not OperationCanceledException)
         {
-            // Leave the refund Pending; the gateway call is idempotent on the refund's key, so a
-            // later retry is safe.
+            // Same: leave Pending for a safe retry.
             return false;
         }
     }

@@ -79,8 +79,14 @@ public sealed class CounterBookingHandler(
         }
         catch (DbUpdateException)
         {
-            // A concurrent sale grabbed one of these seats (unique seat_assignment index).
-            throw new ConflictException("seat.unavailable", "One or more selected seats were just taken.");
+            // Only a seat clash is an expected failure here — confirm one actually occurred (a
+            // concurrent sale committed an assignment for a requested seat) rather than masking an
+            // unrelated DB error as a 409. AsNoTracking so the failed-insert graph isn't consulted.
+            var clash = await db.SeatAssignments.AsNoTracking()
+                .AnyAsync(a => a.TripId == trip.Id && seatNumbers.Contains(a.SeatNumber), ct);
+            if (clash)
+                throw new ConflictException("seat.unavailable", "One or more selected seats were just taken.");
+            throw;
         }
 
         metrics.PaymentSucceeded();
