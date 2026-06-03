@@ -57,6 +57,21 @@ public static class StartupGuards
         if (!Uri.IsWellFormedUriString(frontendUrl, UriKind.Absolute))
             problems.Add("Email:FrontendBaseUrl must be a valid absolute URL in production (used to build email links).");
 
+        // Google sign-in is optional, but if a client id is configured it must be a real one with
+        // a secret (a placeholder client id would silently break the OAuth handshake in production).
+        var googleClientId = config["OAuth:Google:ClientId"] ?? string.Empty;
+        if (googleClientId.Length > 0)
+        {
+            if (KnownPlaceholders.Any(p => googleClientId.Contains(p, StringComparison.OrdinalIgnoreCase)))
+                problems.Add("OAuth:Google:ClientId is still a known placeholder value.");
+
+            var googleClientSecret = config["OAuth:Google:ClientSecret"] ?? string.Empty;
+            if (string.IsNullOrWhiteSpace(googleClientSecret))
+                problems.Add("OAuth:Google:ClientSecret must be set when Google sign-in is enabled.");
+            else if (KnownPlaceholders.Any(p => googleClientSecret.Contains(p, StringComparison.OrdinalIgnoreCase)))
+                problems.Add("OAuth:Google:ClientSecret is still a known placeholder value.");
+        }
+
         if (problems.Count > 0)
             throw new InvalidOperationException(
                 "Insecure production configuration:" + Environment.NewLine +

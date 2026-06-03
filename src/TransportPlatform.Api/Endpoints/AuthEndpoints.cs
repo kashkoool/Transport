@@ -1,6 +1,10 @@
 using System.Security.Claims;
 using FluentValidation;
+using Microsoft.AspNetCore.Authentication;
+using Microsoft.Extensions.Options;
 using TransportPlatform.Api.Security;
+using TransportPlatform.Application.Abstractions;
+using TransportPlatform.Application.Common;
 using TransportPlatform.Application.Identity;
 
 namespace TransportPlatform.Api.Endpoints;
@@ -129,6 +133,65 @@ public static class AuthEndpoints
         .WithName("ResendVerification")
         .WithSummary("Re-send the verification email if applicable (always 200).");
 
+        // ── Google OAuth (sign-in + sign-up) ────────────────────────────────────────
+        // Backend Authorization-Code redirect flow: the client secret stays server-side and the
+        // result reuses the same refresh-cookie path as password login. Endpoints 404 when Google
+        // isn't configured (dev/CI without credentials).
+        group.MapGet("/google/start", (string? returnUrl, IOptions<ExternalAuthOptions> external) =>
+        {
+            if (!external.Value.GoogleEnabled)
+                return Results.NotFound(new { code = "auth.google_disabled", message = "Google sign-in is not configured." });
+
+            var redirect = $"/api/auth/google/callback?returnUrl={Uri.EscapeDataString(SafeReturnPath(returnUrl))}";
+            return Results.Challenge(new AuthenticationProperties { RedirectUri = redirect }, [ExternalAuthOptions.GoogleScheme]);
+        })
+        .WithName("GoogleStart")
+        .WithSummary("Begin Google OAuth sign-in/sign-up (redirects to Google).");
+
+        group.MapGet("/google/callback", async (
+            HttpContext http, GoogleSignInHandler handler, IOptions<ExternalAuthOptions> external,
+            IConfiguration config, IHostEnvironment env, string? returnUrl, CancellationToken ct) =>
+        {
+            if (!external.Value.GoogleEnabled)
+                return Results.NotFound();
+
+            var frontend = (config["Email:FrontendBaseUrl"] ?? "http://localhost:8080").TrimEnd('/');
+
+            // Read the external identity Google parked in the short-lived cookie, then clear it.
+            var auth = await http.AuthenticateAsync(ExternalAuthOptions.ExternalCookieScheme);
+            await http.SignOutAsync(ExternalAuthOptions.ExternalCookieScheme);
+
+            if (!auth.Succeeded || auth.Principal is null)
+                return Results.Redirect($"{frontend}/login?error=google");
+
+            var principal = auth.Principal;
+            var email = principal.FindFirstValue(ClaimTypes.Email);
+            var providerKey = principal.FindFirstValue(ClaimTypes.NameIdentifier);
+            var fullName = principal.FindFirstValue(ClaimTypes.Name);
+            var emailVerified = string.Equals(
+                principal.FindFirstValue("email_verified"), "true", StringComparison.OrdinalIgnoreCase);
+
+            if (string.IsNullOrWhiteSpace(email) || string.IsNullOrWhiteSpace(providerKey))
+                return Results.Redirect($"{frontend}/login?error=google");
+
+            try
+            {
+                var result = await handler.HandleAsync(
+                    new GoogleSignInCommand(providerKey, email, fullName, emailVerified), ct);
+                // Mint our own session: refresh token in the HttpOnly cookie, then bounce to the SPA,
+                // which exchanges the cookie for an in-memory access token via restoreSession().
+                RefreshCookie.Set(http.Response, result.RefreshToken, result.RefreshTokenExpiresAtUtc, RefreshCookie.SecureFor(env));
+                return Results.Redirect($"{frontend}/auth/callback?returnUrl={Uri.EscapeDataString(SafeReturnPath(returnUrl))}");
+            }
+            catch (ConflictException)
+            {
+                // e.g. the email maps to an unverified local account — ask them to sign in normally first.
+                return Results.Redirect($"{frontend}/login?error=google_link");
+            }
+        })
+        .WithName("GoogleCallback")
+        .WithSummary("Google OAuth callback: signs the user in and redirects to the web app.");
+
         group.MapGet("/me", (ClaimsPrincipal principal) =>
             Results.Ok(new
             {
@@ -142,4 +205,13 @@ public static class AuthEndpoints
 
         return app;
     }
+
+    /// <summary>
+    /// Only allow app-relative return paths ("/path") so the OAuth round-trip can never be turned
+    /// into an open redirect to an attacker-controlled site.
+    /// </summary>
+    private static string SafeReturnPath(string? returnUrl) =>
+        !string.IsNullOrEmpty(returnUrl) && returnUrl.StartsWith('/') && !returnUrl.StartsWith("//", StringComparison.Ordinal)
+            ? returnUrl
+            : "/";
 }

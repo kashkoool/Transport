@@ -31,6 +31,10 @@ export const routes: Routes = [
     loadComponent: () => import('./features/auth/verify-email').then((m) => m.VerifyEmailComponent),
   },
   {
+    path: 'auth/callback',
+    loadComponent: () => import('./features/auth/auth-callback').then((m) => m.AuthCallbackComponent),
+  },
+  {
     path: 'search',
     loadComponent: () => import('./features/trips/search').then((m) => m.SearchComponent),
   },

@@ -50,6 +50,16 @@ import { AuthService } from '../../core/auth/auth.service';
           {{ submitting() ? 'Creating…' : 'Create account' }}
         </button>
       </form>
+      <div class="my-4 flex items-center gap-3 text-xs text-slate-400">
+        <span class="h-px flex-1 bg-slate-200"></span>OR<span class="h-px flex-1 bg-slate-200"></span>
+      </div>
+      <button
+        type="button"
+        (click)="googleSignIn()"
+        class="flex w-full items-center justify-center gap-2 rounded-md border border-slate-300 px-4 py-2 font-medium text-slate-700 hover:bg-slate-50"
+      >
+        <span class="font-bold text-indigo-600">G</span> Sign up with Google
+      </button>
       <p class="mt-4 text-center text-sm text-slate-600">
         Already have an account?
         <a routerLink="/login" class="font-medium text-indigo-600 hover:text-indigo-700">Sign in</a>
@@ -69,6 +79,11 @@ export class RegisterComponent {
     // Mirror the server policy: min 10 chars and at least one non-alphanumeric character.
     password: ['', [Validators.required, Validators.pattern(/^(?=.*[^a-zA-Z0-9]).{10,}$/)]],
   });
+
+  /** Full-page redirect into the Google flow for sign-up. */
+  protected googleSignIn(): void {
+    this.auth.loginWithGoogle();
+  }
 
   protected submit(): void {
     if (this.form.invalid) {
