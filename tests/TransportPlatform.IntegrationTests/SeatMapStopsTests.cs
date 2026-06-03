@@ -6,6 +6,7 @@ using FluentAssertions;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using TransportPlatform.Application.Abstractions;
+using TransportPlatform.Application.Trips;
 using TransportPlatform.Domain.Companies;
 using TransportPlatform.Infrastructure.Persistence;
 
@@ -56,8 +57,8 @@ public sealed class SeatMapStopsTests(ApiFactory factory) : IClassFixture<ApiFac
         {
             stops = new[]
             {
-                new { name = "Homs", arrivalUtc = (DateTimeOffset?)DateTimeOffset.UtcNow.AddDays(3).AddHours(2), departureUtc = (DateTimeOffset?)null },
-                new { name = "Hama", arrivalUtc = (DateTimeOffset?)null, departureUtc = (DateTimeOffset?)null },
+                new TripStopInput("Homs", DateTimeOffset.UtcNow.AddDays(3).AddHours(2), null),
+                new TripStopInput("Hama", null, null),
             },
         });
         set.StatusCode.Should().Be(HttpStatusCode.OK);
@@ -72,7 +73,7 @@ public sealed class SeatMapStopsTests(ApiFactory factory) : IClassFixture<ApiFac
 
         // Replacing stops fully overwrites the previous set (no accumulation).
         var replace = await PutJson(manager, $"/api/vendor/trips/{tripId}/stops",
-            new { stops = new[] { new { name = "Hama", arrivalUtc = (DateTimeOffset?)null, departureUtc = (DateTimeOffset?)null } } });
+            new { stops = new[] { new TripStopInput("Hama", null, null) } });
         replace.StatusCode.Should().Be(HttpStatusCode.OK);
         var afterReplace = await client.GetFromJsonAsync<List<TripStopDto>>($"/api/trips/{tripId}/stops", Json);
         afterReplace!.Should().ContainSingle().Which.Name.Should().Be("Hama");
