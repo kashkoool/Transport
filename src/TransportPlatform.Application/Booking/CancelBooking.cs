@@ -82,41 +82,8 @@ public sealed class CancelBookingHandler(
         // Pending (the booking is already cancelled) for a reconciliation job to retry later.
         var refundInitiated = false;
         if (refundId is { } id)
-            refundInitiated = await TryProcessRefundAsync(id, ct);
+            refundInitiated = await RefundProcessing.TryProcessAsync(db, gateway, id, ct);
 
         return new CancelBookingResult("cancelled", refundInitiated);
-    }
-
-    private async Task<bool> TryProcessRefundAsync(Guid refundId, CancellationToken ct)
-    {
-        var refund = await db.Refunds.FirstOrDefaultAsync(r => r.Id == refundId, ct);
-        if (refund is null)
-            return false;
-        var payment = await db.Payments.FirstOrDefaultAsync(p => p.Id == refund.PaymentId, ct);
-        if (payment?.GatewayTxnRef is null)
-            return false;
-
-        try
-        {
-            var result = await gateway.RefundAsync(
-                new RefundRequest(payment.GatewayTxnRef, refund.Amount, refund.Currency, refund.IdempotencyKey), ct);
-            if (result.Succeeded)
-            {
-                refund.MarkCompleted(result.GatewayRefundRef ?? string.Empty);
-                payment.MarkRefunded();
-            }
-            else
-            {
-                refund.MarkFailed();
-            }
-            await db.SaveChangesAsync(ct);
-            return result.Succeeded;
-        }
-        catch (Exception ex) when (ex is not OperationCanceledException)
-        {
-            // Leave the refund Pending; the booking is already cancelled and a retry is safe
-            // (the gateway call is idempotent on the refund's idempotency key).
-            return false;
-        }
     }
 }

@@ -1,6 +1,7 @@
 using System.Text;
 using FluentValidation;
 using TransportPlatform.Api.Security;
+using TransportPlatform.Application.Bookings;
 using TransportPlatform.Application.Common;
 using TransportPlatform.Application.Fleet;
 using TransportPlatform.Application.Reports;
@@ -20,6 +21,7 @@ public static class VendorEndpoints
     public sealed record CreateStaffRequest(string Email, string Password, string FullName, StaffType StaffType);
     public sealed record AddDriverRequest(string FullName, string? Phone, string? LicenseNumber);
     public sealed record AssignDriverRequest(Guid? DriverId);
+    public sealed record CounterBookingRequest(Guid TripId, IReadOnlyList<PassengerInput> Passengers, string CustomerEmail);
 
     public static IEndpointRouteBuilder MapVendorEndpoints(this IEndpointRouteBuilder app)
     {
@@ -163,6 +165,34 @@ public static class VendorEndpoints
         })
         .WithName("PredictDemand")
         .WithSummary("Forecast demand for a route/date from your company's history.");
+
+        // ── Counter / desk (manager OR staff) ────────────────────────────────────────
+        var desk = app.MapGroup("/api/vendor/bookings").WithTags("Vendor · Desk")
+            .RequireAuthorization(AuthorizationPolicies.VendorOrStaff)
+            .RequireRateLimiting(RateLimitPolicies.Sensitive);
+
+        desk.MapPost("/", async (
+            CounterBookingRequest body, CounterBookingHandler handler,
+            IValidator<CounterBookingCommand> validator, CancellationToken ct) =>
+        {
+            var command = new CounterBookingCommand(body.TripId, body.Passengers, body.CustomerEmail);
+            await validator.ValidateAndThrowAsync(command, ct);
+            return Results.Ok(await handler.HandleAsync(command, ct));
+        })
+        .WithName("CounterBooking")
+        .WithSummary("Sell a ticket at the desk (cash) — immediately confirmed.");
+
+        desk.MapGet("/", async (
+            int? page, int? limit, ListCompanyBookingsHandler handler, CancellationToken ct) =>
+            Results.Ok(await handler.HandleAsync(new ListCompanyBookingsQuery(page, limit), ct)))
+        .WithName("ListCompanyBookings")
+        .WithSummary("List your company's bookings (paginated).");
+
+        desk.MapPost("/{id:guid}/cancel", async (
+            Guid id, CancelCompanyBookingHandler handler, CancellationToken ct) =>
+            Results.Ok(await handler.HandleAsync(new CancelCompanyBookingCommand(id), ct)))
+        .WithName("CancelCompanyBooking")
+        .WithSummary("Cancel + refund one of your company's bookings (cash = manual refund).");
 
         return app;
     }
