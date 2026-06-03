@@ -81,7 +81,8 @@ public interface IIdentityService
 }
 
 /// <summary>An authenticated principal: id, email, role names and (for vendor staff) company.</summary>
-public sealed record AuthenticatedUser(Guid UserId, string Email, IReadOnlyList<string> Roles, Guid? CompanyId = null);
+public sealed record AuthenticatedUser(
+    Guid UserId, string Email, IReadOnlyList<string> Roles, Guid? CompanyId = null, bool EmailConfirmed = false);
 
 /// <summary>Read model for a company staff member.</summary>
 public sealed record StaffMember(Guid Id, string Email, string FullName, string StaffType, bool Suspended);
