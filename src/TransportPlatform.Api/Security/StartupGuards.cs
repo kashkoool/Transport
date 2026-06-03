@@ -64,8 +64,12 @@ public static class StartupGuards
         {
             if (KnownPlaceholders.Any(p => googleClientId.Contains(p, StringComparison.OrdinalIgnoreCase)))
                 problems.Add("OAuth:Google:ClientId is still a known placeholder value.");
-            if (string.IsNullOrWhiteSpace(config["OAuth:Google:ClientSecret"]))
+
+            var googleClientSecret = config["OAuth:Google:ClientSecret"] ?? string.Empty;
+            if (string.IsNullOrWhiteSpace(googleClientSecret))
                 problems.Add("OAuth:Google:ClientSecret must be set when Google sign-in is enabled.");
+            else if (KnownPlaceholders.Any(p => googleClientSecret.Contains(p, StringComparison.OrdinalIgnoreCase)))
+                problems.Add("OAuth:Google:ClientSecret is still a known placeholder value.");
         }
 
         if (problems.Count > 0)

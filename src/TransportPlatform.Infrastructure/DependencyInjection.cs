@@ -106,25 +106,27 @@ public static class DependencyInjection
             o.CallbackPath = googleSection[nameof(GoogleAuthOptions.CallbackPath)] ?? o.CallbackPath;
         });
         var googleClientId = googleSection[nameof(GoogleAuthOptions.ClientId)];
+        // App-facing flag the API endpoints branch on (no Infrastructure type leaks to the endpoints).
+        services.Configure<ExternalAuthOptions>(o => o.GoogleEnabled = !string.IsNullOrWhiteSpace(googleClientId));
         if (!string.IsNullOrWhiteSpace(googleClientId))
         {
             // Short-lived cookie that carries the external identity from Google's callback to our
             // /api/auth/google/callback endpoint, where it's read once and signed out.
-            authBuilder.AddCookie(GoogleAuthOptions.ExternalCookieScheme, o =>
+            authBuilder.AddCookie(ExternalAuthOptions.ExternalCookieScheme, o =>
             {
                 o.Cookie.Name = "tpx.external";
                 o.Cookie.HttpOnly = true;
                 o.Cookie.SameSite = SameSiteMode.Lax; // survives the top-level GET redirect from Google
-                o.Cookie.SecurePolicy = CookieSecurePolicy.SameAsRequest;
+                o.Cookie.SecurePolicy = CookieSecurePolicy.Always; // OAuth is HTTPS-only; never emit over plain HTTP
                 o.ExpireTimeSpan = TimeSpan.FromMinutes(5);
                 o.SlidingExpiration = false;
             });
-            authBuilder.AddGoogle(GoogleAuthOptions.Scheme, o =>
+            authBuilder.AddGoogle(ExternalAuthOptions.GoogleScheme, o =>
             {
                 o.ClientId = googleClientId;
                 o.ClientSecret = googleSection[nameof(GoogleAuthOptions.ClientSecret)] ?? string.Empty;
                 o.CallbackPath = googleSection[nameof(GoogleAuthOptions.CallbackPath)] ?? "/signin-google";
-                o.SignInScheme = GoogleAuthOptions.ExternalCookieScheme;
+                o.SignInScheme = ExternalAuthOptions.ExternalCookieScheme;
                 o.SaveTokens = false; // we don't need Google's access/refresh tokens after sign-in
                 // Capture whether Google says the email is verified, so the link/create decision
                 // can require a proven email (see IdentityService.FindOrCreateExternalUserAsync).

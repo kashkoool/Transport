@@ -147,11 +147,18 @@ public sealed class IdentityService(
                 throw new ConflictException("auth.link_requires_verification",
                     "An account with this email exists but isn't verified. Sign in with your password (or verify your email) first.");
 
-            await users.AddLoginAsync(byEmail, new UserLoginInfo(provider, providerKey, provider));
+            var addLink = await users.AddLoginAsync(byEmail, new UserLoginInfo(provider, providerKey, provider));
+            if (!addLink.Succeeded)
+                throw new ConflictException("auth.external_link_failed",
+                    string.Join("; ", addLink.Errors.Select(e => e.Description)));
+
             if (!byEmail.EmailConfirmed && providerEmailVerified)
             {
                 byEmail.EmailConfirmed = true; // the provider proved ownership of the address
-                await users.UpdateAsync(byEmail);
+                var update = await users.UpdateAsync(byEmail);
+                if (!update.Succeeded)
+                    throw new ConflictException("auth.external_link_failed",
+                        string.Join("; ", update.Errors.Select(e => e.Description)));
             }
             return await ToAuthenticatedUserAsync(byEmail);
         }
@@ -169,7 +176,16 @@ public sealed class IdentityService(
             throw new ConflictException("auth.external_registration_failed",
                 string.Join("; ", created.Errors.Select(e => e.Description)));
 
-        await users.AddLoginAsync(user, new UserLoginInfo(provider, providerKey, provider));
+        var addLogin = await users.AddLoginAsync(user, new UserLoginInfo(provider, providerKey, provider));
+        if (!addLogin.Succeeded)
+        {
+            // The account would be passwordless AND unlinked → impossible to ever sign in. Remove it
+            // rather than leave an orphan, then surface the failure.
+            await users.DeleteAsync(user);
+            throw new ConflictException("auth.external_link_failed",
+                string.Join("; ", addLogin.Errors.Select(e => e.Description)));
+        }
+
         await EnsureRoleAsync(UserRoles.Customer);
         await users.AddToRoleAsync(user, UserRoles.Customer);
 

@@ -33,8 +33,10 @@ export class AuthCallbackComponent {
         this.router.navigate(['/login'], { queryParams: { error: 'google' } });
         return;
       }
+      // Only app-relative paths (mirror the backend SafeReturnPath: reject protocol-relative "//").
       const returnUrl = this.route.snapshot.queryParamMap.get('returnUrl');
-      this.router.navigateByUrl(returnUrl?.startsWith('/') ? returnUrl : this.auth.homeRoute());
+      const safe = !!returnUrl && returnUrl.startsWith('/') && !returnUrl.startsWith('//');
+      this.router.navigateByUrl(safe ? returnUrl! : this.auth.homeRoute());
     });
   }
 }

@@ -3,9 +3,9 @@ using FluentValidation;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.Extensions.Options;
 using TransportPlatform.Api.Security;
+using TransportPlatform.Application.Abstractions;
 using TransportPlatform.Application.Common;
 using TransportPlatform.Application.Identity;
-using TransportPlatform.Infrastructure.Identity;
 
 namespace TransportPlatform.Api.Endpoints;
 
@@ -137,29 +137,29 @@ public static class AuthEndpoints
         // Backend Authorization-Code redirect flow: the client secret stays server-side and the
         // result reuses the same refresh-cookie path as password login. Endpoints 404 when Google
         // isn't configured (dev/CI without credentials).
-        group.MapGet("/google/start", (string? returnUrl, IOptions<GoogleAuthOptions> google) =>
+        group.MapGet("/google/start", (string? returnUrl, IOptions<ExternalAuthOptions> external) =>
         {
-            if (!google.Value.Enabled)
+            if (!external.Value.GoogleEnabled)
                 return Results.NotFound(new { code = "auth.google_disabled", message = "Google sign-in is not configured." });
 
             var redirect = $"/api/auth/google/callback?returnUrl={Uri.EscapeDataString(SafeReturnPath(returnUrl))}";
-            return Results.Challenge(new AuthenticationProperties { RedirectUri = redirect }, [GoogleAuthOptions.Scheme]);
+            return Results.Challenge(new AuthenticationProperties { RedirectUri = redirect }, [ExternalAuthOptions.GoogleScheme]);
         })
         .WithName("GoogleStart")
         .WithSummary("Begin Google OAuth sign-in/sign-up (redirects to Google).");
 
         group.MapGet("/google/callback", async (
-            HttpContext http, GoogleSignInHandler handler, IOptions<GoogleAuthOptions> google,
+            HttpContext http, GoogleSignInHandler handler, IOptions<ExternalAuthOptions> external,
             IConfiguration config, IHostEnvironment env, string? returnUrl, CancellationToken ct) =>
         {
-            if (!google.Value.Enabled)
+            if (!external.Value.GoogleEnabled)
                 return Results.NotFound();
 
             var frontend = (config["Email:FrontendBaseUrl"] ?? "http://localhost:8080").TrimEnd('/');
 
             // Read the external identity Google parked in the short-lived cookie, then clear it.
-            var auth = await http.AuthenticateAsync(GoogleAuthOptions.ExternalCookieScheme);
-            await http.SignOutAsync(GoogleAuthOptions.ExternalCookieScheme);
+            var auth = await http.AuthenticateAsync(ExternalAuthOptions.ExternalCookieScheme);
+            await http.SignOutAsync(ExternalAuthOptions.ExternalCookieScheme);
 
             if (!auth.Succeeded || auth.Principal is null)
                 return Results.Redirect($"{frontend}/login?error=google");
