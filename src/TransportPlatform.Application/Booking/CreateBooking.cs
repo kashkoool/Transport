@@ -7,7 +7,12 @@ using TransportPlatform.Domain.Bookings;
 
 namespace TransportPlatform.Application.Bookings;
 
-public sealed record PassengerInput(string FirstName, string LastName, int SeatNumber);
+public sealed record PassengerInput(
+    string FirstName,
+    string LastName,
+    int SeatNumber,
+    string? DocumentType = null,
+    string? DocumentNumber = null);
 
 public sealed record CreateBookingCommand(
     Guid TripId,
@@ -34,6 +39,8 @@ public sealed class CreateBookingValidator : AbstractValidator<CreateBookingComm
             p.RuleFor(x => x.FirstName).NotEmpty().MaximumLength(100);
             p.RuleFor(x => x.LastName).NotEmpty().MaximumLength(100);
             p.RuleFor(x => x.SeatNumber).InclusiveBetween(1, 1000);
+            p.RuleFor(x => x.DocumentType).MaximumLength(Passenger.MaxDocumentLength);
+            p.RuleFor(x => x.DocumentNumber).MaximumLength(Passenger.MaxDocumentLength);
         });
     }
 }
@@ -79,7 +86,7 @@ public sealed class CreateBookingHandler(
                 "Your seat hold has expired or is incomplete. Please reselect your seats.");
 
         var passengers = command.Passengers
-            .Select(p => new Passenger(p.FirstName, p.LastName, p.SeatNumber))
+            .Select(p => new Passenger(p.FirstName, p.LastName, p.SeatNumber, p.DocumentType, p.DocumentNumber))
             .ToList();
 
         // Optional promo code: validate + compute the discount, then redeem with an ATOMIC

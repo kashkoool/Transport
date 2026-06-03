@@ -12,5 +12,7 @@ internal sealed class PassengerConfiguration : IEntityTypeConfiguration<Passenge
         builder.HasKey(p => p.Id);
         builder.Property(p => p.FirstName).HasMaxLength(100).IsRequired();
         builder.Property(p => p.LastName).HasMaxLength(100).IsRequired();
+        builder.Property(p => p.DocumentType).HasMaxLength(Passenger.MaxDocumentLength);
+        builder.Property(p => p.DocumentNumber).HasMaxLength(Passenger.MaxDocumentLength);
     }
 }

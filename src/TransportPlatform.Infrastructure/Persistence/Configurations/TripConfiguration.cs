@@ -25,6 +25,14 @@ internal sealed class TripConfiguration : IEntityTypeConfiguration<Trip>
         // A plain (Origin,Destination,DepartureUtc) index would NOT be used for the lower() compare.
         builder.HasIndex(t => t.CompanyId);
 
+        // Waypoints are owned by the trip: loaded via the backing field, cascade-deleted with it.
+        builder.HasMany(t => t.Stops)
+            .WithOne()
+            .HasForeignKey(s => s.TripId)
+            .OnDelete(DeleteBehavior.Cascade);
+        builder.Metadata.FindNavigation(nameof(Trip.Stops))!
+            .SetPropertyAccessMode(PropertyAccessMode.Field);
+
         // FKs (no navigations). Restrict on both: a company/bus with scheduled trips can't be
         // hard-deleted, preventing orphaned trips.
         builder.HasOne<Company>().WithMany()

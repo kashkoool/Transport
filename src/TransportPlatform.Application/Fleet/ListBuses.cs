@@ -20,7 +20,7 @@ public sealed class ListBusesHandler(IApplicationDbContext db, ICurrentUser curr
             .OrderBy(b => b.BusNumber)
             .Skip(page.Skip)
             .Take(page.Limit)
-            .Select(b => new BusDto(b.Id, b.BusNumber, b.SeatCount, b.Type.ToString(), b.Model, b.DriverId))
+            .Select(b => new BusDto(b.Id, b.BusNumber, b.SeatCount, b.Type.ToString(), b.Model, b.DriverId, b.SeatsPerRow))
             .ToListAsync(ct);
 
         return new PagedResult<BusDto>(items, total, page.Page, page.Limit);

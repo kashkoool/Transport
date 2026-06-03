@@ -18,7 +18,7 @@ namespace TransportPlatform.Api.Endpoints;
 
 public static class VendorEndpoints
 {
-    public sealed record AddBusRequest(string BusNumber, int SeatCount, BusType Type, string? Model);
+    public sealed record AddBusRequest(string BusNumber, int SeatCount, BusType Type, string? Model, int? SeatsPerRow);
     public sealed record ScheduleTripRequest(
         Guid BusId, string Origin, string Destination,
         DateTimeOffset DepartureUtc, DateTimeOffset ArrivalUtc, decimal Price, string Currency);
@@ -26,9 +26,10 @@ public static class VendorEndpoints
     public sealed record AddDriverRequest(string FullName, string? Phone, string? LicenseNumber);
     public sealed record AssignDriverRequest(Guid? DriverId);
     public sealed record CounterBookingRequest(Guid TripId, IReadOnlyList<PassengerInput> Passengers, string CustomerEmail);
-    public sealed record UpdateBusRequest(int SeatCount, BusType Type, string? Model);
+    public sealed record UpdateBusRequest(int SeatCount, BusType Type, string? Model, int? SeatsPerRow);
     public sealed record UpdateTripRequest(
         string Origin, string Destination, DateTimeOffset DepartureUtc, DateTimeOffset ArrivalUtc, decimal Price, string Currency);
+    public sealed record SetTripStopsRequest(IReadOnlyList<TripStopInput> Stops);
     public sealed record UpdateCompanyProfileRequest(string Name, string? Phone);
     public sealed record CreatePromoRequest(
         string Code, DiscountType DiscountType, decimal DiscountValue, int? MaxRedemptions, DateTimeOffset? ExpiresAtUtc);
@@ -45,7 +46,8 @@ public static class VendorEndpoints
             AddBusRequest body, AddBusHandler handler,
             IValidator<AddBusCommand> validator, CancellationToken ct) =>
         {
-            var command = new AddBusCommand(body.BusNumber, body.SeatCount, body.Type, body.Model);
+            var command = new AddBusCommand(body.BusNumber, body.SeatCount, body.Type, body.Model,
+                body.SeatsPerRow ?? Bus.DefaultSeatsPerRow);
             await validator.ValidateAndThrowAsync(command, ct);
             return Results.Ok(await handler.HandleAsync(command, ct));
         })
@@ -188,7 +190,8 @@ public static class VendorEndpoints
             Guid id, UpdateBusRequest body, UpdateBusHandler handler,
             IValidator<UpdateBusCommand> validator, CancellationToken ct) =>
         {
-            var command = new UpdateBusCommand(id, body.SeatCount, body.Type, body.Model);
+            var command = new UpdateBusCommand(id, body.SeatCount, body.Type, body.Model,
+                body.SeatsPerRow ?? Bus.DefaultSeatsPerRow);
             await validator.ValidateAndThrowAsync(command, ct);
             return Results.Ok(await handler.HandleAsync(command, ct));
         })
@@ -226,6 +229,16 @@ public static class VendorEndpoints
         group.MapPost("/trips/{id:guid}/complete", async (Guid id, CompleteTripHandler handler, CancellationToken ct) =>
             Results.Ok(await handler.HandleAsync(new CompleteTripCommand(id), ct)))
         .WithName("CompleteTrip").WithSummary("Mark an in-progress trip as completed.");
+
+        group.MapPut("/trips/{id:guid}/stops", async (
+            Guid id, SetTripStopsRequest body, SetTripStopsHandler handler,
+            IValidator<SetTripStopsCommand> validator, CancellationToken ct) =>
+        {
+            var command = new SetTripStopsCommand(id, body.Stops);
+            await validator.ValidateAndThrowAsync(command, ct);
+            return Results.Ok(await handler.HandleAsync(command, ct));
+        })
+        .WithName("SetTripStops").WithSummary("Set the intermediate waypoints on one of your trips.");
 
         // ── Company profile ───────────────────────────────────────────────────────────
         group.MapGet("/company", async (GetMyCompanyHandler handler, CancellationToken ct) =>

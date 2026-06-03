@@ -5,7 +5,7 @@ using TransportPlatform.Domain.Fleet;
 
 namespace TransportPlatform.Application.Fleet;
 
-public sealed record UpdateBusCommand(Guid BusId, int SeatCount, BusType Type, string? Model);
+public sealed record UpdateBusCommand(Guid BusId, int SeatCount, BusType Type, string? Model, int SeatsPerRow = Bus.DefaultSeatsPerRow);
 
 public sealed class UpdateBusValidator : AbstractValidator<UpdateBusCommand>
 {
@@ -15,6 +15,7 @@ public sealed class UpdateBusValidator : AbstractValidator<UpdateBusCommand>
         RuleFor(x => x.SeatCount).GreaterThan(0).LessThanOrEqualTo(120);
         RuleFor(x => x.Type).IsInEnum();
         RuleFor(x => x.Model).MaximumLength(100);
+        RuleFor(x => x.SeatsPerRow).InclusiveBetween(1, Bus.MaxSeatsPerRow);
     }
 }
 
@@ -27,7 +28,7 @@ public sealed class UpdateBusHandler(IApplicationDbContext db, ICurrentUser curr
         var bus = await db.Buses.FirstOrDefaultAsync(b => b.Id == command.BusId && b.CompanyId == companyId, ct)
             ?? throw new NotFoundException("Bus", command.BusId);
 
-        bus.Update(command.SeatCount, command.Type, command.Model);
+        bus.Update(command.SeatCount, command.Type, command.Model, command.SeatsPerRow);
         await db.SaveChangesAsync(ct);
         return BusDto.From(bus);
     }

@@ -70,6 +70,9 @@ public static class DependencyInjection
         services.AddScoped<DeleteTripHandler>();
         services.AddScoped<StartTripHandler>();
         services.AddScoped<CompleteTripHandler>();
+        services.AddScoped<GetSeatMapHandler>();
+        services.AddScoped<SetTripStopsHandler>();
+        services.AddScoped<ListTripStopsHandler>();
 
         // Vendor · staff + drivers
         services.AddScoped<CreateStaffHandler>();

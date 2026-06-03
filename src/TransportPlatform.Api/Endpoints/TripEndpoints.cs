@@ -22,6 +22,20 @@ public static class TripEndpoints
         .WithName("SearchTrips")
         .WithSummary("Search bookable trips by route and date.");
 
+        // Public: the seat layout + currently-unavailable seats, for rendering the seat picker.
+        group.MapGet("/{tripId:guid}/seat-map", async (
+            Guid tripId, GetSeatMapHandler handler, CancellationToken ct) =>
+            Results.Ok(await handler.HandleAsync(tripId, ct)))
+        .WithName("GetTripSeatMap")
+        .WithSummary("Seat layout and taken seats for a trip.");
+
+        // Public: the ordered waypoints between origin and destination.
+        group.MapGet("/{tripId:guid}/stops", async (
+            Guid tripId, ListTripStopsHandler handler, CancellationToken ct) =>
+            Results.Ok(await handler.HandleAsync(tripId, ct)))
+        .WithName("GetTripStops")
+        .WithSummary("Ordered intermediate stops for a trip.");
+
         return app;
     }
 }
