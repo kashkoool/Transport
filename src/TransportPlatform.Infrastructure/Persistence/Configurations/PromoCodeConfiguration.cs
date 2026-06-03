@@ -16,6 +16,8 @@ internal sealed class PromoCodeConfiguration : IEntityTypeConfiguration<PromoCod
         builder.Property(p => p.DiscountValue).HasColumnType("numeric(12,2)").IsRequired();
 
         // A code is unique within a company; lookup at redemption is by (company, code).
+        // Over-redemption is prevented at redeem time by an atomic conditional UPDATE
+        // (see CreateBookingHandler), so no concurrency token column is needed.
         builder.HasIndex(p => new { p.CompanyId, p.Code }).IsUnique();
 
         builder.HasOne<Company>().WithMany()

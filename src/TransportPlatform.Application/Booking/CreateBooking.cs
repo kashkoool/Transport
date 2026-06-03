@@ -82,20 +82,30 @@ public sealed class CreateBookingHandler(
             .Select(p => new Passenger(p.FirstName, p.LastName, p.SeatNumber))
             .ToList();
 
-        // Optional promo code: validate against the trip's company, compute the discount, and
-        // redeem it in the same transaction as the booking (so a failed save doesn't over-count).
+        // Optional promo code: validate + compute the discount, then redeem with an ATOMIC
+        // conditional UPDATE so concurrent bookings can never push RedemptionCount past the cap
+        // (the WHERE clause re-checks active/expiry/cap; 0 rows affected = no longer redeemable).
         decimal discount = 0;
-        Domain.Promotions.PromoCode? promo = null;
+        string? appliedPromo = null;
         if (!string.IsNullOrWhiteSpace(command.PromoCode))
         {
             var grossTotal = trip.Fare.Amount * passengers.Count;
-            (promo, discount) = await PromoEvaluation.EvaluateAsync(db, trip.CompanyId, command.PromoCode, grossTotal, now, ct);
-            promo.Redeem();
+            var (promo, computed) = await PromoEvaluation.EvaluateAsync(db, trip.CompanyId, command.PromoCode, grossTotal, now, ct);
+            var redeemed = await db.PromoCodes
+                .Where(p => p.Id == promo.Id
+                            && p.Active
+                            && (p.ExpiresAtUtc == null || p.ExpiresAtUtc > now)
+                            && (p.MaxRedemptions == null || p.RedemptionCount < p.MaxRedemptions))
+                .ExecuteUpdateAsync(s => s.SetProperty(p => p.RedemptionCount, p => p.RedemptionCount + 1), ct);
+            if (redeemed == 0)
+                throw new ConflictException("promo.exhausted", "This promo code is no longer available.");
+            discount = computed;
+            appliedPromo = promo.Code;
         }
 
         var booking = Booking.Create(
             trip.Id, customerEmail, references.NewBookingReference(),
-            passengers, trip.Fare, command.IdempotencyKey, discount, promo?.Code);
+            passengers, trip.Fare, command.IdempotencyKey, discount, appliedPromo);
 
         foreach (var hold in holds)
             hold.AssignToBooking(booking.Id);
