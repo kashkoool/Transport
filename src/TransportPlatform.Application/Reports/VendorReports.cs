@@ -78,17 +78,20 @@ public sealed class VendorTripReportHandler(IApplicationDbContext db, ICurrentUs
                 t.SeatCount, t.SeatsSold, t.Revenue, t.Currency, t.Status))
             .ToList();
     }
+}
 
-    /// <summary>CSV (formula-injection-safe) of the per-trip report.</summary>
-    public async Task<string> ExportCsvAsync(VendorReportQuery query, CancellationToken ct)
-    {
-        var rows = await HandleAsync(query, ct);
-        return CsvWriter.Build(
-            ["TripId", "Origin", "Destination", "DepartureUtc", "Seats", "SeatsSold", "Revenue", "Currency", "Status"],
-            rows.Select(r => new[]
-            {
-                r.TripId.ToString(), r.Origin, r.Destination, CsvWriter.Cell(r.DepartureUtc),
-                CsvWriter.Cell(r.SeatCount), CsvWriter.Cell(r.SeatsSold), CsvWriter.Cell(r.Revenue), r.Currency, r.Status,
-            }));
-    }
+/// <summary>Column headers + CSV (formula-injection-safe) rendering for the per-trip report.</summary>
+public static class TripReportCsv
+{
+    public static readonly IReadOnlyList<string> Headers =
+        ["TripId", "Origin", "Destination", "DepartureUtc", "Seats", "SeatsSold", "Revenue", "Currency", "Status"];
+
+    public static IReadOnlyList<string> ToCells(TripReportRow r) =>
+    [
+        r.TripId.ToString(), r.Origin, r.Destination, CsvWriter.Cell(r.DepartureUtc),
+        CsvWriter.Cell(r.SeatCount), CsvWriter.Cell(r.SeatsSold), CsvWriter.Cell(r.Revenue), r.Currency, r.Status,
+    ];
+
+    public static string Build(IReadOnlyList<TripReportRow> rows) =>
+        CsvWriter.Build(Headers, rows.Select(ToCells));
 }

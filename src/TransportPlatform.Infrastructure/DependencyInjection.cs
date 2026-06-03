@@ -224,6 +224,9 @@ public static class DependencyInjection
         // Dispatches outbox events (e.g. booking-confirmed) to side effects like email.
         services.AddScoped<IIntegrationEventDispatcher, OutboxEventDispatcher>();
 
+        // Report exporters (XLSX/PDF). CSV is dependency-free in the Application layer.
+        services.AddSingleton<IReportExporter, Reports.ReportExporter>();
+
         return services;
     }
 }
