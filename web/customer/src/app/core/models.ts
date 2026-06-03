@@ -175,6 +175,25 @@ export interface Bus {
   seatCount: number;
   type: BusType;
   model: string | null;
+  driverId: string | null;
+  seatsPerRow: number;
+}
+
+export type StaffType = 'Accountant' | 'Supervisor' | 'Employee';
+
+export interface Staff {
+  id: string;
+  email: string;
+  fullName: string;
+  staffType: string;
+  suspended: boolean;
+}
+
+export interface Driver {
+  id: string;
+  fullName: string;
+  phone: string | null;
+  licenseNumber: string | null;
 }
 
 export type TripStatus = 'Scheduled' | 'InProgress' | 'Completed' | 'Cancelled';
