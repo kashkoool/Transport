@@ -514,9 +514,9 @@ namespace TransportPlatform.Infrastructure.Persistence.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("CreatedAtUtc");
-
                     b.HasIndex("RecipientUserId", "IsRead");
+
+                    b.HasIndex("RecipientUserId", "CreatedAtUtc");
 
                     b.ToTable("notification", (string)null);
                 });

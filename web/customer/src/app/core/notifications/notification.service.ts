@@ -49,6 +49,8 @@ export class NotificationService {
   }
 
   markRead(id: string): void {
+    const wasUnread = this.notifications().some((n) => n.id === id && !n.isRead);
+    if (!wasUnread) return; // clicking an already-read item must not desync the badge
     this.http.post(`${this.api}/${id}/read`, {}).subscribe(() => {
       this.notifications.update((list) => list.map((n) => (n.id === id ? { ...n, isRead: true } : n)));
       this.unreadCount.update((c) => Math.max(0, c - 1));
@@ -76,8 +78,11 @@ export class NotificationService {
       this.unreadCount.update((c) => c + 1);
     });
 
-    // Best-effort: if the socket can't connect, the REST inbox above still works.
-    this.connection.start().catch(() => undefined);
+    // Best-effort: withAutomaticReconnect() does NOT retry a failed INITIAL start, so clear the
+    // connection on failure to allow a later attempt (e.g. next auth change). REST inbox still works.
+    this.connection.start().catch(() => {
+      this.connection = null;
+    });
   }
 
   private stop(): void {

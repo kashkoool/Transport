@@ -32,9 +32,9 @@ namespace TransportPlatform.Infrastructure.Persistence.Migrations
                 });
 
             migrationBuilder.CreateIndex(
-                name: "IX_notification_CreatedAtUtc",
+                name: "IX_notification_RecipientUserId_CreatedAtUtc",
                 table: "notification",
-                column: "CreatedAtUtc");
+                columns: new[] { "RecipientUserId", "CreatedAtUtc" });
 
             migrationBuilder.CreateIndex(
                 name: "IX_notification_RecipientUserId_IsRead",

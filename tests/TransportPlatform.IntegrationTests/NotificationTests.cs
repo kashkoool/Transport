@@ -94,6 +94,7 @@ public sealed class NotificationTests(ApiFactory factory) : IClassFixture<ApiFac
 
         var client = factory.CreateClient();
         var login = await client.PostAsJsonAsync("/api/auth/login", new { email = managerEmail, password = Password });
+        login.StatusCode.Should().Be(HttpStatusCode.OK);
         var auth = await login.Content.ReadFromJsonAsync<AuthDto>(Json);
         client.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", auth!.AccessToken);
         return (companyId, client);

@@ -17,6 +17,7 @@ public sealed class ListNotificationsHandler(IApplicationDbContext db, ICurrentU
         var total = await owned.CountAsync(ct);
         var items = await owned
             .OrderByDescending(n => n.CreatedAtUtc)
+            .ThenByDescending(n => n.Id) // stable tie-breaker so paging can't shuffle same-instant rows
             .Skip(page.Skip)
             .Take(page.Limit)
             .Select(n => new NotificationDto(n.Id, n.Title, n.Message, n.Type, n.IsRead, n.CreatedAtUtc))

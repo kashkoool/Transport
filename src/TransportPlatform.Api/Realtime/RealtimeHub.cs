@@ -20,10 +20,14 @@ public sealed class RealtimeHub : Hub
     }
 
     public Task SubscribeToTrip(string tripId) =>
-        Groups.AddToGroupAsync(Context.ConnectionId, TripGroup(tripId));
+        Guid.TryParse(tripId, out var id)
+            ? Groups.AddToGroupAsync(Context.ConnectionId, TripGroup(id.ToString()))
+            : Task.CompletedTask; // ignore malformed ids rather than create junk groups
 
     public Task UnsubscribeFromTrip(string tripId) =>
-        Groups.RemoveFromGroupAsync(Context.ConnectionId, TripGroup(tripId));
+        Guid.TryParse(tripId, out var id)
+            ? Groups.RemoveFromGroupAsync(Context.ConnectionId, TripGroup(id.ToString()))
+            : Task.CompletedTask;
 
     public static string UserGroup(string userId) => $"user:{userId}";
     public static string TripGroup(string tripId) => $"trip:{tripId}";

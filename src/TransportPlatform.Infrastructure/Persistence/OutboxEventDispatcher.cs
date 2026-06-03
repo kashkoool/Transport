@@ -37,7 +37,7 @@ public sealed class OutboxEventDispatcher(
             await email.SendAsync(message, cancellationToken);
             await NotifyCustomerAsync(evt.CustomerEmail, "Booking confirmed",
                 $"Your booking {evt.BookingReference} is confirmed.", "success", cancellationToken);
-            await realtime.BroadcastSeatUpdateAsync(evt.TripId, new { tripId = evt.TripId }, cancellationToken);
+            await BroadcastSeatUpdateAsync(evt.TripId, cancellationToken);
             return;
         }
 
@@ -46,12 +46,18 @@ public sealed class OutboxEventDispatcher(
             var evt = Deserialize<BookingCancelledDomainEvent>(payload);
             await NotifyCustomerAsync(evt.CustomerEmail, "Booking cancelled",
                 $"Your booking {evt.BookingReference} was cancelled. Any payment will be refunded.", "warning", cancellationToken);
-            await realtime.BroadcastSeatUpdateAsync(evt.TripId, new { tripId = evt.TripId }, cancellationToken);
+            await BroadcastSeatUpdateAsync(evt.TripId, cancellationToken);
             return;
         }
 
         LogUnhandled(logger, eventType, null);
     }
+
+    private Task BroadcastSeatUpdateAsync(Guid tripId, CancellationToken ct) =>
+        // Outbox rows written before TripId existed deserialize to Guid.Empty — skip the no-op broadcast.
+        tripId == Guid.Empty
+            ? Task.CompletedTask
+            : realtime.BroadcastSeatUpdateAsync(tripId, new { tripId }, ct);
 
     private async Task NotifyCustomerAsync(string recipientEmail, string title, string message, string type, CancellationToken ct)
     {

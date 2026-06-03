@@ -14,9 +14,10 @@ internal sealed class NotificationConfiguration : IEntityTypeConfiguration<Notif
         builder.Property(n => n.Message).HasMaxLength(2000).IsRequired();
         builder.Property(n => n.Type).HasMaxLength(20).IsRequired();
 
-        // Inbox query: a user's notifications, unread first / newest first.
+        // Unread-count query: WHERE RecipientUserId = ? AND IsRead = false.
         builder.HasIndex(n => new { n.RecipientUserId, n.IsRead });
-        builder.HasIndex(n => n.CreatedAtUtc);
+        // Inbox list query: WHERE RecipientUserId = ? ORDER BY CreatedAtUtc DESC.
+        builder.HasIndex(n => new { n.RecipientUserId, n.CreatedAtUtc });
         // No FK to AspNetUsers (RecipientUserId is a soft reference, like refresh_token.UserId).
     }
 }

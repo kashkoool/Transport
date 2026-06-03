@@ -18,6 +18,11 @@ public sealed class Notification : AggregateRoot
 
     private Notification() { } // EF
 
+    // Mirror the persisted column limits so invalid state is rejected up front (not at SaveChanges).
+    public const int MaxTitleLength = 200;
+    public const int MaxMessageLength = 2000;
+    public const int MaxTypeLength = 20;
+
     public Notification(Guid recipientUserId, string title, string message, string type = "info")
     {
         if (recipientUserId == Guid.Empty)
@@ -25,10 +30,21 @@ public sealed class Notification : AggregateRoot
         if (string.IsNullOrWhiteSpace(title))
             throw new DomainException("notification.title_required", "A notification needs a title.");
 
+        var trimmedTitle = title.Trim();
+        var trimmedMessage = (message ?? string.Empty).Trim();
+        var resolvedType = string.IsNullOrWhiteSpace(type) ? "info" : type.Trim();
+
+        if (trimmedTitle.Length > MaxTitleLength)
+            throw new DomainException("notification.title_too_long", $"Title cannot exceed {MaxTitleLength} characters.");
+        if (trimmedMessage.Length > MaxMessageLength)
+            throw new DomainException("notification.message_too_long", $"Message cannot exceed {MaxMessageLength} characters.");
+        if (resolvedType.Length > MaxTypeLength)
+            throw new DomainException("notification.type_too_long", $"Type cannot exceed {MaxTypeLength} characters.");
+
         RecipientUserId = recipientUserId;
-        Title = title.Trim();
-        Message = (message ?? string.Empty).Trim();
-        Type = string.IsNullOrWhiteSpace(type) ? "info" : type.Trim();
+        Title = trimmedTitle;
+        Message = trimmedMessage;
+        Type = resolvedType;
     }
 
     public void MarkRead(DateTimeOffset now)
