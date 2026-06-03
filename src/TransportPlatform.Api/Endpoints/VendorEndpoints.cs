@@ -1,6 +1,7 @@
 using System.Text;
 using FluentValidation;
 using TransportPlatform.Api.Security;
+using TransportPlatform.Application.Abstractions;
 using TransportPlatform.Application.Bookings;
 using TransportPlatform.Application.Common;
 using TransportPlatform.Application.Companies;
@@ -152,13 +153,20 @@ public static class VendorEndpoints
         .WithSummary("Per-trip occupancy + revenue for your company.");
 
         group.MapGet("/reports/trips/export", async (
-            DateTimeOffset? from, DateTimeOffset? to, VendorTripReportHandler handler, CancellationToken ct) =>
+            DateTimeOffset? from, DateTimeOffset? to, string? format,
+            VendorTripReportHandler handler, IReportExporter exporter, CancellationToken ct) =>
         {
-            var csv = await handler.ExportCsvAsync(new VendorReportQuery(from, to), ct);
-            return Results.File(Encoding.UTF8.GetBytes(csv), "text/csv", "trips-report.csv");
+            var rows = await handler.HandleAsync(new VendorReportQuery(from, to), ct);
+            return (format?.ToLowerInvariant()) switch
+            {
+                "xlsx" => Results.File(exporter.TripsToXlsx(rows),
+                    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", "trips-report.xlsx"),
+                "pdf" => Results.File(exporter.TripsToPdf(rows), "application/pdf", "trips-report.pdf"),
+                _ => Results.File(Encoding.UTF8.GetBytes(TripReportCsv.Build(rows)), "text/csv", "trips-report.csv"),
+            };
         })
-        .WithName("VendorTripReportCsv")
-        .WithSummary("Download the per-trip report as CSV.");
+        .WithName("VendorTripReportExport")
+        .WithSummary("Download the per-trip report (format=csv|xlsx|pdf, default csv).");
 
         group.MapGet("/demand/predict", async (
             string origin, string destination, DateOnly date,
