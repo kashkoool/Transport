@@ -4,6 +4,7 @@ using TransportPlatform.Domain.Companies;
 using TransportPlatform.Domain.Fleet;
 using TransportPlatform.Domain.Notifications;
 using TransportPlatform.Domain.Payments;
+using TransportPlatform.Domain.Promotions;
 using TransportPlatform.Domain.Reviews;
 using TransportPlatform.Domain.Trips;
 
@@ -26,6 +27,7 @@ public interface IApplicationDbContext
     DbSet<Refund> Refunds { get; }
     DbSet<Notification> Notifications { get; }
     DbSet<Review> Reviews { get; }
+    DbSet<PromoCode> PromoCodes { get; }
 
     Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);
 

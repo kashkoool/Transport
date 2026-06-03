@@ -6,6 +6,7 @@ using TransportPlatform.Application.Fleet;
 using TransportPlatform.Application.Identity;
 using TransportPlatform.Application.Notifications;
 using TransportPlatform.Application.Payments;
+using TransportPlatform.Application.Promotions;
 using TransportPlatform.Application.Reports;
 using TransportPlatform.Application.Reviews;
 using TransportPlatform.Application.Staff;
@@ -95,6 +96,12 @@ public static class DependencyInjection
         services.AddScoped<CreateReviewHandler>();
         services.AddScoped<ListTripReviewsHandler>();
         services.AddScoped<ListCompanyReviewsHandler>();
+
+        // Promotions
+        services.AddScoped<CreatePromoCodeHandler>();
+        services.AddScoped<ListPromoCodesHandler>();
+        services.AddScoped<DeactivatePromoCodeHandler>();
+        services.AddScoped<PreviewPromoHandler>();
 
         return services;
     }

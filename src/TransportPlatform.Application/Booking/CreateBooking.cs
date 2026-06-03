@@ -2,6 +2,7 @@ using FluentValidation;
 using Microsoft.EntityFrameworkCore;
 using TransportPlatform.Application.Abstractions;
 using TransportPlatform.Application.Common;
+using TransportPlatform.Application.Promotions;
 using TransportPlatform.Domain.Bookings;
 
 namespace TransportPlatform.Application.Bookings;
@@ -11,7 +12,8 @@ public sealed record PassengerInput(string FirstName, string LastName, int SeatN
 public sealed record CreateBookingCommand(
     Guid TripId,
     IReadOnlyList<PassengerInput> Passengers,
-    string IdempotencyKey);
+    string IdempotencyKey,
+    string? PromoCode = null);
 
 public sealed record CreateBookingResult(Guid BookingId, string Reference, decimal TotalAmount, string Currency);
 
@@ -80,9 +82,30 @@ public sealed class CreateBookingHandler(
             .Select(p => new Passenger(p.FirstName, p.LastName, p.SeatNumber))
             .ToList();
 
+        // Optional promo code: validate + compute the discount, then redeem with an ATOMIC
+        // conditional UPDATE so concurrent bookings can never push RedemptionCount past the cap
+        // (the WHERE clause re-checks active/expiry/cap; 0 rows affected = no longer redeemable).
+        decimal discount = 0;
+        string? appliedPromo = null;
+        if (!string.IsNullOrWhiteSpace(command.PromoCode))
+        {
+            var grossTotal = trip.Fare.Amount * passengers.Count;
+            var (promo, computed) = await PromoEvaluation.EvaluateAsync(db, trip.CompanyId, command.PromoCode, grossTotal, now, ct);
+            var redeemed = await db.PromoCodes
+                .Where(p => p.Id == promo.Id
+                            && p.Active
+                            && (p.ExpiresAtUtc == null || p.ExpiresAtUtc > now)
+                            && (p.MaxRedemptions == null || p.RedemptionCount < p.MaxRedemptions))
+                .ExecuteUpdateAsync(s => s.SetProperty(p => p.RedemptionCount, p => p.RedemptionCount + 1), ct);
+            if (redeemed == 0)
+                throw new ConflictException("promo.exhausted", "This promo code is no longer available.");
+            discount = computed;
+            appliedPromo = promo.Code;
+        }
+
         var booking = Booking.Create(
             trip.Id, customerEmail, references.NewBookingReference(),
-            passengers, trip.Fare, command.IdempotencyKey);
+            passengers, trip.Fare, command.IdempotencyKey, discount, appliedPromo);
 
         foreach (var hold in holds)
             hold.AssignToBooking(booking.Id);
