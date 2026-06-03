@@ -16,6 +16,11 @@ const STRONG_PASSWORD = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^a-zA-Z0-9]).{10,}
 
     @if (loading()) {
       <p class="text-slate-500">Loading…</p>
+    } @else if (loadFailed()) {
+      <div class="rounded-xl bg-slate-100 p-6 text-center">
+        <p class="text-slate-600">We couldn't load your account.</p>
+        <button type="button" (click)="reload()" class="mt-2 font-medium text-indigo-600 hover:text-indigo-700">Try again</button>
+      </div>
     } @else if (profile(); as p) {
       <div class="grid gap-6 lg:grid-cols-2">
         <section class="rounded-xl border border-slate-200 bg-white p-5">
@@ -64,6 +69,7 @@ export class ProfileComponent implements OnInit {
 
   protected readonly profile = signal<UserProfile | null>(null);
   protected readonly loading = signal(true);
+  protected readonly loadFailed = signal(false);
   protected readonly savingProfile = signal(false);
   protected readonly changingPassword = signal(false);
 
@@ -78,13 +84,22 @@ export class ProfileComponent implements OnInit {
   });
 
   ngOnInit(): void {
+    this.reload();
+  }
+
+  protected reload(): void {
+    this.loading.set(true);
+    this.loadFailed.set(false);
     this.auth.getProfile().subscribe({
       next: (p) => {
         this.profile.set(p);
         this.profileForm.reset({ fullName: p.fullName, phone: p.phone ?? '' });
         this.loading.set(false);
       },
-      error: () => this.loading.set(false),
+      error: () => {
+        this.loading.set(false);
+        this.loadFailed.set(true);
+      },
     });
   }
 
