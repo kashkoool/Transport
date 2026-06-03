@@ -123,6 +123,8 @@ var globalLimit = RateLimit("GlobalPerMinute", 100);
 var authLimit = RateLimit("AuthPerMinute", 5);
 var sensitiveLimit = RateLimit("SensitivePerMinute", 20);
 var webhookLimit = RateLimit("WebhookPerMinute", 60);
+var publicReadLimit = RateLimit("PublicReadPerMinute", 30);
+var exportLimit = RateLimit("ExportPerMinute", 5);
 
 builder.Services.AddRateLimiter(options =>
 {
@@ -149,6 +151,16 @@ builder.Services.AddRateLimiter(options =>
     options.AddPolicy(RateLimitPolicies.Webhook, ctx =>
         RateLimitPartition.GetFixedWindowLimiter(ClientKey(ctx),
             _ => new FixedWindowRateLimiterOptions { PermitLimit = webhookLimit, Window = TimeSpan.FromMinutes(1) }));
+
+    // Public anonymous reads (search/seat-map/stops/companies/reviews) — most DoS-exposed surface.
+    options.AddPolicy(RateLimitPolicies.PublicRead, ctx =>
+        RateLimitPartition.GetFixedWindowLimiter(ClientKey(ctx),
+            _ => new FixedWindowRateLimiterOptions { PermitLimit = publicReadLimit, Window = TimeSpan.FromMinutes(1) }));
+
+    // Report exports: heavy document generation — tightest read tier.
+    options.AddPolicy(RateLimitPolicies.Export, ctx =>
+        RateLimitPartition.GetFixedWindowLimiter(ClientKey(ctx),
+            _ => new FixedWindowRateLimiterOptions { PermitLimit = exportLimit, Window = TimeSpan.FromMinutes(1) }));
 });
 
 // ── HSTS: long max-age incl. subdomains (applied in non-dev via UseHsts below) ───
@@ -228,7 +240,9 @@ app.MapBookingEndpoints();
 app.MapPaymentEndpoints();
 app.MapNotificationEndpoints();
 app.MapReviewEndpoints();
-app.MapHub<RealtimeHub>("/hubs/realtime").RequireCors(corsPolicy);
+// Bound the SignalR negotiate/connect handshake (authenticated; per-message abuse is capped inside
+// the hub, which limits trip subscriptions per connection).
+app.MapHub<RealtimeHub>("/hubs/realtime").RequireCors(corsPolicy).RequireRateLimiting(RateLimitPolicies.Sensitive);
 
 // Prometheus scrape endpoint. Gated by config (default on) and intended to be reached only from
 // the internal network / metrics scraper — keep it firewalled / not publicly routable at the proxy.

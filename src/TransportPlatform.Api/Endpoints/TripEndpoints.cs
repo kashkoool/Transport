@@ -1,4 +1,5 @@
 using FluentValidation;
+using TransportPlatform.Api.Security;
 using TransportPlatform.Application.Companies;
 using TransportPlatform.Application.Trips;
 
@@ -8,11 +9,14 @@ public static class TripEndpoints
 {
     public static IEndpointRouteBuilder MapTripEndpoints(this IEndpointRouteBuilder app)
     {
-        var group = app.MapGroup("/api/trips").WithTags("Trips");
+        // Anonymous reads — bounded by a dedicated per-IP tier, not just the shared global limiter.
+        var group = app.MapGroup("/api/trips").WithTags("Trips")
+            .RequireRateLimiting(RateLimitPolicies.PublicRead);
 
         // Public: active companies (id + name) for the search "filter by company" control.
         app.MapGet("/api/companies", async (ListPublicCompaniesHandler handler, CancellationToken ct) =>
             Results.Ok(await handler.HandleAsync(ct)))
+        .RequireRateLimiting(RateLimitPolicies.PublicRead)
         .WithTags("Trips")
         .WithName("ListPublicCompanies")
         .WithSummary("List active companies (id + name) for trip search filtering.");

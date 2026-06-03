@@ -200,6 +200,7 @@ public static class VendorEndpoints
                 _ => Results.File(Encoding.UTF8.GetBytes(TripReportCsv.Build(rows)), "text/csv", "trips-report.csv"),
             };
         })
+        .RequireRateLimiting(RateLimitPolicies.Export)
         .WithName("VendorTripReportExport")
         .WithSummary("Download the per-trip report (format=csv|xlsx|pdf, default csv).");
 
@@ -223,6 +224,7 @@ public static class VendorEndpoints
                 _ => Results.File(Encoding.UTF8.GetBytes(BookingReportCsv.Build(rows)), "text/csv", "bookings-report.csv"),
             };
         })
+        .RequireRateLimiting(RateLimitPolicies.Export)
         .WithName("VendorBookingReportExport")
         .WithSummary("Download the per-booking report (format=csv|xlsx|pdf, default csv).");
 
