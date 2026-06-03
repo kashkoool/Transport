@@ -61,9 +61,10 @@ trip-search index. Full detail in §4.
 | **Promo codes / discounts** | ✅ | #40; percent/fixed; atomic redemption (no over-redemption) |
 | **Seat maps + passenger documents + trip waypoints** | ✅ | this PR; bus layout, optional ID docs, ordered stops |
 | Security hardening (rate limits, HSTS, CSP, CORS, anti-enumeration, startup guards) | ✅ | |
+| **Email-verified-at-login** (optional config gate) | ✅ | `Auth:RequireEmailVerification`; off by default, refuses login until verified when on |
 | Seat concurrency safety + idempotency (bookings/payments/refunds) | ✅ | |
 | **DB indexing** (functional trip search, filtered outbox, notification inbox) | ✅ | #18, #22 |
-| Tests (60 unit + 45 integration, Testcontainers Postgres) | ✅ | |
+| Tests (60 unit + 47 integration, Testcontainers Postgres) | ✅ | |
 | Docker + CI/CD + security scanning (CodeQL/Dependabot/Scorecard/gitleaks/CodeRabbit) + GHCR | ✅ | |
 | **Observability — metrics (Prometheus) + tracing (OTLP)** | ✅ | #32; OpenTelemetry + custom business counters |
 | Observability — structured logs + health checks | ✅ | Serilog + `/health` + `/health/ready` |

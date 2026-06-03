@@ -75,6 +75,14 @@ public static class DependencyInjection
         var signingKey = jwtSection[nameof(JwtOptions.SigningKey)]
             ?? throw new InvalidOperationException("Jwt:SigningKey is not configured.");
 
+        // Login policy (e.g. require a verified email). Off unless explicitly enabled in config.
+        var authSection = config.GetSection(AuthOptions.SectionName);
+        services.Configure<AuthOptions>(o =>
+        {
+            if (bool.TryParse(authSection[nameof(AuthOptions.RequireEmailVerification)], out var require))
+                o.RequireEmailVerification = require;
+        });
+
         services.AddScoped<ITokenService, JwtTokenService>();
         services.AddScoped<IIdentityService, IdentityService>();
 

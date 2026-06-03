@@ -52,7 +52,7 @@ public sealed class IdentityService(
 
         await users.ResetAccessFailedCountAsync(user);
         var userRoles = await users.GetRolesAsync(user);
-        return new AuthenticatedUser(user.Id, user.Email!, [.. userRoles], user.CompanyId);
+        return new AuthenticatedUser(user.Id, user.Email!, [.. userRoles], user.CompanyId, user.EmailConfirmed);
     }
 
     public async Task<AuthenticatedUser> RegisterVendorManagerAsync(
