@@ -10,6 +10,7 @@ using Serilog;
 using TransportPlatform.Api.Endpoints;
 using TransportPlatform.Api.Identity;
 using TransportPlatform.Api.Middleware;
+using TransportPlatform.Api.Observability;
 using TransportPlatform.Api.Realtime;
 using TransportPlatform.Api.Security;
 using TransportPlatform.Api.Workers;
@@ -60,6 +61,9 @@ builder.Services.AddScoped<ICurrentUser, HttpCurrentUser>();
 // Real-time push (SignalR): notifications + live seat availability.
 builder.Services.AddSignalR();
 builder.Services.AddSingleton<IRealtimeNotifier, SignalRRealtimeNotifier>();
+
+// Observability: OpenTelemetry metrics (Prometheus) + tracing (OTLP when configured).
+builder.Services.AddObservability(builder.Configuration);
 
 // ── API surface ────────────────────────────────────────────────────────────────
 builder.Services.AddOpenApi();
@@ -218,6 +222,11 @@ app.MapBookingEndpoints();
 app.MapPaymentEndpoints();
 app.MapNotificationEndpoints();
 app.MapHub<RealtimeHub>("/hubs/realtime").RequireCors(corsPolicy);
+
+// Prometheus scrape endpoint. Gated by config (default on) and intended to be reached only from
+// the internal network / metrics scraper — keep it firewalled / not publicly routable at the proxy.
+if (app.Configuration.GetValue("Observability:Metrics:Enabled", true))
+    app.MapPrometheusScrapingEndpoint("/metrics");
 
 app.Run();
 

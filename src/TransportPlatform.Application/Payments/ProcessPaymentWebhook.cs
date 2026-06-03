@@ -15,7 +15,7 @@ public sealed record ProcessWebhookResult(bool Handled, string Status);
 /// permanent seat assignments — protected by the DB unique constraint). Idempotent: a
 /// re-delivered webhook is a no-op.
 /// </summary>
-public sealed class ProcessPaymentWebhookHandler(IApplicationDbContext db, IPaymentGateway gateway)
+public sealed class ProcessPaymentWebhookHandler(IApplicationDbContext db, IPaymentGateway gateway, IAppMetrics metrics)
 {
     public async Task<ProcessWebhookResult> HandleAsync(ProcessWebhookCommand command, CancellationToken ct)
     {
@@ -62,6 +62,17 @@ public sealed class ProcessPaymentWebhookHandler(IApplicationDbContext db, IPaym
 
             await db.SaveChangesAsync(token);
         }, ct);
+
+        // Record the outcome after the transaction commits.
+        if (resultStatus == "confirmed")
+        {
+            metrics.PaymentSucceeded();
+            metrics.BookingConfirmed();
+        }
+        else if (resultStatus == "failed")
+        {
+            metrics.PaymentFailed();
+        }
 
         return new ProcessWebhookResult(true, resultStatus);
     }
