@@ -23,6 +23,7 @@ public static class VendorEndpoints
         Guid BusId, string Origin, string Destination,
         DateTimeOffset DepartureUtc, DateTimeOffset ArrivalUtc, decimal Price, string Currency);
     public sealed record CreateStaffRequest(string Email, string Password, string FullName, StaffType StaffType);
+    public sealed record UpdateStaffRequest(string FullName, StaffType StaffType);
     public sealed record AddDriverRequest(string FullName, string? Phone, string? LicenseNumber);
     public sealed record AssignDriverRequest(Guid? DriverId);
     public sealed record CounterBookingRequest(Guid TripId, IReadOnlyList<PassengerInput> Passengers, string CustomerEmail);
@@ -36,9 +37,16 @@ public static class VendorEndpoints
 
     public static IEndpointRouteBuilder MapVendorEndpoints(this IEndpointRouteBuilder app)
     {
-        // Vendor managers only. Every handler scopes to the caller's own company id.
+        // Vendor managers only — owner-level fleet/staff/company/promo/report operations.
         var group = app.MapGroup("/api/vendor").WithTags("Vendor")
             .RequireAuthorization(AuthorizationPolicies.VendorOnly)
+            .RequireRateLimiting(RateLimitPolicies.Sensitive);
+
+        // Manager OR staff — trip management + the reads staff need to run it. The docs make trip
+        // operations a shared Manager/Employee capability; every handler still scopes to the
+        // caller's own company via RequireCompanyId(), so staff act only within their tenant.
+        var shared = app.MapGroup("/api/vendor").WithTags("Vendor")
+            .RequireAuthorization(AuthorizationPolicies.VendorOrStaff)
             .RequireRateLimiting(RateLimitPolicies.Sensitive);
 
         // ── Fleet ───────────────────────────────────────────────────────────────────
@@ -54,14 +62,15 @@ public static class VendorEndpoints
         .WithName("AddBus")
         .WithSummary("Add a bus to your fleet.");
 
-        group.MapGet("/buses", async (
-            int? page, int? limit, ListBusesHandler handler, CancellationToken ct) =>
-            Results.Ok(await handler.HandleAsync(new ListBusesQuery(page, limit), ct)))
+        // Staff also need to see the fleet to schedule trips (docs: "view buses" — Manager + Employee).
+        shared.MapGet("/buses", async (
+            int? page, int? limit, string? search, ListBusesHandler handler, CancellationToken ct) =>
+            Results.Ok(await handler.HandleAsync(new ListBusesQuery(page, limit, search), ct)))
         .WithName("ListBuses")
-        .WithSummary("List your fleet (paginated).");
+        .WithSummary("List your fleet (paginated, optional search by bus number).");
 
-        // ── Trips ───────────────────────────────────────────────────────────────────
-        group.MapPost("/trips", async (
+        // ── Trips (manager OR staff) ─────────────────────────────────────────────────
+        shared.MapPost("/trips", async (
             ScheduleTripRequest body, ScheduleTripHandler handler,
             IValidator<ScheduleTripCommand> validator, CancellationToken ct) =>
         {
@@ -73,13 +82,13 @@ public static class VendorEndpoints
         .WithName("ScheduleTrip")
         .WithSummary("Schedule a trip on one of your buses.");
 
-        group.MapGet("/trips", async (
+        shared.MapGet("/trips", async (
             int? page, int? limit, ListVendorTripsHandler handler, CancellationToken ct) =>
             Results.Ok(await handler.HandleAsync(new ListVendorTripsQuery(page, limit), ct)))
         .WithName("ListVendorTrips")
         .WithSummary("List your trips (paginated).");
 
-        group.MapPost("/trips/{id:guid}/cancel", async (
+        shared.MapPost("/trips/{id:guid}/cancel", async (
             Guid id, CancelTripHandler handler, CancellationToken ct) =>
             Results.Ok(await handler.HandleAsync(new CancelTripCommand(id), ct)))
         .WithName("CancelTrip")
@@ -98,10 +107,30 @@ public static class VendorEndpoints
         .WithSummary("Create a staff account in your company.");
 
         group.MapGet("/staff", async (
-            int? page, int? limit, ListStaffHandler handler, CancellationToken ct) =>
-            Results.Ok(await handler.HandleAsync(new ListStaffQuery(page, limit), ct)))
+            int? page, int? limit, string? search, ListStaffHandler handler, CancellationToken ct) =>
+            Results.Ok(await handler.HandleAsync(new ListStaffQuery(page, limit, search), ct)))
         .WithName("ListStaff")
-        .WithSummary("List your company staff (paginated).");
+        .WithSummary("List your company staff (paginated, optional search by name/email).");
+
+        group.MapPut("/staff/{id:guid}", async (
+            Guid id, UpdateStaffRequest body, UpdateStaffHandler handler,
+            IValidator<UpdateStaffCommand> validator, CancellationToken ct) =>
+        {
+            var command = new UpdateStaffCommand(id, body.FullName, body.StaffType);
+            await validator.ValidateAndThrowAsync(command, ct);
+            await handler.HandleAsync(command, ct);
+            return Results.NoContent();
+        })
+        .WithName("UpdateStaff")
+        .WithSummary("Edit a staff member's name and role.");
+
+        group.MapDelete("/staff/{id:guid}", async (Guid id, DeleteStaffHandler handler, CancellationToken ct) =>
+        {
+            await handler.HandleAsync(new DeleteStaffCommand(id), ct);
+            return Results.NoContent();
+        })
+        .WithName("DeleteStaff")
+        .WithSummary("Delete a staff member.");
 
         group.MapPost("/staff/{id:guid}/suspend", async (
             Guid id, SetStaffSuspendedHandler handler, CancellationToken ct) =>
@@ -134,10 +163,10 @@ public static class VendorEndpoints
         .WithSummary("Add a driver to your company.");
 
         group.MapGet("/drivers", async (
-            int? page, int? limit, ListDriversHandler handler, CancellationToken ct) =>
-            Results.Ok(await handler.HandleAsync(new ListDriversQuery(page, limit), ct)))
+            int? page, int? limit, string? search, ListDriversHandler handler, CancellationToken ct) =>
+            Results.Ok(await handler.HandleAsync(new ListDriversQuery(page, limit, search), ct)))
         .WithName("ListDrivers")
-        .WithSummary("List your drivers (paginated).");
+        .WithSummary("List your drivers (paginated, optional search by name/phone).");
 
         group.MapPost("/buses/{id:guid}/driver", async (
             Guid id, AssignDriverRequest body, AssignDriverHandler handler, CancellationToken ct) =>
@@ -204,7 +233,7 @@ public static class VendorEndpoints
         })
         .WithName("DeleteBus").WithSummary("Delete a bus (blocked while used by trips).");
 
-        group.MapPut("/trips/{id:guid}", async (
+        shared.MapPut("/trips/{id:guid}", async (
             Guid id, UpdateTripRequest body, UpdateTripHandler handler,
             IValidator<UpdateTripCommand> validator, CancellationToken ct) =>
         {
@@ -215,6 +244,7 @@ public static class VendorEndpoints
         })
         .WithName("UpdateTrip").WithSummary("Edit a scheduled trip (blocked once it has bookings).");
 
+        // Delete stays manager-only — staff manage the lifecycle but don't remove records.
         group.MapDelete("/trips/{id:guid}", async (Guid id, DeleteTripHandler handler, CancellationToken ct) =>
         {
             await handler.HandleAsync(new DeleteTripCommand(id), ct);
@@ -222,19 +252,19 @@ public static class VendorEndpoints
         })
         .WithName("DeleteTrip").WithSummary("Delete a trip (blocked if it has bookings — cancel instead).");
 
-        group.MapPost("/trips/{id:guid}/start", async (Guid id, StartTripHandler handler, CancellationToken ct) =>
+        shared.MapPost("/trips/{id:guid}/start", async (Guid id, StartTripHandler handler, CancellationToken ct) =>
             Results.Ok(await handler.HandleAsync(new StartTripCommand(id), ct)))
         .WithName("StartTrip").WithSummary("Mark a scheduled trip as in-progress.");
 
-        group.MapPost("/trips/{id:guid}/complete", async (Guid id, CompleteTripHandler handler, CancellationToken ct) =>
+        shared.MapPost("/trips/{id:guid}/complete", async (Guid id, CompleteTripHandler handler, CancellationToken ct) =>
             Results.Ok(await handler.HandleAsync(new CompleteTripCommand(id), ct)))
         .WithName("CompleteTrip").WithSummary("Mark an in-progress trip as completed.");
 
-        group.MapPost("/trips/{id:guid}/revert", async (Guid id, RevertTripHandler handler, CancellationToken ct) =>
+        shared.MapPost("/trips/{id:guid}/revert", async (Guid id, RevertTripHandler handler, CancellationToken ct) =>
             Results.Ok(await handler.HandleAsync(new RevertTripCommand(id), ct)))
         .WithName("RevertTrip").WithSummary("Re-activate a cancelled trip (Cancelled → Scheduled), if the bus is free.");
 
-        group.MapPut("/trips/{id:guid}/stops", async (
+        shared.MapPut("/trips/{id:guid}/stops", async (
             Guid id, SetTripStopsRequest body, SetTripStopsHandler handler,
             IValidator<SetTripStopsCommand> validator, CancellationToken ct) =>
         {

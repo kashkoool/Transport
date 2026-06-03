@@ -1,11 +1,11 @@
-import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, inject, OnInit, signal } from '@angular/core';
 import { DatePipe, DecimalPipe } from '@angular/common';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router } from '@angular/router';
 import { ApiService } from '../../core/api/api.service';
 import { AuthService } from '../../core/auth/auth.service';
 import { BookingFlow } from '../../core/booking-flow';
-import { TripSummary } from '../../core/models';
+import { PublicCompany, TripSummary } from '../../core/models';
 
 @Component({
   selector: 'app-search',
@@ -57,6 +57,25 @@ import { TripSummary } from '../../core/models';
           {{ loading() ? 'Searching…' : 'Search' }}
         </button>
       </div>
+
+      <!-- Optional filters: company, max price, depart-after (US-C-4). -->
+      <div class="sm:col-span-1">
+        <label for="company" class="mb-1 block text-sm font-medium text-slate-700">Company</label>
+        <select id="company" formControlName="companyId" class="w-full rounded-md border border-slate-300 px-3 py-2 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500">
+          <option value="">Any company</option>
+          @for (c of companies(); track c.id) {
+            <option [value]="c.id">{{ c.name }}</option>
+          }
+        </select>
+      </div>
+      <div class="sm:col-span-1">
+        <label for="maxPrice" class="mb-1 block text-sm font-medium text-slate-700">Max price</label>
+        <input id="maxPrice" type="number" min="0" step="1000" formControlName="maxPrice" placeholder="Any" class="w-full rounded-md border border-slate-300 px-3 py-2 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500" />
+      </div>
+      <div class="sm:col-span-1">
+        <label for="departAfter" class="mb-1 block text-sm font-medium text-slate-700">Depart after</label>
+        <input id="departAfter" type="time" formControlName="departAfter" class="w-full rounded-md border border-slate-300 px-3 py-2 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500" />
+      </div>
     </form>
 
     <div class="mt-6 space-y-3">
@@ -95,7 +114,7 @@ import { TripSummary } from '../../core/models';
     </div>
   `,
 })
-export class SearchComponent {
+export class SearchComponent implements OnInit {
   private readonly fb = inject(FormBuilder);
   private readonly api = inject(ApiService);
   private readonly auth = inject(AuthService);
@@ -105,21 +124,34 @@ export class SearchComponent {
   protected readonly loading = signal(false);
   protected readonly searched = signal(false);
   protected readonly results = signal<TripSummary[]>([]);
+  protected readonly companies = signal<PublicCompany[]>([]);
 
   protected readonly form = this.fb.nonNullable.group({
     origin: ['', [Validators.required, Validators.maxLength(120)]],
     destination: ['', [Validators.required, Validators.maxLength(120)]],
     date: [this.today(), [Validators.required]],
+    companyId: [''],
+    maxPrice: [null as number | null],
+    departAfter: [''],
   });
+
+  ngOnInit(): void {
+    // Populate the company filter; failure is non-fatal (the dropdown just stays "Any company").
+    this.api.companies().subscribe({ next: (c) => this.companies.set(c), error: () => undefined });
+  }
 
   protected search(): void {
     if (this.form.invalid) {
       this.form.markAllAsTouched();
       return;
     }
-    const { origin, destination, date } = this.form.getRawValue();
+    const { origin, destination, date, companyId, maxPrice, departAfter } = this.form.getRawValue();
     this.loading.set(true);
-    this.api.searchTrips(origin.trim(), destination.trim(), date).subscribe({
+    this.api.searchTrips(origin.trim(), destination.trim(), date, {
+      companyId: companyId || undefined,
+      maxPrice: maxPrice != null ? Number(maxPrice) : undefined,
+      departAfter: departAfter || undefined,
+    }).subscribe({
       next: (trips) => {
         this.results.set(trips);
         this.searched.set(true);

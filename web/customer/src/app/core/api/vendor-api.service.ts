@@ -88,8 +88,9 @@ export class VendorApiService {
   private readonly base = `${environment.apiBaseUrl}/vendor`;
 
   // ── Fleet ──────────────────────────────────────────────────────────────────────
-  listBuses(page = 1, limit = 20): Observable<PagedResult<Bus>> {
-    const params = new HttpParams().set('page', page).set('limit', limit);
+  listBuses(page = 1, limit = 20, search?: string): Observable<PagedResult<Bus>> {
+    let params = new HttpParams().set('page', page).set('limit', limit);
+    if (search) params = params.set('search', search);
     return this.http.get<PagedResult<Bus>>(`${this.base}/buses`, { params });
   }
 
@@ -148,13 +149,22 @@ export class VendorApiService {
   }
 
   // ── Staff ──────────────────────────────────────────────────────────────────────
-  listStaff(page = 1, limit = 50): Observable<PagedResult<Staff>> {
-    const params = new HttpParams().set('page', page).set('limit', limit);
+  listStaff(page = 1, limit = 50, search?: string): Observable<PagedResult<Staff>> {
+    let params = new HttpParams().set('page', page).set('limit', limit);
+    if (search) params = params.set('search', search);
     return this.http.get<PagedResult<Staff>>(`${this.base}/staff`, { params });
   }
 
   createStaff(body: CreateStaffRequest): Observable<Staff> {
     return this.http.post<Staff>(`${this.base}/staff`, body);
+  }
+
+  updateStaff(staffId: string, body: { fullName: string; staffType: StaffType }): Observable<void> {
+    return this.http.put<void>(`${this.base}/staff/${staffId}`, body);
+  }
+
+  deleteStaff(staffId: string): Observable<void> {
+    return this.http.delete<void>(`${this.base}/staff/${staffId}`);
   }
 
   suspendStaff(staffId: string): Observable<void> {
@@ -166,8 +176,9 @@ export class VendorApiService {
   }
 
   // ── Drivers ────────────────────────────────────────────────────────────────────
-  listDrivers(page = 1, limit = 100): Observable<PagedResult<Driver>> {
-    const params = new HttpParams().set('page', page).set('limit', limit);
+  listDrivers(page = 1, limit = 100, search?: string): Observable<PagedResult<Driver>> {
+    let params = new HttpParams().set('page', page).set('limit', limit);
+    if (search) params = params.set('search', search);
     return this.http.get<PagedResult<Driver>>(`${this.base}/drivers`, { params });
   }
 

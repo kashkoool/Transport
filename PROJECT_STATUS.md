@@ -90,14 +90,14 @@ my-bookings · **cancel (48h) + refund** · **rate/review a travelled trip** · 
 ### Vendor / Company Manager
 ✅ login · add/list/**edit/delete** bus (with seat layout) · schedule/list/cancel/**edit/delete** trip ·
 **trip lifecycle (start/complete/revert)** · **set trip waypoints** · **company profile view/edit** ·
-**staff CRUD (create/list/suspend/reactivate)** · **drivers (add/list, assign to bus)** ·
+**staff CRUD (create/list/**search**/edit/suspend/reactivate/delete)** · **drivers (add/list/search, assign to bus)** ·
 **counter booking + cancel/refund** · **promo-code management** · **reports (summary, per-trip, CSV/XLSX/PDF)** ·
 **demand prediction** · **admin-notifications inbox**.
-❌ (frontend dashboards for the newest modules are the remaining build-out.)
 
 ### Staff (accountant / supervisor / employee)
 ✅ account provisioned by the manager, can log in (Staff role + company scope), suspend/reactivate ·
-**counter booking (sell at the desk) + cancel/refund** via the `VendorOrStaff` policy.
+**counter booking (sell at the desk) + cancel/refund** · **full trip management** (schedule/edit/cancel/
+start/complete/revert/stops + view buses) via the `VendorOrStaff` policy (delete stays manager-only).
 ❌ driver sub-type is modelled separately (no login).
 
 ### Admin

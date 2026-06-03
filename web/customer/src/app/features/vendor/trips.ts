@@ -171,14 +171,14 @@ export class VendorTripsComponent implements OnInit {
 
   ngOnInit(): void {
     this.load();
-    this.api.listBuses(1, 100).subscribe({ next: (p) => this.buses.set(p.items) });
+    this.api.listBuses(1, 100).subscribe({ next: (p) => this.buses.set(p.data) });
   }
 
   private load(): void {
     this.loading.set(true);
     this.api.listTrips(1, 100).subscribe({
       next: (page) => {
-        this.trips.set(page.items);
+        this.trips.set(page.data);
         this.total.set(page.total);
         this.loading.set(false);
       },

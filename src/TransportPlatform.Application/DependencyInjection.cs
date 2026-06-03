@@ -61,6 +61,9 @@ public static class DependencyInjection
         services.AddScoped<GetMyCompanyHandler>();
         services.AddScoped<UpdateMyCompanyHandler>();
 
+        // Public company directory (trip-search company filter)
+        services.AddScoped<ListPublicCompaniesHandler>();
+
         // Vendor · fleet + trips
         services.AddScoped<AddBusHandler>();
         services.AddScoped<ListBusesHandler>();
@@ -82,6 +85,8 @@ public static class DependencyInjection
         services.AddScoped<CreateStaffHandler>();
         services.AddScoped<ListStaffHandler>();
         services.AddScoped<SetStaffSuspendedHandler>();
+        services.AddScoped<UpdateStaffHandler>();
+        services.AddScoped<DeleteStaffHandler>();
         services.AddScoped<AddDriverHandler>();
         services.AddScoped<ListDriversHandler>();
         services.AddScoped<AssignDriverHandler>();

@@ -162,7 +162,7 @@ export class AdminCompaniesComponent implements OnInit {
     this.loading.set(true);
     this.api.listCompanies(1, 50, this.filter() ?? undefined).subscribe({
       next: (page) => {
-        this.companies.set(page.items);
+        this.companies.set(page.data);
         this.total.set(page.total);
         this.loading.set(false);
       },

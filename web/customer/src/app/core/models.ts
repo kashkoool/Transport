@@ -45,6 +45,12 @@ export interface HoldResult {
   expiresAtUtc: string;
 }
 
+/** Active company (id + name) for the trip-search company filter. */
+export interface PublicCompany {
+  id: string;
+  name: string;
+}
+
 export interface PassengerInput {
   firstName: string;
   lastName: string;
@@ -153,7 +159,8 @@ export interface ProblemDetails {
 // ── Admin + vendor consoles ──────────────────────────────────────────────────────
 
 export interface PagedResult<T> {
-  items: T[];
+  /** Matches the API's PagedResult.Data (camelCased). */
+  data: T[];
   total: number;
   page: number;
   limit: number;

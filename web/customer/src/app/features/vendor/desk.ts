@@ -114,7 +114,7 @@ export class VendorDeskComponent implements OnInit {
 
   ngOnInit(): void {
     this.api.listTrips(1, 100).subscribe({
-      next: (p) => this.trips.set(p.items.filter((t) => t.status === 'Scheduled')),
+      next: (p) => this.trips.set(p.data.filter((t) => t.status === 'Scheduled')),
     });
     this.loadBookings();
   }
@@ -174,7 +174,7 @@ export class VendorDeskComponent implements OnInit {
   private loadBookings(): void {
     this.loading.set(true);
     this.api.listCompanyBookings().subscribe({
-      next: (p) => { this.bookings.set(p.items); this.loading.set(false); },
+      next: (p) => { this.bookings.set(p.data); this.loading.set(false); },
       error: () => this.loading.set(false),
     });
   }

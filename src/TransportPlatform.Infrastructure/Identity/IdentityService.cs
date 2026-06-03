@@ -221,12 +221,9 @@ public sealed class IdentityService(
         return user.Id;
     }
 
-    public async Task<IReadOnlyList<StaffMember>> ListStaffAsync(Guid companyId, int skip, int take, CancellationToken ct = default)
+    public async Task<IReadOnlyList<StaffMember>> ListStaffAsync(Guid companyId, int skip, int take, string? search, CancellationToken ct = default)
     {
-        // Staff are the company's users that carry a StaffType (the manager shares the company id
-        // but has no StaffType, so this excludes them).
-        var page = await users.Users
-            .Where(u => u.CompanyId == companyId && u.StaffType != null)
+        var page = await StaffQuery(companyId, search)
             .OrderBy(u => u.Email)
             .Skip(skip)
             .Take(take)
@@ -240,8 +237,25 @@ public sealed class IdentityService(
             .ToList();
     }
 
-    public Task<int> CountStaffAsync(Guid companyId, CancellationToken ct = default) =>
-        users.Users.CountAsync(u => u.CompanyId == companyId && u.StaffType != null, ct);
+    public Task<int> CountStaffAsync(Guid companyId, string? search, CancellationToken ct = default) =>
+        StaffQuery(companyId, search).CountAsync(ct);
+
+    // Staff are the company's users that carry a StaffType (the manager shares the company id but
+    // has no StaffType, so this excludes them). Optional case-insensitive name/email contains-filter.
+    private IQueryable<ApplicationUser> StaffQuery(Guid companyId, string? search)
+    {
+        var q = users.Users.Where(u => u.CompanyId == companyId && u.StaffType != null);
+        if (!string.IsNullOrWhiteSpace(search))
+        {
+            var term = search.Trim().ToLowerInvariant();
+            // Server-side SQL lower()/LIKE inside this EF expression tree → analyzers are false positives.
+#pragma warning disable CA1304, CA1311, CA1862
+            q = q.Where(u => u.Email!.ToLower().Contains(term)
+                || (u.FullName != null && u.FullName.ToLower().Contains(term)));
+#pragma warning restore CA1304, CA1311, CA1862
+        }
+        return q;
+    }
 
     public async Task<Guid?> FindUserIdByEmailAsync(string email, CancellationToken ct = default)
     {
@@ -279,6 +293,30 @@ public sealed class IdentityService(
         await users.SetLockoutEnabledAsync(user, true);
         var until = suspended ? DateTimeOffset.MaxValue : (DateTimeOffset?)null;
         var result = await users.SetLockoutEndDateAsync(user, until);
+        return result.Succeeded;
+    }
+
+    public async Task<bool> UpdateStaffAsync(Guid companyId, Guid staffId, string fullName, StaffType staffType, CancellationToken ct = default)
+    {
+        ct.ThrowIfCancellationRequested();
+        var user = await users.FindByIdAsync(staffId.ToString());
+        if (user is null || user.CompanyId != companyId || user.StaffType is null)
+            return false;
+
+        user.FullName = fullName.Trim();
+        user.StaffType = staffType;
+        var result = await users.UpdateAsync(user);
+        return result.Succeeded;
+    }
+
+    public async Task<bool> DeleteStaffAsync(Guid companyId, Guid staffId, CancellationToken ct = default)
+    {
+        ct.ThrowIfCancellationRequested();
+        var user = await users.FindByIdAsync(staffId.ToString());
+        if (user is null || user.CompanyId != companyId || user.StaffType is null)
+            return false;
+
+        var result = await users.DeleteAsync(user);
         return result.Succeeded;
     }
 

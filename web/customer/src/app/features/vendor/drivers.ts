@@ -15,10 +15,17 @@ import { VendorNavComponent } from './vendor-nav';
 
     <div class="grid gap-6 lg:grid-cols-3">
       <section class="lg:col-span-2">
+        <input
+          type="search"
+          [value]="search()"
+          (input)="onSearch($event)"
+          placeholder="Search by name or phone…"
+          class="mb-3 w-full max-w-sm rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+        />
         @if (loading()) {
           <p class="text-slate-500">Loading…</p>
         } @else if (drivers().length === 0) {
-          <p class="rounded-lg bg-slate-100 p-4 text-slate-600">No drivers yet. Add one, then assign them to a bus in Fleet.</p>
+          <p class="rounded-lg bg-slate-100 p-4 text-slate-600">No drivers found. Add one, then assign them to a bus in Fleet.</p>
         } @else {
           <table class="w-full overflow-hidden rounded-xl border border-slate-200 bg-white text-sm">
             <thead class="bg-slate-50 text-left text-slate-500">
@@ -74,6 +81,8 @@ export class VendorDriversComponent implements OnInit {
   protected readonly total = signal(0);
   protected readonly loading = signal(true);
   protected readonly submitting = signal(false);
+  protected readonly search = signal('');
+  private searchTimer?: ReturnType<typeof setTimeout>;
 
   protected readonly form = this.fb.nonNullable.group({
     fullName: ['', [Validators.required, Validators.maxLength(100)]],
@@ -85,11 +94,17 @@ export class VendorDriversComponent implements OnInit {
     this.load();
   }
 
+  protected onSearch(event: Event): void {
+    this.search.set((event.target as HTMLInputElement).value);
+    clearTimeout(this.searchTimer);
+    this.searchTimer = setTimeout(() => this.load(), 250); // debounce
+  }
+
   private load(): void {
     this.loading.set(true);
-    this.api.listDrivers().subscribe({
+    this.api.listDrivers(1, 100, this.search().trim() || undefined).subscribe({
       next: (page) => {
-        this.drivers.set(page.items);
+        this.drivers.set(page.data);
         this.total.set(page.total);
         this.loading.set(false);
       },

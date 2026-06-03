@@ -6,7 +6,13 @@ using TransportPlatform.Domain.Trips;
 
 namespace TransportPlatform.Application.Trips;
 
-public sealed record SearchTripsQuery(string Origin, string Destination, DateOnly Date);
+public sealed record SearchTripsQuery(
+    string Origin,
+    string Destination,
+    DateOnly Date,
+    Guid? CompanyId = null,
+    decimal? MaxPrice = null,
+    TimeOnly? DepartAfter = null);
 
 public sealed record TripSummary(
     Guid Id,
@@ -45,6 +51,12 @@ public sealed class SearchTripsHandler(IApplicationDbContext db, IClock clock)
         var dayEnd = dayStart.AddDays(1);
         var now = clock.UtcNow;
 
+        // Optional "depart after HH:mm" tightens the day's lower bound (translatable to SQL,
+        // unlike comparing DateTimeOffset.TimeOfDay directly).
+        var departFrom = query.DepartAfter is { } t ? dayStart.Add(t.ToTimeSpan()) : dayStart;
+        var maxPrice = query.MaxPrice;
+        var companyId = query.CompanyId;
+
         var origin = query.Origin.Trim().ToLowerInvariant();
         var destination = query.Destination.Trim().ToLowerInvariant();
 
@@ -63,10 +75,12 @@ public sealed class SearchTripsHandler(IApplicationDbContext db, IClock clock)
             .Where(t => t.Status == TripStatus.Scheduled
                         && activeCompanyIds.Contains(t.CompanyId)
                         && t.DepartureUtc > now
-                        && t.DepartureUtc >= dayStart
+                        && t.DepartureUtc >= departFrom
                         && t.DepartureUtc < dayEnd
                         && t.Origin.ToLower() == origin
-                        && t.Destination.ToLower() == destination)
+                        && t.Destination.ToLower() == destination
+                        && (companyId == null || t.CompanyId == companyId)
+                        && (maxPrice == null || t.Price <= maxPrice))
             .OrderBy(t => t.DepartureUtc)
             .Take(MaxResults)
             .ToListAsync(ct);

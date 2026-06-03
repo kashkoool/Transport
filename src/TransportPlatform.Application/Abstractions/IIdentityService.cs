@@ -67,17 +67,29 @@ public interface IIdentityService
     /// <summary>Delete every account (manager + staff) bound to a company — used when deleting the company.</summary>
     Task DeleteCompanyUsersAsync(Guid companyId, CancellationToken ct = default);
 
-    /// <summary>List a company's staff (page slice), ordered by email.</summary>
-    Task<IReadOnlyList<StaffMember>> ListStaffAsync(Guid companyId, int skip, int take, CancellationToken ct = default);
+    /// <summary>List a company's staff (page slice), ordered by email; optional name/email search.</summary>
+    Task<IReadOnlyList<StaffMember>> ListStaffAsync(Guid companyId, int skip, int take, string? search, CancellationToken ct = default);
 
-    /// <summary>Count a company's staff (for pagination totals).</summary>
-    Task<int> CountStaffAsync(Guid companyId, CancellationToken ct = default);
+    /// <summary>Count a company's staff matching the optional search (for pagination totals).</summary>
+    Task<int> CountStaffAsync(Guid companyId, string? search, CancellationToken ct = default);
 
     /// <summary>
     /// Suspend (lock out) or reactivate a staff member — scoped to the given company so a manager
     /// can only ever touch their OWN staff. Returns false if no such staff member exists there.
     /// </summary>
     Task<bool> SetStaffSuspendedAsync(Guid companyId, Guid staffId, bool suspended, CancellationToken ct = default);
+
+    /// <summary>
+    /// Update a staff member's name + sub-type — scoped to the given company. Returns false if no
+    /// such staff member exists there (tenant guard; managers are not staff and aren't matched).
+    /// </summary>
+    Task<bool> UpdateStaffAsync(Guid companyId, Guid staffId, string fullName, StaffType staffType, CancellationToken ct = default);
+
+    /// <summary>
+    /// Delete a staff member — scoped to the given company. Returns false if no such staff member
+    /// exists there. (Drivers have no login and are not staff accounts, so they're never matched.)
+    /// </summary>
+    Task<bool> DeleteStaffAsync(Guid companyId, Guid staffId, CancellationToken ct = default);
 
     /// <summary>
     /// Change an authenticated user's password (verifies the current one). Returns false if the
