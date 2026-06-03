@@ -10,6 +10,7 @@ using TransportPlatform.Domain.Fleet;
 using TransportPlatform.Domain.Identity;
 using TransportPlatform.Domain.Notifications;
 using TransportPlatform.Domain.Outbox;
+using TransportPlatform.Domain.Reviews;
 using TransportPlatform.Domain.Payments;
 using TransportPlatform.Domain.Trips;
 using TransportPlatform.Infrastructure.Identity;
@@ -33,6 +34,7 @@ public sealed class ApplicationDbContext(DbContextOptions<ApplicationDbContext> 
     public DbSet<Payment> Payments => Set<Payment>();
     public DbSet<Refund> Refunds => Set<Refund>();
     public DbSet<Notification> Notifications => Set<Notification>();
+    public DbSet<Review> Reviews => Set<Review>();
     public DbSet<OutboxMessage> OutboxMessages => Set<OutboxMessage>();
     public DbSet<RefreshToken> RefreshTokens => Set<RefreshToken>();
 
