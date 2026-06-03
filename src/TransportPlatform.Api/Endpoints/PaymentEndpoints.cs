@@ -35,9 +35,13 @@ public static class PaymentEndpoints
             using var buffer = new MemoryStream();
             await request.Body.CopyToAsync(buffer, ct);
             var payload = System.Text.Encoding.UTF8.GetString(buffer.ToArray());
-            var signature = request.Headers["X-Signature"].FirstOrDefault();
 
-            var result = await handler.HandleAsync(new ProcessWebhookCommand(payload, signature), ct);
+            // Pass all inbound headers so each gateway can read whatever it signs over
+            // (Sandbox: X-Signature; PayPal: the PAYPAL-* transmission headers).
+            var headers = request.Headers.ToDictionary(
+                h => h.Key, h => h.Value.ToString(), StringComparer.OrdinalIgnoreCase);
+
+            var result = await handler.HandleAsync(new ProcessWebhookCommand(payload, headers), ct);
             return result.Handled ? Results.Ok(new { status = result.Status }) : Results.NotFound();
         })
         .RequireRateLimiting(RateLimitPolicies.Webhook)
@@ -62,7 +66,8 @@ public static class PaymentEndpoints
                     succeeded = body.Succeeded,
                 });
                 var signature = signer.Sign(payload);
-                var result = await handler.HandleAsync(new ProcessWebhookCommand(payload, signature), ct);
+                var headers = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase) { ["X-Signature"] = signature };
+                var result = await handler.HandleAsync(new ProcessWebhookCommand(payload, headers), ct);
                 return Results.Ok(new { status = result.Status });
             })
             .RequireAuthorization()

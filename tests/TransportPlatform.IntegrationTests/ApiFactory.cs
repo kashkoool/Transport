@@ -80,8 +80,12 @@ public sealed class ApiFactory : WebApplicationFactory<Program>, IAsyncLifetime
         });
     }
 
-    /// <summary>Seed a bookable trip and return its id, seat count and price.</summary>
-    public async Task<(Guid TripId, int SeatCount, decimal Price)> SeedTripAsync(int seats = 40)
+    /// <summary>Seed a bookable trip (departs in 2 days) and return its id, seat count and price.</summary>
+    public Task<(Guid TripId, int SeatCount, decimal Price)> SeedTripAsync(int seats = 40) =>
+        SeedTripAsync(TimeSpan.FromDays(2), seats);
+
+    /// <summary>Seed a bookable trip departing <paramref name="departureFromNow"/> from now.</summary>
+    public async Task<(Guid TripId, int SeatCount, decimal Price)> SeedTripAsync(TimeSpan departureFromNow, int seats = 40)
     {
         using var scope = Services.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
@@ -91,9 +95,10 @@ public sealed class ApiFactory : WebApplicationFactory<Program>, IAsyncLifetime
         var company = new Company("Test Lines", $"ops-{Guid.NewGuid():N}@testlines.example", "+963000000");
         company.Activate();
         var bus = new Bus(company.Id, $"BUS-{Guid.NewGuid():N}"[..10], seats, BusType.Standard);
+        var departure = DateTimeOffset.UtcNow.Add(departureFromNow);
         var trip = new Trip(
             company.Id, bus.Id, "Damascus", "Latakia",
-            DateTimeOffset.UtcNow.AddDays(2), DateTimeOffset.UtcNow.AddDays(2).AddHours(4),
+            departure, departure.AddHours(4),
             seats, new Money(50_000m, "SYP"));
 
         db.Companies.Add(company);

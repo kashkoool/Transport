@@ -156,12 +156,33 @@ public static class DependencyInjection
             options.Provider = paymentSection[nameof(PaymentOptions.Provider)] ?? options.Provider;
             options.WebhookSecret = paymentSection[nameof(PaymentOptions.WebhookSecret)] ?? options.WebhookSecret;
             options.CheckoutBaseUrl = paymentSection[nameof(PaymentOptions.CheckoutBaseUrl)] ?? options.CheckoutBaseUrl;
+            options.ClientId = paymentSection[nameof(PaymentOptions.ClientId)] ?? options.ClientId;
+            options.ClientSecret = paymentSection[nameof(PaymentOptions.ClientSecret)] ?? options.ClientSecret;
+            options.ApiBaseUrl = paymentSection[nameof(PaymentOptions.ApiBaseUrl)] ?? options.ApiBaseUrl;
+            options.WebhookId = paymentSection[nameof(PaymentOptions.WebhookId)] ?? options.WebhookId;
+            options.ReturnUrl = paymentSection[nameof(PaymentOptions.ReturnUrl)] ?? options.ReturnUrl;
+            options.CancelUrl = paymentSection[nameof(PaymentOptions.CancelUrl)] ?? options.CancelUrl;
         });
+
+        // The Sandbox gateway is always available: it backs dev/tests and provides the dev-only
+        // webhook signer seam. The active IPaymentGateway is chosen by Payments:Provider.
         services.AddSingleton<SandboxPaymentGateway>();
-        services.AddSingleton<IPaymentGateway>(sp => sp.GetRequiredService<SandboxPaymentGateway>());
-        // Dev/test seam so the API can simulate a signed gateway callback without referencing
-        // the concrete gateway type (keeps the Api layer on Application abstractions only).
         services.AddSingleton<IPaymentWebhookSigner>(sp => sp.GetRequiredService<SandboxPaymentGateway>());
+
+        if (string.Equals(paymentSection[nameof(PaymentOptions.Provider)], "PayPal", StringComparison.OrdinalIgnoreCase))
+        {
+            services.AddHttpClient(PayPalPaymentGateway.HttpClientName, client =>
+            {
+                client.BaseAddress = new Uri(paymentSection[nameof(PaymentOptions.ApiBaseUrl)] ?? "https://api-m.sandbox.paypal.com");
+                client.Timeout = TimeSpan.FromSeconds(30); // bound external calls
+            });
+            services.AddSingleton<PayPalPaymentGateway>();
+            services.AddSingleton<IPaymentGateway>(sp => sp.GetRequiredService<PayPalPaymentGateway>());
+        }
+        else
+        {
+            services.AddSingleton<IPaymentGateway>(sp => sp.GetRequiredService<SandboxPaymentGateway>());
+        }
 
         // ── Email: SMTP when a host is configured, else a dev logging sink ──────────────
         var emailSection = config.GetSection(EmailOptions.SectionName);

@@ -48,4 +48,6 @@ public sealed class Payment : AggregateRoot
     }
 
     public void MarkFailed() => Status = PaymentStatus.Failed;
+
+    public void MarkRefunded() => Status = PaymentStatus.Refunded;
 }

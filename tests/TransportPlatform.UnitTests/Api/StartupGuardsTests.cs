@@ -28,6 +28,10 @@ public class StartupGuardsTests
         ["Email:SmtpHost"] = "smtp.transport.example",
         ["Email:FromAddress"] = "noreply@transport.example",
         ["Email:FrontendBaseUrl"] = "https://app.transport.example",
+        ["Payments:Provider"] = "PayPal",
+        ["Payments:ClientId"] = "a-real-paypal-client-id",
+        ["Payments:ClientSecret"] = "a-real-paypal-client-secret",
+        ["Payments:WebhookId"] = "a-real-paypal-webhook-id",
     };
 
     [Fact]
@@ -56,6 +60,9 @@ public class StartupGuardsTests
     [InlineData("Email:SmtpHost", "")]
     [InlineData("Email:FromAddress", "")]
     [InlineData("Email:FrontendBaseUrl", "not-a-valid-url")]
+    [InlineData("Payments:Provider", "Sandbox")]
+    [InlineData("Payments:ClientId", "")]
+    [InlineData("Payments:WebhookId", "")]
     public void Each_placeholder_or_unsafe_value_blocks_production_boot(string key, string badValue)
     {
         var values = ValidProd();

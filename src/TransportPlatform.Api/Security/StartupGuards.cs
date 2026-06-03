@@ -40,6 +40,20 @@ public static class StartupGuards
         if (KnownPlaceholders.Any(p => webhookSecret.Contains(p, StringComparison.OrdinalIgnoreCase)))
             problems.Add("Payments:WebhookSecret is still a known placeholder value.");
 
+        // The Sandbox gateway is dev-only — production must use a real provider with real creds.
+        var paymentProvider = config["Payments:Provider"] ?? string.Empty;
+        if (string.IsNullOrWhiteSpace(paymentProvider) || string.Equals(paymentProvider, "Sandbox", StringComparison.OrdinalIgnoreCase))
+            problems.Add("Payments:Provider must be a real gateway (e.g. PayPal) in production, not Sandbox/unset.");
+        if (string.Equals(paymentProvider, "PayPal", StringComparison.OrdinalIgnoreCase))
+        {
+            if (string.IsNullOrWhiteSpace(config["Payments:ClientId"]))
+                problems.Add("Payments:ClientId must be set when Payments:Provider is PayPal.");
+            if (string.IsNullOrWhiteSpace(config["Payments:ClientSecret"]))
+                problems.Add("Payments:ClientSecret must be set when Payments:Provider is PayPal.");
+            if (string.IsNullOrWhiteSpace(config["Payments:WebhookId"]))
+                problems.Add("Payments:WebhookId must be set when Payments:Provider is PayPal (used to verify webhooks).");
+        }
+
         if (config.GetValue<int?>("Proxy:TrustedHops") is null or 0)
             problems.Add("Proxy:TrustedHops must be a positive integer in production so rate limits key on the real client IP.");
 

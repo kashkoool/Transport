@@ -5,7 +5,7 @@ using TransportPlatform.Domain.Bookings;
 
 namespace TransportPlatform.Application.Payments;
 
-public sealed record ProcessWebhookCommand(string Payload, string? SignatureHeader);
+public sealed record ProcessWebhookCommand(string Payload, IReadOnlyDictionary<string, string> Headers);
 
 public sealed record ProcessWebhookResult(bool Handled, string Status);
 
@@ -19,7 +19,7 @@ public sealed class ProcessPaymentWebhookHandler(IApplicationDbContext db, IPaym
 {
     public async Task<ProcessWebhookResult> HandleAsync(ProcessWebhookCommand command, CancellationToken ct)
     {
-        var webhook = gateway.VerifyAndParseWebhook(command.Payload, command.SignatureHeader)
+        var webhook = await gateway.VerifyAndParseWebhookAsync(command.Payload, command.Headers, ct)
                       ?? throw new ConflictException("webhook.invalid_signature", "Webhook signature verification failed.");
 
         var booking = await db.Bookings
