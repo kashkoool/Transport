@@ -74,7 +74,7 @@ public sealed class CrudManagementTests(ApiFactory factory) : IClassFixture<ApiF
         (await vendorEdit.Content.ReadFromJsonAsync<CompanyDto>(Json))!.Name.Should().Be("Renamed Lines");
 
         var admin = await CreateAdminClientAsync();
-        var adminEdit = await PutJson(admin, $"/api/admin/companies/{companyId}", new { name = "Admin Renamed", phone = (string?)null });
+        var adminEdit = await PutJson(admin, $"/api/admin/companies/{companyId}", new { name = "Admin Renamed" });
         adminEdit.StatusCode.Should().Be(HttpStatusCode.OK);
         (await adminEdit.Content.ReadFromJsonAsync<CompanyDto>(Json))!.Name.Should().Be("Admin Renamed");
     }
