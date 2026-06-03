@@ -6,6 +6,7 @@ using TransportPlatform.Application.Fleet;
 using TransportPlatform.Application.Identity;
 using TransportPlatform.Application.Notifications;
 using TransportPlatform.Application.Payments;
+using TransportPlatform.Application.Reports;
 using TransportPlatform.Application.Staff;
 using TransportPlatform.Application.Trips;
 
@@ -67,6 +68,12 @@ public static class DependencyInjection
         services.AddScoped<MarkNotificationReadHandler>();
         services.AddScoped<MarkAllNotificationsReadHandler>();
         services.AddScoped<NotifyCompanyHandler>();
+
+        // Reports + demand
+        services.AddScoped<VendorReportSummaryHandler>();
+        services.AddScoped<VendorTripReportHandler>();
+        services.AddScoped<AdminSystemSummaryHandler>();
+        services.AddScoped<PredictDemandHandler>();
 
         return services;
     }

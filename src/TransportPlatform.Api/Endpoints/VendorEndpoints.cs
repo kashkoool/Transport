@@ -1,7 +1,9 @@
+using System.Text;
 using FluentValidation;
 using TransportPlatform.Api.Security;
 using TransportPlatform.Application.Common;
 using TransportPlatform.Application.Fleet;
+using TransportPlatform.Application.Reports;
 using TransportPlatform.Application.Staff;
 using TransportPlatform.Application.Trips;
 using TransportPlatform.Domain.Fleet;
@@ -128,6 +130,39 @@ public static class VendorEndpoints
             Results.Ok(await handler.HandleAsync(new AssignDriverCommand(id, body.DriverId), ct)))
         .WithName("AssignBusDriver")
         .WithSummary("Assign (or clear) the driver of one of your buses.");
+
+        // ── Reports + demand ────────────────────────────────────────────────────────
+        group.MapGet("/reports/summary", async (
+            DateTimeOffset? from, DateTimeOffset? to, VendorReportSummaryHandler handler, CancellationToken ct) =>
+            Results.Ok(await handler.HandleAsync(new VendorReportQuery(from, to), ct)))
+        .WithName("VendorReportSummary")
+        .WithSummary("Financial + occupancy summary for your company over a date range.");
+
+        group.MapGet("/reports/trips", async (
+            DateTimeOffset? from, DateTimeOffset? to, VendorTripReportHandler handler, CancellationToken ct) =>
+            Results.Ok(await handler.HandleAsync(new VendorReportQuery(from, to), ct)))
+        .WithName("VendorTripReport")
+        .WithSummary("Per-trip occupancy + revenue for your company.");
+
+        group.MapGet("/reports/trips/export", async (
+            DateTimeOffset? from, DateTimeOffset? to, VendorTripReportHandler handler, CancellationToken ct) =>
+        {
+            var csv = await handler.ExportCsvAsync(new VendorReportQuery(from, to), ct);
+            return Results.File(Encoding.UTF8.GetBytes(csv), "text/csv", "trips-report.csv");
+        })
+        .WithName("VendorTripReportCsv")
+        .WithSummary("Download the per-trip report as CSV.");
+
+        group.MapGet("/demand/predict", async (
+            string origin, string destination, DateOnly date,
+            PredictDemandHandler handler, IValidator<PredictDemandQuery> validator, CancellationToken ct) =>
+        {
+            var query = new PredictDemandQuery(origin, destination, date);
+            await validator.ValidateAndThrowAsync(query, ct);
+            return Results.Ok(await handler.HandleAsync(query, ct));
+        })
+        .WithName("PredictDemand")
+        .WithSummary("Forecast demand for a route/date from your company's history.");
 
         return app;
     }
