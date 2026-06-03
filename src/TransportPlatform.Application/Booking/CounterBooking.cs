@@ -24,6 +24,8 @@ public sealed class CounterBookingValidator : AbstractValidator<CounterBookingCo
             p.RuleFor(x => x.FirstName).NotEmpty().MaximumLength(100);
             p.RuleFor(x => x.LastName).NotEmpty().MaximumLength(100);
             p.RuleFor(x => x.SeatNumber).InclusiveBetween(1, 1000);
+            p.RuleFor(x => x.DocumentType).MaximumLength(Passenger.MaxDocumentLength);
+            p.RuleFor(x => x.DocumentNumber).MaximumLength(Passenger.MaxDocumentLength);
         });
     }
 }
@@ -59,7 +61,7 @@ public sealed class CounterBookingHandler(
             throw new ConflictException("seat.unavailable", "One or more selected seats are no longer available.");
 
         var passengers = command.Passengers
-            .Select(p => new Passenger(p.FirstName, p.LastName, p.SeatNumber))
+            .Select(p => new Passenger(p.FirstName, p.LastName, p.SeatNumber, p.DocumentType, p.DocumentNumber))
             .ToList();
 
         var booking = Booking.Create(

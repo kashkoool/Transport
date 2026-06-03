@@ -14,6 +14,7 @@ internal sealed class BusConfiguration : IEntityTypeConfiguration<Bus>
         builder.Property(b => b.BusNumber).HasMaxLength(40).IsRequired();
         builder.Property(b => b.Type).HasConversion<string>().HasMaxLength(20).IsRequired();
         builder.Property(b => b.Model).HasMaxLength(100);
+        builder.Property(b => b.SeatsPerRow).HasDefaultValue(Bus.DefaultSeatsPerRow).IsRequired();
         builder.HasIndex(b => new { b.CompanyId, b.BusNumber }).IsUnique();
 
         // FK → company (no navigation on the domain entity). Restrict: a company with buses

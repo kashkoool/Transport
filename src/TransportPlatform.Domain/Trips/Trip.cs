@@ -23,6 +23,11 @@ public sealed class Trip : AggregateRoot
 
     public Money Fare => new(Price, Currency);
 
+    private readonly List<TripStop> _stops = [];
+
+    /// <summary>Intermediate waypoints between origin and destination, ordered by sequence.</summary>
+    public IReadOnlyCollection<TripStop> Stops => _stops.AsReadOnly();
+
     private Trip() { } // EF
 
     public Trip(
@@ -82,6 +87,21 @@ public sealed class Trip : AggregateRoot
     }
 
     public void Cancel() => Status = TripStatus.Cancelled;
+
+    /// <summary>
+    /// Replace the trip's intermediate waypoints. Stops are re-sequenced 1..N in the order
+    /// supplied, so callers don't have to manage sequence numbers themselves.
+    /// </summary>
+    public void SetStops(IEnumerable<(string Name, DateTimeOffset? ArrivalUtc, DateTimeOffset? DepartureUtc)> stops)
+    {
+        if (Status is TripStatus.Completed or TripStatus.Cancelled)
+            throw new DomainException("trip.not_editable", "Stops cannot be changed on a finished trip.");
+
+        _stops.Clear();
+        var sequence = 1;
+        foreach (var (name, arrivalUtc, departureUtc) in stops)
+            _stops.Add(new TripStop(sequence++, name, arrivalUtc, departureUtc));
+    }
 
     /// <summary>Edit route / times / fare. Only allowed while the trip is still Scheduled.</summary>
     public void Update(string origin, string destination, DateTimeOffset departureUtc, DateTimeOffset arrivalUtc, Money fare)
