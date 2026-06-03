@@ -86,7 +86,7 @@ public sealed class Booking : AggregateRoot
             _seatAssignments.Add(new SeatAssignment(TripId, passenger.SeatNumber, Id));
 
         Status = BookingStatus.Confirmed;
-        Raise(new BookingConfirmedDomainEvent(Id, Reference, CustomerEmail));
+        Raise(new BookingConfirmedDomainEvent(Id, TripId, Reference, CustomerEmail));
     }
 
     public void Cancel()
@@ -105,7 +105,7 @@ public sealed class Booking : AggregateRoot
         if (Status != BookingStatus.Confirmed)
             throw new DomainException("booking.not_confirmed", "Only a confirmed booking can be cancelled here.");
         Status = BookingStatus.Cancelled;
-        Raise(new BookingCancelledDomainEvent(Id, Reference, CustomerEmail));
+        Raise(new BookingCancelledDomainEvent(Id, TripId, Reference, CustomerEmail));
     }
 
     public void Expire()

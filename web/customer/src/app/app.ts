@@ -2,11 +2,12 @@ import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
 import { Router, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
 import { AuthService } from './core/auth/auth.service';
 import { ToastComponent } from './core/toast/toast';
+import { NotificationBellComponent } from './core/notifications/notification-bell';
 
 @Component({
   selector: 'app-root',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [RouterOutlet, RouterLink, RouterLinkActive, ToastComponent],
+  imports: [RouterOutlet, RouterLink, RouterLinkActive, ToastComponent, NotificationBellComponent],
   template: `
     <div class="flex min-h-full flex-col">
       <header class="border-b border-slate-200 bg-white">
@@ -28,6 +29,7 @@ import { ToastComponent } from './core/toast/toast';
             }
 
             @if (auth.isAuthenticated()) {
+              <app-notification-bell />
               <span class="hidden text-slate-400 sm:inline">{{ auth.email() }}</span>
               <button
                 type="button"
