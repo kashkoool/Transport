@@ -35,6 +35,10 @@ public sealed class UpdateTripHandler(IApplicationDbContext db, ICurrentUser cur
         if (await db.Bookings.AnyAsync(b => b.TripId == trip.Id && b.Status != BookingStatus.Cancelled, ct))
             throw new ConflictException("trip.has_bookings", "This trip has bookings and can no longer be edited.");
 
+        // New times must not clash with another scheduled trip on the same bus (exclude self).
+        await BusSchedule.EnsureBusFreeAsync(
+            db, companyId, trip.BusId, command.DepartureUtc, command.ArrivalUtc, excludeTripId: trip.Id, ct);
+
         trip.Update(command.Origin, command.Destination, command.DepartureUtc, command.ArrivalUtc,
             new Money(command.Price, command.Currency));
         await db.SaveChangesAsync(ct);
@@ -82,6 +86,34 @@ public sealed class CompleteTripHandler(IApplicationDbContext db, ICurrentUser c
     {
         var trip = await db.LoadOwnTripAsync(currentUser, command.TripId, ct);
         trip.Complete();
+        await db.SaveChangesAsync(ct);
+        return TripDto.From(trip);
+    }
+}
+
+public sealed record RevertTripCommand(Guid TripId);
+
+/// <summary>
+/// Re-activate a cancelled trip (Cancelled → Scheduled). Allowed only when no confirmed bookings
+/// remain on it and the bus is free again over the trip's window — otherwise the route would
+/// double-book the bus. Cancellation already released holds and cancelled pending bookings, so
+/// there is nothing to restore beyond the status.
+/// </summary>
+public sealed class RevertTripHandler(IApplicationDbContext db, ICurrentUser currentUser)
+{
+    public async Task<TripDto> HandleAsync(RevertTripCommand command, CancellationToken ct)
+    {
+        var companyId = currentUser.RequireCompanyId();
+        var trip = await db.LoadOwnTripAsync(currentUser, command.TripId, ct);
+
+        if (await db.Bookings.AnyAsync(b => b.TripId == trip.Id && b.Status == BookingStatus.Confirmed, ct))
+            throw new ConflictException("trip.has_confirmed_bookings",
+                "This trip has confirmed bookings and can't be reverted.");
+
+        await BusSchedule.EnsureBusFreeAsync(
+            db, companyId, trip.BusId, trip.DepartureUtc, trip.ArrivalUtc, excludeTripId: trip.Id, ct);
+
+        trip.Revert();
         await db.SaveChangesAsync(ct);
         return TripDto.From(trip);
     }

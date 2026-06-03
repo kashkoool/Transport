@@ -65,6 +65,8 @@ import { VendorNavComponent } from './vendor-nav';
                   } @else if (t.status === 'InProgress') {
                     <button type="button" [disabled]="busy() === t.id" (click)="complete(t)" class="rounded-md bg-emerald-50 px-3 py-1.5 text-sm font-medium text-emerald-700 hover:bg-emerald-100 disabled:opacity-50">Mark completed</button>
                     <button type="button" (click)="openStops(t)" class="text-sm font-medium text-slate-600 hover:text-slate-800">Stops</button>
+                  } @else if (t.status === 'Cancelled') {
+                    <button type="button" [disabled]="busy() === t.id" (click)="revert(t)" class="rounded-md bg-sky-50 px-3 py-1.5 text-sm font-medium text-sky-700 hover:bg-sky-100 disabled:opacity-50">Re-activate</button>
                   }
                 </div>
 
@@ -262,6 +264,14 @@ export class VendorTripsComponent implements OnInit {
     this.busy.set(trip.id);
     this.api.completeTrip(trip.id).subscribe({
       next: () => { this.busy.set(null); this.toasts.success('Trip completed.'); this.load(); },
+      error: () => this.busy.set(null),
+    });
+  }
+
+  protected revert(trip: VendorTrip): void {
+    this.busy.set(trip.id);
+    this.api.revertTrip(trip.id).subscribe({
+      next: () => { this.busy.set(null); this.toasts.success('Trip re-activated.'); this.load(); },
       error: () => this.busy.set(null),
     });
   }

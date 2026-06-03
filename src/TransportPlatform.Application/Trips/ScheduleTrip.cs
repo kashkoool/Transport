@@ -52,6 +52,10 @@ public sealed class ScheduleTripHandler(IApplicationDbContext db, ICurrentUser c
             .FirstOrDefaultAsync(b => b.Id == command.BusId && b.CompanyId == companyId, ct)
             ?? throw new NotFoundException("Bus", command.BusId);
 
+        // A bus can't run two overlapping scheduled trips.
+        await BusSchedule.EnsureBusFreeAsync(
+            db, companyId, bus.Id, command.DepartureUtc, command.ArrivalUtc, excludeTripId: null, ct);
+
         var trip = new Trip(
             companyId, bus.Id, command.Origin, command.Destination,
             command.DepartureUtc, command.ArrivalUtc, bus.SeatCount,

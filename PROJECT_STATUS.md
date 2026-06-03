@@ -63,6 +63,7 @@ trip-search index. Full detail in §4.
 | Security hardening (rate limits, HSTS, CSP, CORS, anti-enumeration, startup guards) | ✅ | |
 | **Email-verified-at-login** (optional config gate) | ✅ | `Auth:RequireEmailVerification`; off by default, refuses login until verified when on |
 | Seat concurrency safety + idempotency (bookings/payments/refunds) | ✅ | |
+| **Bus scheduling rules** — no overlapping trips per bus, seat-count edit cascades to trips, trip revert/re-activate | ✅ | enforced in schedule/update/revert + bus edit |
 | **DB indexing** (functional trip search, filtered outbox, notification inbox) | ✅ | #18, #22 |
 | Tests (60 unit + 47 integration, Testcontainers Postgres) | ✅ | |
 | Docker + CI/CD + security scanning (CodeQL/Dependabot/Scorecard/gitleaks/CodeRabbit) + GHCR | ✅ | |
@@ -88,7 +89,7 @@ my-bookings · **cancel (48h) + refund** · **rate/review a travelled trip** · 
 
 ### Vendor / Company Manager
 ✅ login · add/list/**edit/delete** bus (with seat layout) · schedule/list/cancel/**edit/delete** trip ·
-**trip lifecycle (start/complete)** · **set trip waypoints** · **company profile view/edit** ·
+**trip lifecycle (start/complete/revert)** · **set trip waypoints** · **company profile view/edit** ·
 **staff CRUD (create/list/suspend/reactivate)** · **drivers (add/list, assign to bus)** ·
 **counter booking + cancel/refund** · **promo-code management** · **reports (summary, per-trip, CSV/XLSX/PDF)** ·
 **demand prediction** · **admin-notifications inbox**.

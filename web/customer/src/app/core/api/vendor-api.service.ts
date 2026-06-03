@@ -139,6 +139,10 @@ export class VendorApiService {
     return this.http.post<VendorTrip>(`${this.base}/trips/${tripId}/complete`, {});
   }
 
+  revertTrip(tripId: string): Observable<VendorTrip> {
+    return this.http.post<VendorTrip>(`${this.base}/trips/${tripId}/revert`, {});
+  }
+
   setTripStops(tripId: string, stops: TripStopInput[]): Observable<TripStop[]> {
     return this.http.put<TripStop[]>(`${this.base}/trips/${tripId}/stops`, { stops });
   }
