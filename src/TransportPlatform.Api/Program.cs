@@ -240,9 +240,11 @@ app.MapBookingEndpoints();
 app.MapPaymentEndpoints();
 app.MapNotificationEndpoints();
 app.MapReviewEndpoints();
-// Bound the SignalR negotiate/connect handshake (authenticated; per-message abuse is capped inside
-// the hub, which limits trip subscriptions per connection).
-app.MapHub<RealtimeHub>("/hubs/realtime").RequireCors(corsPolicy).RequireRateLimiting(RateLimitPolicies.Sensitive);
+// Exempt the hub from the HTTP rate limiter: SignalR long-polling sends one HTTP request PER POLL,
+// so any per-request limit (named OR the global fallback) would throttle a legitimate connection.
+// The hub is instead protected by [Authorize] (no anonymous connections) and a per-connection cap
+// on trip subscriptions (RealtimeHub.MaxTripSubscriptions).
+app.MapHub<RealtimeHub>("/hubs/realtime").RequireCors(corsPolicy).DisableRateLimiting();
 
 // Prometheus scrape endpoint. Gated by config (default on) and intended to be reached only from
 // the internal network / metrics scraper — keep it firewalled / not publicly routable at the proxy.
