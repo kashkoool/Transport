@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Identity;
+using TransportPlatform.Domain.Identity;
 
 namespace TransportPlatform.Infrastructure.Identity;
 
@@ -12,4 +13,10 @@ public sealed class ApplicationUser : IdentityUser<Guid>
 
     /// <summary>Set for vendor staff/managers; null for customers and platform admins.</summary>
     public Guid? CompanyId { get; set; }
+
+    /// <summary>
+    /// Set for company staff accounts (role <c>Staff</c>); null for managers, customers and admins.
+    /// Lets staff be listed/managed separately from the company manager who shares the company id.
+    /// </summary>
+    public StaffType? StaffType { get; set; }
 }

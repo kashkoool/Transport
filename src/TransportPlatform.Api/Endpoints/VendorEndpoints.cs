@@ -2,8 +2,10 @@ using FluentValidation;
 using TransportPlatform.Api.Security;
 using TransportPlatform.Application.Common;
 using TransportPlatform.Application.Fleet;
+using TransportPlatform.Application.Staff;
 using TransportPlatform.Application.Trips;
 using TransportPlatform.Domain.Fleet;
+using TransportPlatform.Domain.Identity;
 
 namespace TransportPlatform.Api.Endpoints;
 
@@ -13,6 +15,9 @@ public static class VendorEndpoints
     public sealed record ScheduleTripRequest(
         Guid BusId, string Origin, string Destination,
         DateTimeOffset DepartureUtc, DateTimeOffset ArrivalUtc, decimal Price, string Currency);
+    public sealed record CreateStaffRequest(string Email, string Password, string FullName, StaffType StaffType);
+    public sealed record AddDriverRequest(string FullName, string? Phone, string? LicenseNumber);
+    public sealed record AssignDriverRequest(Guid? DriverId);
 
     public static IEndpointRouteBuilder MapVendorEndpoints(this IEndpointRouteBuilder app)
     {
@@ -63,6 +68,66 @@ public static class VendorEndpoints
             Results.Ok(await handler.HandleAsync(new CancelTripCommand(id), ct)))
         .WithName("CancelTrip")
         .WithSummary("Cancel one of your trips.");
+
+        // ── Staff ─────────────────────────────────────────────────────────────────────
+        group.MapPost("/staff", async (
+            CreateStaffRequest body, CreateStaffHandler handler,
+            IValidator<CreateStaffCommand> validator, CancellationToken ct) =>
+        {
+            var command = new CreateStaffCommand(body.Email, body.Password, body.FullName, body.StaffType);
+            await validator.ValidateAndThrowAsync(command, ct);
+            return Results.Ok(await handler.HandleAsync(command, ct));
+        })
+        .WithName("CreateStaff")
+        .WithSummary("Create a staff account in your company.");
+
+        group.MapGet("/staff", async (
+            int? page, int? limit, ListStaffHandler handler, CancellationToken ct) =>
+            Results.Ok(await handler.HandleAsync(new ListStaffQuery(page, limit), ct)))
+        .WithName("ListStaff")
+        .WithSummary("List your company staff (paginated).");
+
+        group.MapPost("/staff/{id:guid}/suspend", async (
+            Guid id, SetStaffSuspendedHandler handler, CancellationToken ct) =>
+        {
+            await handler.HandleAsync(new SetStaffSuspendedCommand(id, Suspended: true), ct);
+            return Results.NoContent();
+        })
+        .WithName("SuspendStaff")
+        .WithSummary("Suspend a staff member (blocks their login).");
+
+        group.MapPost("/staff/{id:guid}/reactivate", async (
+            Guid id, SetStaffSuspendedHandler handler, CancellationToken ct) =>
+        {
+            await handler.HandleAsync(new SetStaffSuspendedCommand(id, Suspended: false), ct);
+            return Results.NoContent();
+        })
+        .WithName("ReactivateStaff")
+        .WithSummary("Reactivate a suspended staff member.");
+
+        // ── Drivers (no login; assignable to a bus) ─────────────────────────────────────
+        group.MapPost("/drivers", async (
+            AddDriverRequest body, AddDriverHandler handler,
+            IValidator<AddDriverCommand> validator, CancellationToken ct) =>
+        {
+            var command = new AddDriverCommand(body.FullName, body.Phone, body.LicenseNumber);
+            await validator.ValidateAndThrowAsync(command, ct);
+            return Results.Ok(await handler.HandleAsync(command, ct));
+        })
+        .WithName("AddDriver")
+        .WithSummary("Add a driver to your company.");
+
+        group.MapGet("/drivers", async (
+            int? page, int? limit, ListDriversHandler handler, CancellationToken ct) =>
+            Results.Ok(await handler.HandleAsync(new ListDriversQuery(page, limit), ct)))
+        .WithName("ListDrivers")
+        .WithSummary("List your drivers (paginated).");
+
+        group.MapPost("/buses/{id:guid}/driver", async (
+            Guid id, AssignDriverRequest body, AssignDriverHandler handler, CancellationToken ct) =>
+            Results.Ok(await handler.HandleAsync(new AssignDriverCommand(id, body.DriverId), ct)))
+        .WithName("AssignBusDriver")
+        .WithSummary("Assign (or clear) the driver of one of your buses.");
 
         return app;
     }
