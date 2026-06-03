@@ -19,6 +19,10 @@ public sealed class Booking : AggregateRoot
     public decimal TotalAmount { get; private set; }
     public string Currency { get; private set; } = "SYP";
 
+    /// <summary>The promo code applied (if any) and the amount it took off the fare.</summary>
+    public string? PromoCode { get; private set; }
+    public decimal DiscountAmount { get; private set; }
+
     /// <summary>
     /// Caller-supplied dedupe key. A UNIQUE index means replaying the same create request
     /// (double-click, network retry) cannot create a second booking.
@@ -52,7 +56,9 @@ public sealed class Booking : AggregateRoot
         string reference,
         IReadOnlyList<Passenger> passengers,
         Money farePerSeat,
-        string idempotencyKey)
+        string idempotencyKey,
+        decimal discountAmount = 0,
+        string? promoCode = null)
     {
         if (string.IsNullOrWhiteSpace(customerEmail))
             throw new DomainException("booking.email_required", "Customer email is required.");
@@ -65,8 +71,15 @@ public sealed class Booking : AggregateRoot
         if (seats.Distinct().Count() != seats.Count)
             throw new DomainException("booking.duplicate_seats", "Each passenger must have a distinct seat.");
 
-        var total = farePerSeat.Multiply(passengers.Count);
-        var booking = new Booking(tripId, customerEmail.Trim().ToLowerInvariant(), reference, total, idempotencyKey);
+        var gross = farePerSeat.Multiply(passengers.Count);
+        var discount = Math.Clamp(discountAmount, 0, gross.Amount);
+        var net = new Money(gross.Amount - discount, gross.Currency);
+
+        var booking = new Booking(tripId, customerEmail.Trim().ToLowerInvariant(), reference, net, idempotencyKey)
+        {
+            DiscountAmount = discount,
+            PromoCode = discount > 0 ? promoCode?.Trim().ToUpperInvariant() : null,
+        };
         booking._passengers.AddRange(passengers);
         return booking;
     }

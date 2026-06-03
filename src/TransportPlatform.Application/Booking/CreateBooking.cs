@@ -2,6 +2,7 @@ using FluentValidation;
 using Microsoft.EntityFrameworkCore;
 using TransportPlatform.Application.Abstractions;
 using TransportPlatform.Application.Common;
+using TransportPlatform.Application.Promotions;
 using TransportPlatform.Domain.Bookings;
 
 namespace TransportPlatform.Application.Bookings;
@@ -11,7 +12,8 @@ public sealed record PassengerInput(string FirstName, string LastName, int SeatN
 public sealed record CreateBookingCommand(
     Guid TripId,
     IReadOnlyList<PassengerInput> Passengers,
-    string IdempotencyKey);
+    string IdempotencyKey,
+    string? PromoCode = null);
 
 public sealed record CreateBookingResult(Guid BookingId, string Reference, decimal TotalAmount, string Currency);
 
@@ -80,9 +82,20 @@ public sealed class CreateBookingHandler(
             .Select(p => new Passenger(p.FirstName, p.LastName, p.SeatNumber))
             .ToList();
 
+        // Optional promo code: validate against the trip's company, compute the discount, and
+        // redeem it in the same transaction as the booking (so a failed save doesn't over-count).
+        decimal discount = 0;
+        Domain.Promotions.PromoCode? promo = null;
+        if (!string.IsNullOrWhiteSpace(command.PromoCode))
+        {
+            var grossTotal = trip.Fare.Amount * passengers.Count;
+            (promo, discount) = await PromoEvaluation.EvaluateAsync(db, trip.CompanyId, command.PromoCode, grossTotal, now, ct);
+            promo.Redeem();
+        }
+
         var booking = Booking.Create(
             trip.Id, customerEmail, references.NewBookingReference(),
-            passengers, trip.Fare, command.IdempotencyKey);
+            passengers, trip.Fare, command.IdempotencyKey, discount, promo?.Code);
 
         foreach (var hold in holds)
             hold.AssignToBooking(booking.Id);

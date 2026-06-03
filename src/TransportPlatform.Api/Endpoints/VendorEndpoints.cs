@@ -6,11 +6,13 @@ using TransportPlatform.Application.Bookings;
 using TransportPlatform.Application.Common;
 using TransportPlatform.Application.Companies;
 using TransportPlatform.Application.Fleet;
+using TransportPlatform.Application.Promotions;
 using TransportPlatform.Application.Reports;
 using TransportPlatform.Application.Staff;
 using TransportPlatform.Application.Trips;
 using TransportPlatform.Domain.Fleet;
 using TransportPlatform.Domain.Identity;
+using TransportPlatform.Domain.Promotions;
 
 namespace TransportPlatform.Api.Endpoints;
 
@@ -28,6 +30,8 @@ public static class VendorEndpoints
     public sealed record UpdateTripRequest(
         string Origin, string Destination, DateTimeOffset DepartureUtc, DateTimeOffset ArrivalUtc, decimal Price, string Currency);
     public sealed record UpdateCompanyProfileRequest(string Name, string? Phone);
+    public sealed record CreatePromoRequest(
+        string Code, DiscountType DiscountType, decimal DiscountValue, int? MaxRedemptions, DateTimeOffset? ExpiresAtUtc);
 
     public static IEndpointRouteBuilder MapVendorEndpoints(this IEndpointRouteBuilder app)
     {
@@ -237,6 +241,30 @@ public static class VendorEndpoints
             return Results.Ok(await handler.HandleAsync(command, ct));
         })
         .WithName("UpdateMyCompany").WithSummary("Edit your company profile (name, phone).");
+
+        // ── Promo codes ───────────────────────────────────────────────────────────────
+        group.MapPost("/promo-codes", async (
+            CreatePromoRequest body, CreatePromoCodeHandler handler,
+            IValidator<CreatePromoCodeCommand> validator, CancellationToken ct) =>
+        {
+            var command = new CreatePromoCodeCommand(body.Code, body.DiscountType, body.DiscountValue, body.MaxRedemptions, body.ExpiresAtUtc);
+            await validator.ValidateAndThrowAsync(command, ct);
+            return Results.Ok(await handler.HandleAsync(command, ct));
+        })
+        .WithName("CreatePromoCode").WithSummary("Create a promo code for your company.");
+
+        group.MapGet("/promo-codes", async (
+            int? page, int? limit, ListPromoCodesHandler handler, CancellationToken ct) =>
+            Results.Ok(await handler.HandleAsync(new ListPromoCodesQuery(page, limit), ct)))
+        .WithName("ListPromoCodes").WithSummary("List your company's promo codes (paginated).");
+
+        group.MapPost("/promo-codes/{id:guid}/deactivate", async (
+            Guid id, DeactivatePromoCodeHandler handler, CancellationToken ct) =>
+        {
+            await handler.HandleAsync(new DeactivatePromoCodeCommand(id), ct);
+            return Results.NoContent();
+        })
+        .WithName("DeactivatePromoCode").WithSummary("Deactivate a promo code.");
 
         // ── Counter / desk (manager OR staff) ────────────────────────────────────────
         var desk = app.MapGroup("/api/vendor/bookings").WithTags("Vendor · Desk")
