@@ -5,10 +5,16 @@ import { environment } from '../../../environments/environment';
 import {
   BookingResult,
   BookingSummary,
+  CancelBookingResult,
   CheckoutResult,
   HoldResult,
   PassengerInput,
+  PromoPreview,
+  ReviewDto,
+  ReviewSummary,
+  SeatMap,
   Ticket,
+  TripStop,
   TripSummary,
 } from '../models';
 
@@ -26,14 +32,56 @@ export class ApiService {
     return this.http.get<TripSummary[]>(`${this.base}/trips/search`, { params });
   }
 
+  /** Seating layout + taken seats for the seat picker (public). */
+  seatMap(tripId: string): Observable<SeatMap> {
+    return this.http.get<SeatMap>(`${this.base}/trips/${tripId}/seat-map`);
+  }
+
+  /** Ordered intermediate stops for a trip (public). */
+  tripStops(tripId: string): Observable<TripStop[]> {
+    return this.http.get<TripStop[]>(`${this.base}/trips/${tripId}/stops`);
+  }
+
   holdSeats(tripId: string, seatNumbers: number[]): Observable<HoldResult> {
     return this.http.post<HoldResult>(`${this.base}/bookings/hold`, { tripId, seatNumbers });
   }
 
-  createBooking(tripId: string, passengers: PassengerInput[]): Observable<BookingResult> {
+  createBooking(
+    tripId: string,
+    passengers: PassengerInput[],
+    promoCode?: string | null,
+  ): Observable<BookingResult> {
     // A fresh idempotency key per attempt makes a retried POST safe — the backend dedupes on it.
     const headers = { 'Idempotency-Key': crypto.randomUUID() };
-    return this.http.post<BookingResult>(`${this.base}/bookings`, { tripId, passengers }, { headers });
+    return this.http.post<BookingResult>(
+      `${this.base}/bookings`,
+      { tripId, passengers, promoCode: promoCode || null },
+      { headers },
+    );
+  }
+
+  /** Preview a promo code's discount on a trip before booking. */
+  previewPromo(tripId: string, code: string, seats: number): Observable<PromoPreview> {
+    const params = new HttpParams()
+      .set('tripId', tripId)
+      .set('code', code)
+      .set('seats', seats);
+    return this.http.get<PromoPreview>(`${this.base}/bookings/promo-preview`, { params });
+  }
+
+  cancelBooking(bookingId: string): Observable<CancelBookingResult> {
+    return this.http.post<CancelBookingResult>(`${this.base}/bookings/${bookingId}/cancel`, {});
+  }
+
+  /** Public reviews + average rating for a trip. */
+  tripReviews(tripId: string, page = 1, limit = 5): Observable<ReviewSummary> {
+    const params = new HttpParams().set('page', page).set('limit', limit);
+    return this.http.get<ReviewSummary>(`${this.base}/trips/${tripId}/reviews`, { params });
+  }
+
+  /** Rate a trip you travelled on (1–5 + optional comment). */
+  createReview(bookingId: string, rating: number, comment: string | null): Observable<ReviewDto> {
+    return this.http.post<ReviewDto>(`${this.base}/reviews`, { bookingId, rating, comment });
   }
 
   myBookings(): Observable<BookingSummary[]> {

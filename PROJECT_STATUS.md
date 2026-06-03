@@ -68,7 +68,8 @@ trip-search index. Full detail in §4.
 | Docker + CI/CD + security scanning (CodeQL/Dependabot/Scorecard/gitleaks/CodeRabbit) + GHCR | ✅ | |
 | **Observability — metrics (Prometheus) + tracing (OTLP)** | ✅ | #32; OpenTelemetry + custom business counters |
 | Observability — structured logs + health checks | ✅ | Serilog + `/health` + `/health/ready` |
-| Frontend dashboards for newest modules (reports/demand, staff/driver mgmt, admin notify, live seats, seat picker) | 🟡 | Backend complete; SPA surfaces are the remaining build-out |
+| Frontend — customer surfaces for newest modules (seat-map picker, trip stops, passenger docs, promo entry, cancel, reviews, live seats) | ✅ | SPA wired to the backend |
+| Frontend — vendor/admin dashboards (reports/demand, staff/driver mgmt, admin notify, promo mgmt, counter booking) | 🟡 | Backend complete; vendor/admin SPA surfaces are the remaining build-out |
 | Cloud hosting / Infrastructure-as-Code | ❌ | Deferred by decision (images run anywhere; pick a target + add IaC/CD) |
 | **Mobile app (iOS/Android)** | ❌ | Post-MVP |
 
