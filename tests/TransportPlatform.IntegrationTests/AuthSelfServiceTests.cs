@@ -2,9 +2,11 @@ using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json;
 using FluentAssertions;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using TransportPlatform.Domain.Notifications;
+using TransportPlatform.Infrastructure.Identity;
 using TransportPlatform.Infrastructure.Persistence;
 
 namespace TransportPlatform.IntegrationTests;
@@ -89,6 +91,38 @@ public sealed class AuthSelfServiceTests(ApiFactory factory) : IClassFixture<Api
             .StatusCode.Should().Be(HttpStatusCode.NoContent);
         var list = await alice.GetFromJsonAsync<PagedDto<ProfileDto>>("/api/notifications", Json);
         list!.Total.Should().Be(0);
+    }
+
+    [Fact]
+    public async Task Login_does_not_reveal_lockout_to_a_wrong_password()
+    {
+        var (_, email) = await factory.CreateCustomerClientAsync();
+
+        using (var scope = factory.Services.CreateScope())
+        {
+            var users = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
+            var user = await users.FindByEmailAsync(email);
+            await users.SetLockoutEnabledAsync(user!, true);
+            await users.SetLockoutEndDateAsync(user!, DateTimeOffset.MaxValue);
+        }
+
+        var anon = factory.CreateClient();
+
+        // Wrong password on a locked account → generic error (no "this account exists + is locked" leak).
+        var wrong = await anon.PostAsJsonAsync("/api/auth/login", new { email, password = "Wr0ng!Passw0rd" });
+        wrong.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
+        (await CodeOf(wrong)).Should().Be("auth.invalid_credentials");
+
+        // Correct password may reveal lockout (only after credentials are proven).
+        var correct = await anon.PostAsJsonAsync("/api/auth/login", new { email, password = Password });
+        correct.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
+        (await CodeOf(correct)).Should().Be("auth.locked_out");
+    }
+
+    private static async Task<string?> CodeOf(HttpResponseMessage response)
+    {
+        using var doc = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
+        return doc.RootElement.TryGetProperty("code", out var c) ? c.GetString() : null;
     }
 
     private sealed record ProfileDto(string Email, string FullName, string? Phone, string[] Roles);

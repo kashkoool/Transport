@@ -29,6 +29,7 @@ public static class ReviewEndpoints
         app.MapGet("/api/trips/{tripId:guid}/reviews", async (
             Guid tripId, int? page, int? limit, ListTripReviewsHandler handler, CancellationToken ct) =>
             Results.Ok(await handler.HandleAsync(tripId, page, limit, ct)))
+        .RequireRateLimiting(RateLimitPolicies.PublicRead)
         .WithTags("Reviews")
         .WithName("ListTripReviews")
         .WithSummary("Public reviews + average rating for a trip.");
@@ -36,6 +37,7 @@ public static class ReviewEndpoints
         app.MapGet("/api/companies/{companyId:guid}/reviews", async (
             Guid companyId, int? page, int? limit, ListCompanyReviewsHandler handler, CancellationToken ct) =>
             Results.Ok(await handler.HandleAsync(companyId, page, limit, ct)))
+        .RequireRateLimiting(RateLimitPolicies.PublicRead)
         .WithTags("Reviews")
         .WithName("ListCompanyReviews")
         .WithSummary("Public reviews + average rating for a company.");

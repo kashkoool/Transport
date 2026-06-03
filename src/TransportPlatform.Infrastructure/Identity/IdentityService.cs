@@ -14,6 +14,13 @@ public sealed class IdentityService(
     ApplicationDbContext db,
     IClock clock) : IIdentityService
 {
+    // A throwaway PBKDF2 hash used only to equalize login response time on the unknown-email path,
+    // so timing can't distinguish a known account from an unknown one. The result is discarded.
+    private static readonly PasswordHasher<ApplicationUser> TimingHasher = new();
+    private static readonly ApplicationUser TimingProbe = new();
+    private static readonly string DummyPasswordHash =
+        TimingHasher.HashPassword(TimingProbe, "n0t-a-real-passw0rd-timing-only");
+
     public async Task<AuthenticatedUser> RegisterCustomerAsync(
         string email, string password, string fullName, CancellationToken ct = default)
     {
@@ -41,12 +48,25 @@ public sealed class IdentityService(
 
         var user = await users.FindByEmailAsync(email);
         if (user is null)
+        {
+            // Spend comparable time hashing so an unknown email isn't distinguishable by response
+            // time from a real password check (timing-based enumeration). Result is discarded.
+            TimingHasher.VerifyHashedPassword(TimingProbe, DummyPasswordHash, password);
             return null; // same outcome as a wrong password — no user enumeration
+        }
 
+        var passwordValid = await users.CheckPasswordAsync(user, password);
+
+        // Enforce lockout, but never reveal it to a caller who didn't supply the correct password —
+        // otherwise a wrong-password attempt could probe which emails exist and are locked.
         if (await users.IsLockedOutAsync(user))
-            throw new UnauthorizedException("auth.locked_out", "Account temporarily locked due to failed attempts.");
+        {
+            if (passwordValid)
+                throw new UnauthorizedException("auth.locked_out", "Account temporarily locked due to failed attempts.");
+            return null;
+        }
 
-        if (!await users.CheckPasswordAsync(user, password))
+        if (!passwordValid)
         {
             await users.AccessFailedAsync(user); // counts toward lockout
             return null;

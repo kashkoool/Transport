@@ -71,6 +71,8 @@ public sealed class ApiFactory : WebApplicationFactory<Program>, IAsyncLifetime
         builder.UseSetting("RateLimiting:AuthPerMinute", "100000");
         builder.UseSetting("RateLimiting:SensitivePerMinute", "100000");
         builder.UseSetting("RateLimiting:WebhookPerMinute", "100000");
+        builder.UseSetting("RateLimiting:PublicReadPerMinute", "100000");
+        builder.UseSetting("RateLimiting:ExportPerMinute", "100000");
 
         // Capture outgoing email so tests can assert on it and extract verify/reset tokens.
         builder.ConfigureTestServices(services =>

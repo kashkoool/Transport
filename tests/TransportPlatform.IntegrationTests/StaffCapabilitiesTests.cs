@@ -20,7 +20,9 @@ public sealed class StaffCapabilitiesTests(ApiFactory factory) : IClassFixture<A
 {
     private static readonly JsonSerializerOptions Json = new(JsonSerializerDefaults.Web);
     private const string Password = "Str0ng!Passw0rd";
-    private static readonly DateTimeOffset Base = DateTimeOffset.UtcNow.AddDays(7);
+    // Anchored to 06:00 UTC on a future date so trips + their search-by-date window stay on one
+    // calendar day regardless of the wall-clock time the suite runs at (deterministic).
+    private static readonly DateTimeOffset Base = new(DateTime.UtcNow.Date.AddDays(7).AddHours(6), TimeSpan.Zero);
 
     [Fact]
     public async Task Staff_can_manage_trips_but_not_delete_them()

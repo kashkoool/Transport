@@ -11,6 +11,14 @@ namespace TransportPlatform.Api.Realtime;
 [Authorize]
 public sealed class RealtimeHub : Hub
 {
+    /// <summary>Cap trip subscriptions per connection so a client can't fan out into unbounded groups.</summary>
+    private const int MaxTripSubscriptions = 20;
+
+    // Per-connection set of subscribed trip ids (Hub instances are per-invocation, so this lives in
+    // connection state via the items dictionary on the underlying context).
+    private HashSet<string> Subscriptions =>
+        (HashSet<string>)(Context.Items["trips"] ??= new HashSet<string>(StringComparer.Ordinal));
+
     public override async Task OnConnectedAsync()
     {
         var userId = Context.User?.FindFirst("sub")?.Value;
@@ -19,15 +27,27 @@ public sealed class RealtimeHub : Hub
         await base.OnConnectedAsync();
     }
 
-    public Task SubscribeToTrip(string tripId) =>
-        Guid.TryParse(tripId, out var id)
-            ? Groups.AddToGroupAsync(Context.ConnectionId, TripGroup(id.ToString()))
-            : Task.CompletedTask; // ignore malformed ids rather than create junk groups
+    public Task SubscribeToTrip(string tripId)
+    {
+        if (!Guid.TryParse(tripId, out var id))
+            return Task.CompletedTask; // ignore malformed ids rather than create junk groups
+        var key = id.ToString();
+        if (Subscriptions.Contains(key))
+            return Task.CompletedTask; // idempotent — already subscribed
+        if (Subscriptions.Count >= MaxTripSubscriptions)
+            return Task.CompletedTask; // over the per-connection cap → ignore
+        Subscriptions.Add(key);
+        return Groups.AddToGroupAsync(Context.ConnectionId, TripGroup(key));
+    }
 
-    public Task UnsubscribeFromTrip(string tripId) =>
-        Guid.TryParse(tripId, out var id)
-            ? Groups.RemoveFromGroupAsync(Context.ConnectionId, TripGroup(id.ToString()))
-            : Task.CompletedTask;
+    public Task UnsubscribeFromTrip(string tripId)
+    {
+        if (!Guid.TryParse(tripId, out var id))
+            return Task.CompletedTask;
+        var key = id.ToString();
+        Subscriptions.Remove(key);
+        return Groups.RemoveFromGroupAsync(Context.ConnectionId, TripGroup(key));
+    }
 
     public static string UserGroup(string userId) => $"user:{userId}";
     public static string TripGroup(string tripId) => $"trip:{tripId}";

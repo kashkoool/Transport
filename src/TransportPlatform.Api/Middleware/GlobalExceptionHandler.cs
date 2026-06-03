@@ -17,9 +17,11 @@ public sealed class GlobalExceptionHandler(
     private static readonly Action<ILogger, Exception?> LogUnhandled =
         LoggerMessage.Define(LogLevel.Error, new EventId(1, nameof(LogUnhandled)), "Unhandled exception");
 
-    private static readonly Action<ILogger, string, string, Exception?> LogHandled =
-        LoggerMessage.Define<string, string>(
-            LogLevel.Information, new EventId(2, nameof(LogHandled)), "Handled {Code}: {Message}");
+    // Log only the stable error code — never exception.Message, which for validation errors can
+    // echo user-supplied field values (PII) into the logs.
+    private static readonly Action<ILogger, string, Exception?> LogHandled =
+        LoggerMessage.Define<string>(
+            LogLevel.Information, new EventId(2, nameof(LogHandled)), "Handled {Code}");
 
     public async ValueTask<bool> TryHandleAsync(
         HttpContext httpContext, Exception exception, CancellationToken cancellationToken)
@@ -37,7 +39,7 @@ public sealed class GlobalExceptionHandler(
         if (status >= 500)
             LogUnhandled(logger, exception);
         else
-            LogHandled(logger, code, exception.Message, null);
+            LogHandled(logger, code, null);
 
         var problem = new ProblemDetails
         {

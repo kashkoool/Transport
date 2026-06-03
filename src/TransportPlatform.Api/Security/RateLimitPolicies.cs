@@ -17,4 +17,17 @@ public static class RateLimitPolicies
     /// gateway retries pass, but bounded so a flood of forged payloads can't exhaust the box.
     /// </summary>
     public const string Webhook = "webhook";
+
+    /// <summary>
+    /// Public, anonymous reads (trip search, seat-map, stops, company directory, public reviews).
+    /// A dedicated per-IP tier so the most DoS-exposed endpoints aren't bounded only by the shared
+    /// global limiter.
+    /// </summary>
+    public const string PublicRead = "public-read";
+
+    /// <summary>
+    /// Report exports (CSV/XLSX/PDF) — compute/memory-heavy document generation. Tight, since each
+    /// call costs far more than a JSON read.
+    /// </summary>
+    public const string Export = "export";
 }
