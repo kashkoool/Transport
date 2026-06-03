@@ -85,10 +85,10 @@ public sealed class VendorTripReportHandler(IApplicationDbContext db, ICurrentUs
         var rows = await HandleAsync(query, ct);
         return CsvWriter.Build(
             ["TripId", "Origin", "Destination", "DepartureUtc", "Seats", "SeatsSold", "Revenue", "Currency", "Status"],
-            rows.Select(r => (IReadOnlyList<string>)
-            [
+            rows.Select(r => new[]
+            {
                 r.TripId.ToString(), r.Origin, r.Destination, CsvWriter.Cell(r.DepartureUtc),
                 CsvWriter.Cell(r.SeatCount), CsvWriter.Cell(r.SeatsSold), CsvWriter.Cell(r.Revenue), r.Currency, r.Status,
-            ]));
+            }));
     }
 }
