@@ -203,6 +203,35 @@ public static class VendorEndpoints
         .WithName("VendorTripReportExport")
         .WithSummary("Download the per-trip report (format=csv|xlsx|pdf, default csv).");
 
+        group.MapGet("/reports/bookings", async (
+            DateTimeOffset? from, DateTimeOffset? to, VendorBookingReportHandler handler, CancellationToken ct) =>
+            Results.Ok(await handler.HandleAsync(new VendorReportQuery(from, to), ct)))
+        .WithName("VendorBookingReport")
+        .WithSummary("Per-booking report for your company over a date range.");
+
+        group.MapGet("/reports/bookings/export", async (
+            DateTimeOffset? from, DateTimeOffset? to, string? format,
+            VendorBookingReportHandler handler, IReportExporter exporter, CancellationToken ct) =>
+        {
+            var rows = await handler.HandleAsync(new VendorReportQuery(from, to), ct);
+            return (format?.ToLowerInvariant()) switch
+            {
+                "xlsx" => Results.File(exporter.ToXlsx("Bookings", BookingReportCsv.Headers, rows.Select(BookingReportCsv.ToCells)),
+                    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", "bookings-report.xlsx"),
+                "pdf" => Results.File(exporter.ToPdf("Bookings report", BookingReportCsv.Headers, rows.Select(BookingReportCsv.ToCells)),
+                    "application/pdf", "bookings-report.pdf"),
+                _ => Results.File(Encoding.UTF8.GetBytes(BookingReportCsv.Build(rows)), "text/csv", "bookings-report.csv"),
+            };
+        })
+        .WithName("VendorBookingReportExport")
+        .WithSummary("Download the per-booking report (format=csv|xlsx|pdf, default csv).");
+
+        group.MapGet("/reports/employees", async (
+            DateTimeOffset? from, DateTimeOffset? to, VendorEmployeeReportHandler handler, CancellationToken ct) =>
+            Results.Ok(await handler.HandleAsync(new VendorReportQuery(from, to), ct)))
+        .WithName("VendorEmployeeReport")
+        .WithSummary("Per-employee desk-booking activity for your company over a date range.");
+
         group.MapGet("/demand/predict", async (
             string origin, string destination, DateOnly date,
             PredictDemandHandler handler, IValidator<PredictDemandQuery> validator, CancellationToken ct) =>

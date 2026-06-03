@@ -48,7 +48,8 @@ public sealed class ReportsTests(ApiFactory factory) : IClassFixture<ApiFactory>
         var system = await admin.HandleAsync(default);
         system.Companies.Should().BeGreaterThan(0);
         system.ConfirmedBookings.Should().BeGreaterThanOrEqualTo(1);
-        system.Revenue.Should().BeGreaterThanOrEqualTo(price);
+        // Revenue is reported per currency now; the booking's currency line must cover its price.
+        system.Revenue.Should().Contain(r => r.Amount >= price);
     }
 
     [Fact]

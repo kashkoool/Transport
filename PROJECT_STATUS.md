@@ -19,12 +19,14 @@ session. Account-linking is secure (links to an existing account only on a verif
 Email/password remains the default; Google needs configured credentials to enable.
 
 ### Is the system ready for web + mobile?
-- **Web: the documented platform is largely built** — core booking journey + Google auth + Staff
-  actor + **real payments (PayPal) with refunds & 48h self-cancel** + counter booking + full
-  vendor/admin CRUD + in-app/real-time notifications + reports/CSV/XLSX/PDF/demand + **ratings/reviews**
-  + **promo codes** + **seat maps + passenger documents + trip waypoints** + observability. The
-  backend surface is essentially feature-complete; remaining work is mostly **frontend dashboards**
-  for the newest backend modules. Roughly **~85–90%** of the full documented scope.
+- **Web: the documented platform is essentially complete** — core booking journey + Google auth +
+  Staff actor (incl. trip management) + **real payments (PayPal) with refunds & 48h self-cancel** +
+  counter booking + full vendor/admin CRUD + in-app/real-time notifications + reports
+  (trip/booking/employee/company, CSV/XLSX/PDF) + demand + **ratings/reviews** + **promo codes** +
+  **seat maps + passenger documents + trip waypoints** + customer self-service (profile/password) +
+  admin customer management + the bus-scheduling business rules + observability. The full
+  requirements traceability (Docs/02–14) is now covered end-to-end (backend + SPA), **~95%** of
+  scope. Remaining: geo/live-GPS tracking and an immutable audit-log/soft-delete (intentional omissions).
 - **Mobile app: still none** (no Flutter/React Native/native project). Post-MVP, consumes the same API.
 
 ### Database
@@ -65,13 +67,15 @@ trip-search index. Full detail in §4.
 | Seat concurrency safety + idempotency (bookings/payments/refunds) | ✅ | |
 | **Bus scheduling rules** — no overlapping trips per bus, seat-count edit cascades to trips, trip revert/re-activate | ✅ | enforced in schedule/update/revert + bus edit |
 | **DB indexing** (functional trip search, filtered outbox, notification inbox) | ✅ | #18, #22 |
-| Tests (60 unit + 47 integration, Testcontainers Postgres) | ✅ | |
+| Tests (65 unit + 60 integration, Testcontainers Postgres) | ✅ | |
 | Docker + CI/CD + security scanning (CodeQL/Dependabot/Scorecard/gitleaks/CodeRabbit) + GHCR | ✅ | |
 | **Observability — metrics (Prometheus) + tracing (OTLP)** | ✅ | #32; OpenTelemetry + custom business counters |
 | Observability — structured logs + health checks | ✅ | Serilog + `/health` + `/health/ready` |
 | Frontend — customer surfaces for newest modules (seat-map picker, trip stops, passenger docs, promo entry, cancel, reviews, live seats) | ✅ | SPA wired to the backend |
 | Frontend — vendor operations (trip lifecycle/stops/edit/delete, bus seat-layout/edit/delete, staff, drivers+assign, company profile) | ✅ | SPA wired to the backend |
 | Frontend — vendor sales/analytics + admin (reports/export, demand, promo mgmt, counter booking, admin notify + system overview) | ✅ | SPA wired to the backend |
+| **Per-role reports** — manager trip/booking/employee, admin system + per-company (revenue by currency) | ✅ | SQL aggregation; CSV/XLSX/PDF |
+| **Admin customer management** + **currency allow-list** (SYP/USD/EUR, single source) | ✅ | management-only; per-currency reporting (no FX) |
 | Cloud hosting / Infrastructure-as-Code | ❌ | Deferred by decision (images run anywhere; pick a target + add IaC/CD) |
 | **Mobile app (iOS/Android)** | ❌ | Post-MVP |
 
@@ -91,8 +95,8 @@ my-bookings · **cancel (48h) + refund** · **rate/review a travelled trip** · 
 ✅ login · add/list/**edit/delete** bus (with seat layout) · schedule/list/cancel/**edit/delete** trip ·
 **trip lifecycle (start/complete/revert)** · **set trip waypoints** · **company profile view/edit** ·
 **staff CRUD (create/list/**search**/edit/suspend/reactivate/delete)** · **drivers (add/list/search, assign to bus)** ·
-**counter booking + cancel/refund** · **promo-code management** · **reports (summary, per-trip, CSV/XLSX/PDF)** ·
-**demand prediction** · **admin-notifications inbox**.
+**counter booking + cancel/refund** · **promo-code management** · **reports (summary, per-trip,
+per-booking, per-employee; CSV/XLSX/PDF)** · **demand prediction** · **admin-notifications inbox**.
 
 ### Staff (accountant / supervisor / employee)
 ✅ account provisioned by the manager, can log in (Staff role + company scope), suspend/reactivate ·
@@ -101,8 +105,9 @@ start/complete/revert/stops + view buses) via the `VendorOrStaff` policy (delete
 ❌ driver sub-type is modelled separately (no login).
 
 ### Admin
-✅ create/list/activate/suspend/**edit/delete** company · create manager · **notify company** · **system report summary**.
-❌ company status detail dashboard (frontend).
+✅ create/list/activate/suspend/**edit/delete** company · create manager · **notify company** ·
+**system summary + per-company reports (revenue by currency)** · **customer management
+(list/search/suspend/reactivate/delete, guarded)**.
 
 ---
 

@@ -11,4 +11,10 @@ public interface IReportExporter
 {
     byte[] TripsToXlsx(IReadOnlyList<TripReportRow> rows);
     byte[] TripsToPdf(IReadOnlyList<TripReportRow> rows);
+
+    /// <summary>Generic XLSX from string headers + rows (used by booking/employee/company reports).</summary>
+    byte[] ToXlsx(string sheetName, IReadOnlyList<string> headers, IEnumerable<IReadOnlyList<string>> rows);
+
+    /// <summary>Generic PDF table from string headers + rows.</summary>
+    byte[] ToPdf(string title, IReadOnlyList<string> headers, IEnumerable<IReadOnlyList<string>> rows);
 }

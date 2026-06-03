@@ -102,6 +102,23 @@ public interface IIdentityService
 
     /// <summary>Update the caller's own profile (full name + optional phone). Returns the new profile, or null if unknown.</summary>
     Task<UserProfile?> UpdateProfileAsync(Guid userId, string fullName, string? phone, CancellationToken ct = default);
+
+    // ── Admin: customer-account management (customers = role Customer only) ──────────
+
+    /// <summary>List customer accounts (page slice), ordered by email; optional name/email search.</summary>
+    Task<IReadOnlyList<CustomerAccount>> ListCustomersAsync(int skip, int take, string? search, CancellationToken ct = default);
+
+    /// <summary>Count customer accounts matching the optional search.</summary>
+    Task<int> CountCustomersAsync(string? search, CancellationToken ct = default);
+
+    /// <summary>Find a single customer account by id (only if the user is a Customer). Null otherwise.</summary>
+    Task<CustomerAccount?> FindCustomerAsync(Guid userId, CancellationToken ct = default);
+
+    /// <summary>Suspend (lock out) or reactivate a customer account. False if the user isn't a customer.</summary>
+    Task<bool> SetCustomerSuspendedAsync(Guid userId, bool suspended, CancellationToken ct = default);
+
+    /// <summary>Delete a customer account. False if the user isn't a customer. (Caller guards referential data.)</summary>
+    Task<bool> DeleteCustomerAsync(Guid userId, CancellationToken ct = default);
 }
 
 /// <summary>An authenticated principal: id, email, role names and (for vendor staff) company.</summary>
@@ -113,3 +130,6 @@ public sealed record StaffMember(Guid Id, string Email, string FullName, string 
 
 /// <summary>The caller's editable profile (email is read-only) plus their roles.</summary>
 public sealed record UserProfile(string Email, string FullName, string? Phone, IReadOnlyList<string> Roles);
+
+/// <summary>Admin read model for a customer account.</summary>
+public sealed record CustomerAccount(Guid Id, string Email, string FullName, bool Suspended);

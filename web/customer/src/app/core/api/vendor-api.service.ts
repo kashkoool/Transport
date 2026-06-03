@@ -5,6 +5,7 @@ import { environment } from '../../../environments/environment';
 import {
   Bus,
   BusType,
+  BookingReportRow,
   BookingResult,
   CancelBookingResult,
   CancelTripResult,
@@ -13,6 +14,7 @@ import {
   DemandPrediction,
   DiscountType,
   Driver,
+  EmployeeReportRow,
   PagedResult,
   PassengerInput,
   PromoCodeDto,
@@ -208,6 +210,19 @@ export class VendorApiService {
   exportTripReport(format: ReportFormat, from?: string, to?: string): Observable<Blob> {
     const params = range(from, to).set('format', format);
     return this.http.get(`${this.base}/reports/trips/export`, { params, responseType: 'blob' });
+  }
+
+  bookingReport(from?: string, to?: string): Observable<BookingReportRow[]> {
+    return this.http.get<BookingReportRow[]>(`${this.base}/reports/bookings`, { params: range(from, to) });
+  }
+
+  exportBookingReport(format: ReportFormat, from?: string, to?: string): Observable<Blob> {
+    const params = range(from, to).set('format', format);
+    return this.http.get(`${this.base}/reports/bookings/export`, { params, responseType: 'blob' });
+  }
+
+  employeeReport(from?: string, to?: string): Observable<EmployeeReportRow[]> {
+    return this.http.get<EmployeeReportRow[]>(`${this.base}/reports/employees`, { params: range(from, to) });
   }
 
   predictDemand(origin: string, destination: string, date: string): Observable<DemandPrediction> {

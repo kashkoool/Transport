@@ -117,6 +117,11 @@ export const routes: Routes = [
     loadComponent: () => import('./features/admin/companies').then((m) => m.AdminCompaniesComponent),
   },
   {
+    path: 'admin/users',
+    canActivate: [roleGuard('Admin', 'SuperAdmin')],
+    loadComponent: () => import('./features/admin/users').then((m) => m.AdminUsersComponent),
+  },
+  {
     path: 'admin/reports',
     canActivate: [roleGuard('Admin', 'SuperAdmin')],
     loadComponent: () => import('./features/admin/reports').then((m) => m.AdminReportsComponent),

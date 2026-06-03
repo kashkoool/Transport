@@ -294,10 +294,54 @@ export interface CompanyBooking {
   createdAtUtc: string;
 }
 
+/** A revenue amount in one currency (revenue is reported per currency, not summed across). */
+export interface CurrencyAmount {
+  currency: string;
+  amount: number;
+}
+
 export interface AdminSystemSummary {
   companies: number;
   activeCompanies: number;
   trips: number;
   confirmedBookings: number;
+  revenue: CurrencyAmount[];
+}
+
+export interface AdminCompanyReportRow {
+  companyId: string;
+  name: string;
+  status: string;
+  trips: number;
+  confirmedBookings: number;
+  revenue: CurrencyAmount[];
+}
+
+export interface BookingReportRow {
+  bookingId: string;
+  reference: string;
+  customerEmail: string;
+  status: string;
+  totalAmount: number;
+  currency: string;
+  createdAtUtc: string;
+  passengerCount: number;
+  gateway: string;
+}
+
+export interface EmployeeReportRow {
+  staffId: string;
+  email: string;
+  fullName: string;
+  bookings: number;
   revenue: number;
+  currency: string;
+}
+
+/** Admin read model for a customer account. */
+export interface CustomerAccount {
+  id: string;
+  email: string;
+  fullName: string;
+  suspended: boolean;
 }

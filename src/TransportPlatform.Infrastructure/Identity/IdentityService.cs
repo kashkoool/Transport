@@ -3,6 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using TransportPlatform.Application.Abstractions;
 using TransportPlatform.Application.Common;
 using TransportPlatform.Domain.Identity;
+using TransportPlatform.Infrastructure.Persistence;
 
 namespace TransportPlatform.Infrastructure.Identity;
 
@@ -10,6 +11,7 @@ namespace TransportPlatform.Infrastructure.Identity;
 public sealed class IdentityService(
     UserManager<ApplicationUser> users,
     RoleManager<IdentityRole<Guid>> roles,
+    ApplicationDbContext db,
     IClock clock) : IIdentityService
 {
     public async Task<AuthenticatedUser> RegisterCustomerAsync(
@@ -357,6 +359,79 @@ public sealed class IdentityService(
 
         var userRoles = await users.GetRolesAsync(user);
         return new UserProfile(user.Email!, user.FullName, user.PhoneNumber, [.. userRoles]);
+    }
+
+    public async Task<IReadOnlyList<CustomerAccount>> ListCustomersAsync(int skip, int take, string? search, CancellationToken ct = default)
+    {
+        var page = await (await CustomersQueryAsync(search))
+            .OrderBy(u => u.Email)
+            .Skip(skip)
+            .Take(take)
+            .ToListAsync(ct);
+
+        var now = clock.UtcNow;
+        return page
+            .Select(u => new CustomerAccount(
+                u.Id, u.Email!, u.FullName ?? string.Empty, u.LockoutEnd is { } end && end > now))
+            .ToList();
+    }
+
+    public async Task<int> CountCustomersAsync(string? search, CancellationToken ct = default) =>
+        await (await CustomersQueryAsync(search)).CountAsync(ct);
+
+    public async Task<CustomerAccount?> FindCustomerAsync(Guid userId, CancellationToken ct = default)
+    {
+        ct.ThrowIfCancellationRequested();
+        var user = await users.FindByIdAsync(userId.ToString());
+        if (user is null || !await users.IsInRoleAsync(user, UserRoles.Customer))
+            return null;
+        var now = clock.UtcNow;
+        return new CustomerAccount(user.Id, user.Email!, user.FullName ?? string.Empty, user.LockoutEnd is { } end && end > now);
+    }
+
+    public async Task<bool> SetCustomerSuspendedAsync(Guid userId, bool suspended, CancellationToken ct = default)
+    {
+        ct.ThrowIfCancellationRequested();
+        var user = await users.FindByIdAsync(userId.ToString());
+        if (user is null || !await users.IsInRoleAsync(user, UserRoles.Customer))
+            return false;
+
+        await users.SetLockoutEnabledAsync(user, true);
+        var until = suspended ? DateTimeOffset.MaxValue : (DateTimeOffset?)null;
+        var result = await users.SetLockoutEndDateAsync(user, until);
+        return result.Succeeded;
+    }
+
+    public async Task<bool> DeleteCustomerAsync(Guid userId, CancellationToken ct = default)
+    {
+        ct.ThrowIfCancellationRequested();
+        var user = await users.FindByIdAsync(userId.ToString());
+        if (user is null || !await users.IsInRoleAsync(user, UserRoles.Customer))
+            return false;
+        var result = await users.DeleteAsync(user);
+        return result.Succeeded;
+    }
+
+    // Customers are the users in the Customer role (distinguishes them from admins, who also have
+    // no company/staff-type). Optional case-insensitive name/email contains-filter.
+    private async Task<IQueryable<ApplicationUser>> CustomersQueryAsync(string? search)
+    {
+        var customerRole = await roles.FindByNameAsync(UserRoles.Customer);
+        if (customerRole is null)
+            return users.Users.Where(_ => false); // no Customer role yet → no customers
+
+        var roleId = customerRole.Id;
+        var q = users.Users.Where(u => db.UserRoles.Any(ur => ur.UserId == u.Id && ur.RoleId == roleId));
+        if (!string.IsNullOrWhiteSpace(search))
+        {
+            var term = search.Trim().ToLowerInvariant();
+            // Server-side SQL lower()/LIKE inside this EF expression tree → analyzers are false positives.
+#pragma warning disable CA1304, CA1311, CA1862
+            q = q.Where(u => u.Email!.ToLower().Contains(term)
+                || (u.FullName != null && u.FullName.ToLower().Contains(term)));
+#pragma warning restore CA1304, CA1311, CA1862
+        }
+        return q;
     }
 
     private async Task<AuthenticatedUser> ToAuthenticatedUserAsync(ApplicationUser user)
