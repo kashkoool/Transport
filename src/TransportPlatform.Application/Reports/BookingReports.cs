@@ -69,7 +69,7 @@ public sealed class VendorEmployeeReportHandler(IApplicationDbContext db, IIdent
         var to = query.To ?? clock.UtcNow.AddMonths(1);
 
         // The company's staff roster (bounded), keyed by their user-id string (= Booking.CreatedBy).
-        var staff = await identity.ListStaffAsync(companyId, 0, int.MaxValue, null, ct);
+        var staff = await identity.ListCompanyStaffAsync(companyId, ct);
         if (staff.Count == 0)
             return [];
         var staffById = staff.ToDictionary(s => s.Id.ToString());

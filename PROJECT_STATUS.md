@@ -66,8 +66,9 @@ trip-search index. Full detail in §4.
 | **Email-verified-at-login** (optional config gate) | ✅ | `Auth:RequireEmailVerification`; off by default, refuses login until verified when on |
 | Seat concurrency safety + idempotency (bookings/payments/refunds) | ✅ | |
 | **Bus scheduling rules** — no overlapping trips per bus, seat-count edit cascades to trips, trip revert/re-activate | ✅ | enforced in schedule/update/revert + bus edit |
-| **DB indexing** (functional trip search, filtered outbox, notification inbox) | ✅ | #18, #22 |
-| Tests (65 unit + 60 integration, Testcontainers Postgres) | ✅ | |
+| **DB indexing** (functional trip search, filtered outbox, notification inbox, report paths) | ✅ | #18, #22; +booking status/createdAt/createdBy + user companyId |
+| **Server hardening audit** — login anti-enumeration (timing + no lockout reveal), public-read/export rate-limit tiers, PayPal retry+circuit-breaker, report-query/index tuning | ✅ | #50 + this PR |
+| Tests (65 unit + 61 integration, Testcontainers Postgres) | ✅ | |
 | Docker + CI/CD + security scanning (CodeQL/Dependabot/Scorecard/gitleaks/CodeRabbit) + GHCR | ✅ | |
 | **Observability — metrics (Prometheus) + tracing (OTLP)** | ✅ | #32; OpenTelemetry + custom business counters |
 | Observability — structured logs + health checks | ✅ | Serilog + `/health` + `/health/ready` |

@@ -262,6 +262,23 @@ public sealed class IdentityService(
     public Task<int> CountStaffAsync(Guid companyId, string? search, CancellationToken ct = default) =>
         StaffQuery(companyId, search).CountAsync(ct);
 
+    public async Task<IReadOnlyList<StaffMember>> ListCompanyStaffAsync(Guid companyId, CancellationToken ct = default)
+    {
+        // Staff per company is inherently small; cap defensively so this can never be an unbounded scan.
+        const int maxStaff = 1000;
+        var page = await StaffQuery(companyId, null)
+            .OrderBy(u => u.Email)
+            .Take(maxStaff)
+            .ToListAsync(ct);
+
+        var now = clock.UtcNow;
+        return page
+            .Select(u => new StaffMember(
+                u.Id, u.Email!, u.FullName ?? string.Empty, u.StaffType!.Value.ToString(),
+                u.LockoutEnd is { } end && end > now))
+            .ToList();
+    }
+
     // Staff are the company's users that carry a StaffType (the manager shares the company id but
     // has no StaffType, so this excludes them). Optional case-insensitive name/email contains-filter.
     private IQueryable<ApplicationUser> StaffQuery(Guid companyId, string? search)

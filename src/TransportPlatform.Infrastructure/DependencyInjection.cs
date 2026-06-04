@@ -207,7 +207,11 @@ public static class DependencyInjection
             {
                 client.BaseAddress = new Uri(paymentSection[nameof(PaymentOptions.ApiBaseUrl)] ?? "https://api-m.sandbox.paypal.com");
                 client.Timeout = TimeSpan.FromSeconds(30); // bound external calls
-            });
+            })
+            // Retry (with backoff+jitter) transient failures + a circuit breaker to shed load during a
+            // PayPal outage. All gateway writes carry a PayPal-Request-Id idempotency key, so retries
+            // can't double-charge/double-refund.
+            .AddStandardResilienceHandler();
             services.AddSingleton<PayPalPaymentGateway>();
             services.AddSingleton<IPaymentGateway>(sp => sp.GetRequiredService<PayPalPaymentGateway>());
         }

@@ -14,8 +14,12 @@ public static class TripEndpoints
             .RequireRateLimiting(RateLimitPolicies.PublicRead);
 
         // Public: active companies (id + name) for the search "filter by company" control.
-        app.MapGet("/api/companies", async (ListPublicCompaniesHandler handler, CancellationToken ct) =>
-            Results.Ok(await handler.HandleAsync(ct)))
+        // Near-static — safe to cache briefly at the edge/CDN to take load off the DB.
+        app.MapGet("/api/companies", async (HttpResponse response, ListPublicCompaniesHandler handler, CancellationToken ct) =>
+        {
+            response.Headers.CacheControl = "public, max-age=300";
+            return Results.Ok(await handler.HandleAsync(ct));
+        })
         .RequireRateLimiting(RateLimitPolicies.PublicRead)
         .WithTags("Trips")
         .WithName("ListPublicCompanies")
@@ -42,10 +46,14 @@ public static class TripEndpoints
         .WithName("GetTripSeatMap")
         .WithSummary("Seat layout and taken seats for a trip.");
 
-        // Public: the ordered waypoints between origin and destination.
+        // Public: the ordered waypoints between origin and destination. Rarely changes after a trip
+        // is set up — a short cache is safe. (Seat-map is deliberately NOT cached: it changes live.)
         group.MapGet("/{tripId:guid}/stops", async (
-            Guid tripId, ListTripStopsHandler handler, CancellationToken ct) =>
-            Results.Ok(await handler.HandleAsync(tripId, ct)))
+            HttpResponse response, Guid tripId, ListTripStopsHandler handler, CancellationToken ct) =>
+        {
+            response.Headers.CacheControl = "public, max-age=120";
+            return Results.Ok(await handler.HandleAsync(tripId, ct));
+        })
         .WithName("GetTripStops")
         .WithSummary("Ordered intermediate stops for a trip.");
 
