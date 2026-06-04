@@ -1,11 +1,23 @@
+using FluentValidation;
 using Microsoft.EntityFrameworkCore;
 using TransportPlatform.Application.Common;
+using TransportPlatform.Domain.Promotions;
 
 namespace TransportPlatform.Application.Promotions;
 
 public sealed record PreviewPromoQuery(Guid TripId, string Code, int Seats);
 
 public sealed record PromoPreview(string Code, decimal OriginalTotal, decimal Discount, decimal Total, string Currency);
+
+public sealed class PreviewPromoValidator : AbstractValidator<PreviewPromoQuery>
+{
+    public PreviewPromoValidator()
+    {
+        RuleFor(x => x.TripId).NotEmpty();
+        RuleFor(x => x.Code).NotEmpty().MaximumLength(PromoCode.MaxCodeLength);
+        RuleFor(x => x.Seats).InclusiveBetween(1, 10);
+    }
+}
 
 /// <summary>
 /// Customer-facing preview of a promo code against a trip + seat count — validates the code (for the

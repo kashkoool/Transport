@@ -25,6 +25,11 @@ var builder = WebApplication.CreateBuilder(args);
 // Fail fast in production on weak/placeholder secrets rather than booting insecurely.
 StartupGuards.ValidateConfiguration(builder.Configuration, builder.Environment);
 
+// Cap request bodies well below Kestrel's 30 MB default. This is a pure JSON API with no file
+// uploads (the largest body is a webhook payload or a ≤10-passenger booking), so 1 MB is generous
+// and blocks oversized-payload DoS. (Ignored under the test server, which doesn't use Kestrel.)
+builder.WebHost.ConfigureKestrel(o => o.Limits.MaxRequestBodySize = 1 * 1024 * 1024);
+
 // ── Structured logging (Serilog) ───────────────────────────────────────────────
 // CA1305: the Console sink's IFormatProvider is supplied (InvariantCulture); the analyzer
 // still flags the multi-overload extension method, so it is suppressed for this call only.
@@ -228,10 +233,12 @@ app.UseAuthorization();
 // ── Endpoints ────────────────────────────────────────────────────────────────
 // Liveness: returns 200 if the process is up — NO dependency checks, so a degraded DB never
 // causes the orchestrator to kill an otherwise-healthy container.
-app.MapHealthChecks("/health", new HealthCheckOptions { Predicate = _ => false });
+// Exempt probes from the limiter so an orchestrator's frequent liveness/readiness polls are never
+// throttled (and can't be starved by other traffic sharing the IP bucket).
+app.MapHealthChecks("/health", new HealthCheckOptions { Predicate = _ => false }).DisableRateLimiting();
 // Readiness: runs the "ready"-tagged checks (DB connectivity). Used by orchestrator readiness
 // probes / compose healthchecks to gate traffic until dependencies are actually reachable.
-app.MapHealthChecks("/health/ready", new HealthCheckOptions { Predicate = check => check.Tags.Contains("ready") });
+app.MapHealthChecks("/health/ready", new HealthCheckOptions { Predicate = check => check.Tags.Contains("ready") }).DisableRateLimiting();
 app.MapAuthEndpoints();
 app.MapAdminEndpoints();
 app.MapVendorEndpoints();
