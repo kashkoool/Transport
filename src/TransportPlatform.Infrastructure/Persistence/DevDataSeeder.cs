@@ -7,6 +7,7 @@ using TransportPlatform.Domain.Companies;
 using TransportPlatform.Domain.Fleet;
 using TransportPlatform.Domain.Identity;
 using TransportPlatform.Domain.Trips;
+using TransportPlatform.Infrastructure.Email;
 using TransportPlatform.Infrastructure.Identity;
 
 namespace TransportPlatform.Infrastructure.Persistence;
@@ -102,7 +103,7 @@ public sealed class DevDataSeeder(
         var result = await users.CreateAsync(user, Password);
         if (!result.Succeeded)
         {
-            LogUserFailed(logger, email, string.Join("; ", result.Errors.Select(e => e.Code)), null);
+            LogUserFailed(logger, EmailMask.Mask(email), string.Join("; ", result.Errors.Select(e => e.Code)), null);
             return;
         }
         await users.AddToRoleAsync(user, role);

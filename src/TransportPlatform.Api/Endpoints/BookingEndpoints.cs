@@ -70,8 +70,13 @@ public static class BookingEndpoints
         .WithSummary("Cancel your booking (confirmed bookings: only ≥48h before departure; refunds if paid).");
 
         group.MapGet("/promo-preview", async (
-            Guid tripId, string code, int? seats, PreviewPromoHandler handler, CancellationToken ct) =>
-            Results.Ok(await handler.HandleAsync(new PreviewPromoQuery(tripId, code, seats ?? 1), ct)))
+            Guid tripId, string code, int? seats, PreviewPromoHandler handler,
+            IValidator<PreviewPromoQuery> validator, CancellationToken ct) =>
+        {
+            var query = new PreviewPromoQuery(tripId, code, seats ?? 1);
+            await validator.ValidateAndThrowAsync(query, ct);
+            return Results.Ok(await handler.HandleAsync(query, ct));
+        })
         .WithName("PreviewPromo")
         .WithSummary("Preview a promo code's discount on a trip before booking.");
 

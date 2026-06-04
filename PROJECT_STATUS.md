@@ -67,8 +67,9 @@ trip-search index. Full detail in §4.
 | Seat concurrency safety + idempotency (bookings/payments/refunds) | ✅ | |
 | **Bus scheduling rules** — no overlapping trips per bus, seat-count edit cascades to trips, trip revert/re-activate | ✅ | enforced in schedule/update/revert + bus edit |
 | **DB indexing** (functional trip search, filtered outbox, notification inbox, report paths) | ✅ | #18, #22; +booking status/createdAt/createdBy + user companyId |
-| **Server hardening audit** — login anti-enumeration (timing + no lockout reveal), public-read/export rate-limit tiers, PayPal retry+circuit-breaker, report-query/index tuning | ✅ | #50 + this PR |
-| Tests (65 unit + 61 integration, Testcontainers Postgres) | ✅ | |
+| **Server hardening audit** — login anti-enumeration (timing + no lockout reveal), public-read/export rate-limit tiers, PayPal retry+circuit-breaker, report-query/index tuning, request body-size cap, health-probe rate-limit exemption, dev-log PII scrub (no token/email), promo-preview input validation | ✅ | #50, #51 + this PR |
+| **No sensitive data leaked or logged** — public reads expose no PII (reviews show display-name only; seat-map seat numbers only); tokens never in error bodies/logs; exception handler hides internals in prod | ✅ | full per-endpoint scan |
+| Tests (65 unit + 62 integration, Testcontainers Postgres) | ✅ | |
 | Docker + CI/CD + security scanning (CodeQL/Dependabot/Scorecard/gitleaks/CodeRabbit) + GHCR | ✅ | |
 | **Observability — metrics (Prometheus) + tracing (OTLP)** | ✅ | #32; OpenTelemetry + custom business counters |
 | Observability — structured logs + health checks | ✅ | Serilog + `/health` + `/health/ready` |

@@ -67,6 +67,18 @@ public sealed class PromoCodeTests(ApiFactory factory) : IClassFixture<ApiFactor
         preview.StatusCode.Should().Be(HttpStatusCode.Conflict);
     }
 
+    [Fact]
+    public async Task Promo_preview_rejects_an_overlong_code()
+    {
+        var (_, tripId) = await SeedCompanyTripAsync(price: 50_000m);
+        var (customer, _) = await factory.CreateCustomerClientAsync();
+
+        // Bounded input: a code far past the max length is a clean 400, not unbounded processing.
+        var longCode = new string('A', 100);
+        var preview = await customer.GetAsync($"/api/bookings/promo-preview?tripId={tripId}&code={longCode}&seats=1");
+        preview.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+    }
+
     // ── helpers ───────────────────────────────────────────────────────────────────
 
     private async Task<(HttpClient Manager, Guid TripId)> SeedCompanyTripAsync(decimal price)
