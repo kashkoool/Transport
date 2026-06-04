@@ -233,12 +233,11 @@ app.UseAuthorization();
 // ── Endpoints ────────────────────────────────────────────────────────────────
 // Liveness: returns 200 if the process is up — NO dependency checks, so a degraded DB never
 // causes the orchestrator to kill an otherwise-healthy container.
-// Exempt probes from the limiter so an orchestrator's frequent liveness/readiness polls are never
-// throttled (and can't be starved by other traffic sharing the IP bucket).
+// Liveness does NO I/O, so exempt it from the limiter — orchestrator polls are never throttled.
 app.MapHealthChecks("/health", new HealthCheckOptions { Predicate = _ => false }).DisableRateLimiting();
-// Readiness: runs the "ready"-tagged checks (DB connectivity). Used by orchestrator readiness
-// probes / compose healthchecks to gate traffic until dependencies are actually reachable.
-app.MapHealthChecks("/health/ready", new HealthCheckOptions { Predicate = check => check.Tags.Contains("ready") }).DisableRateLimiting();
+// Readiness runs the "ready"-tagged DB check. It stays under the global limiter (100/min per IP) so
+// it can't be hammered to stress the database — comfortably above any orchestrator's probe cadence.
+app.MapHealthChecks("/health/ready", new HealthCheckOptions { Predicate = check => check.Tags.Contains("ready") });
 app.MapAuthEndpoints();
 app.MapAdminEndpoints();
 app.MapVendorEndpoints();

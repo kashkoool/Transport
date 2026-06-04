@@ -14,7 +14,11 @@ public sealed class PreviewPromoValidator : AbstractValidator<PreviewPromoQuery>
     public PreviewPromoValidator()
     {
         RuleFor(x => x.TripId).NotEmpty();
-        RuleFor(x => x.Code).NotEmpty().MaximumLength(PromoCode.MaxCodeLength);
+        RuleFor(x => x.Code).NotEmpty();
+        // Match the domain's trimmed-length contract (PromoCode trims before checking length), so a
+        // code valid after trimming isn't rejected for leading/trailing whitespace.
+        RuleFor(x => x.Code).Must(c => (c ?? string.Empty).Trim().Length <= PromoCode.MaxCodeLength)
+            .WithMessage($"Code cannot exceed {PromoCode.MaxCodeLength} characters.");
         RuleFor(x => x.Seats).InclusiveBetween(1, 10);
     }
 }
