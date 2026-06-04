@@ -74,6 +74,12 @@ public interface IIdentityService
     Task<int> CountStaffAsync(Guid companyId, string? search, CancellationToken ct = default);
 
     /// <summary>
+    /// The company's whole staff roster (bounded — staff per company is small), for reports that
+    /// resolve operator ids to names. Avoids an unbounded page request.
+    /// </summary>
+    Task<IReadOnlyList<StaffMember>> ListCompanyStaffAsync(Guid companyId, CancellationToken ct = default);
+
+    /// <summary>
     /// Suspend (lock out) or reactivate a staff member — scoped to the given company so a manager
     /// can only ever touch their OWN staff. Returns false if no such staff member exists there.
     /// </summary>

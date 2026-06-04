@@ -23,6 +23,11 @@ internal sealed class BookingConfiguration : IEntityTypeConfiguration<Booking>
         builder.HasIndex(b => b.Reference).IsUnique();
         builder.HasIndex(b => b.IdempotencyKey).IsUnique();  // idempotent booking creation
         builder.HasIndex(b => b.CustomerEmail);
+        // Report access paths: status counts (admin/vendor summaries), date-range scans + ordering
+        // (booking report), and the per-operator grouping (employee report).
+        builder.HasIndex(b => b.Status);
+        builder.HasIndex(b => b.CreatedAtUtc);
+        builder.HasIndex(b => b.CreatedBy);
 
         // FK → trip, Restrict: a trip with bookings can't be hard-deleted.
         builder.HasOne<Trip>().WithMany()

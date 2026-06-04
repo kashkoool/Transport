@@ -13,5 +13,7 @@ internal sealed class ApplicationUserConfiguration : IEntityTypeConfiguration<Ap
     public void Configure(EntityTypeBuilder<ApplicationUser> builder)
     {
         builder.Property(u => u.StaffType).HasConversion<string>().HasMaxLength(20);
+        // Vendor staff/manager lookups and company-delete all filter users by company.
+        builder.HasIndex(u => u.CompanyId);
     }
 }
