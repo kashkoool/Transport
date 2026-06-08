@@ -128,6 +128,13 @@ expiry sweeper. 14 EF migrations.
 **23 tables** = 7 ASP.NET Identity + 16 domain. PostgreSQL, client-generated `uuid` keys
 (`ValueGeneratedNever`), money `numeric(12,2)`, `timestamptz`.
 
+> **DB integrity hardening** (migration `AddIntegrityConstraintsAndIndexTuning`): DB-level **CHECK
+> constraints** now back the domain rules (money ≥ 0, `review.Rating` 1–5, currency `^[A-Z]{3}$`,
+> status enums in their valid set); **payment/refund FKs are `Restrict`** + a real `refund→booking`
+> FK so financial history can't be deleted; and `booking`/`trip`/`AspNetUsers` indexes were
+> **right-sized** (report composites added, redundant single-column indexes dropped — faster reads,
+> no extra write cost). Covered by `DbConstraintsTests`.
+
 ### 4.1 Identity tables
 `AspNetUsers` (+ custom `FullName`, `CompanyId`, **`StaffType`**), `AspNetRoles`, `AspNetUserRoles`,
 `AspNetUserClaims`, `AspNetRoleClaims`, **`AspNetUserLogins`** (backs Google external login), `AspNetUserTokens`.
@@ -138,12 +145,12 @@ expiry sweeper. 14 EF migrations.
 - **driver** *(new)* — Id · CompanyId FK · FullName · Phone? · LicenseNumber? · audit · index on `CompanyId`.
 - **trip** — Id · CompanyId FK · BusId FK · Origin · Destination · DepartureUtc · ArrivalUtc · SeatCount · Price · Currency · Status · audit · indexes on `CompanyId`, `BusId`, and functional partial `(lower(Origin), lower(Destination), DepartureUtc) WHERE Status='Scheduled'`.
 - **trip_stop** *(new)* — Id · TripId FK (Cascade) · Sequence · Name · ArrivalUtc? · DepartureUtc? · **UNIQUE(TripId, Sequence)** (ordered waypoints between origin and destination).
-- **booking** — Id · TripId FK · CustomerEmail · Reference **UNIQUE** · Status · TotalAmount · Currency · **`PromoCode`? · `DiscountAmount`** · IdempotencyKey **UNIQUE** · audit · indexes on `CustomerEmail`, `TripId`.
+- **booking** — Id · TripId FK · CustomerEmail · Reference **UNIQUE** · Status · TotalAmount · Currency · **`PromoCode`? · `DiscountAmount`** · IdempotencyKey **UNIQUE** · audit · indexes on `CustomerEmail`, `CreatedAtUtc`, composite `(TripId, Status)` and `(CreatedBy, CreatedAtUtc)` (the standalone `TripId`/`Status`/`CreatedBy` indexes were folded into these composites — leaner writes on a hot table) · **CHECK** amounts ≥ 0, currency `^[A-Z]{3}$`, status in the valid set.
 - **passenger** — Id · BookingId FK (Cascade) · FirstName · LastName · SeatNumber · **`DocumentType`? · `DocumentNumber`?** (optional travel ID).
 - **seat_hold** — Id · TripId FK · SeatNumber · HeldBy · BookingId? · ExpiresAtUtc · Consumed · audit · **FILTERED UNIQUE(TripId, SeatNumber) WHERE Consumed=false** · index on `ExpiresAtUtc`.
 - **seat_assignment** — Id · TripId FK · SeatNumber · BookingId FK (Cascade) · **UNIQUE(TripId, SeatNumber)** (no-overbooking guarantee).
-- **payment** — Id · BookingId FK **UNIQUE** · Gateway · GatewayTxnRef · Status (Pending/Completed/Failed/Refunded) · Amount · Currency · IdempotencyKey **UNIQUE** · audit. No card data (PCI SAQ-A).
-- **refund** *(new)* — Id · PaymentId FK (Cascade) · BookingId · Amount · Currency · Status (Pending/Completed/Failed) · GatewayRefundRef? · Reason · IdempotencyKey **UNIQUE** · audit · index on `PaymentId`.
+- **payment** — Id · BookingId FK (**Restrict** — never erase a payment by deleting its booking) **UNIQUE** · Gateway · GatewayTxnRef · Status (Pending/Completed/Failed/Refunded) · Amount · Currency · IdempotencyKey **UNIQUE** · audit · **CHECK** amount ≥ 0, currency `^[A-Z]{3}$`, status valid. No card data (PCI SAQ-A).
+- **refund** *(new)* — Id · PaymentId FK (**Restrict**) · BookingId FK (**Restrict** — was an unconstrained column, now a real FK + `IX_refund_BookingId`) · Amount · Currency · Status (Pending/Completed/Failed) · GatewayRefundRef? · Reason · IdempotencyKey **UNIQUE** · audit · index on `PaymentId` · **CHECK** amount ≥ 0, currency `^[A-Z]{3}$`, status valid.
 - **notification** *(new)* — Id · RecipientUserId · Title · Message · Type · IsRead · ReadAtUtc? · audit · indexes `(RecipientUserId, IsRead)` and `(RecipientUserId, CreatedAtUtc)`.
 - **review** *(new)* — Id · BookingId FK **UNIQUE** · TripId · CompanyId · CustomerEmail (private) · DisplayName (first name + last initial) · Rating (1–5) · Comment? · audit · indexes on `TripId`, `CompanyId`.
 - **promo_code** *(new)* — Id · CompanyId FK (Cascade) · Code · DiscountType (Percent/Fixed) · DiscountValue · MaxRedemptions? · RedemptionCount · ExpiresAtUtc? · Active · audit · **UNIQUE(CompanyId, Code)**; over-redemption prevented by an atomic conditional UPDATE.

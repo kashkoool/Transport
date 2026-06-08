@@ -10,7 +10,16 @@ internal sealed class TripConfiguration : IEntityTypeConfiguration<Trip>
 {
     public void Configure(EntityTypeBuilder<Trip> builder)
     {
-        builder.ToTable("trip");
+        builder.ToTable("trip", t =>
+        {
+            // DB-level invariants (defence in depth beyond the domain guards): money is never
+            // negative, currency is a 3-letter uppercase code, and Status is a known value.
+            t.HasCheckConstraint("CK_trip_price_nonneg", "\"Price\" >= 0");
+            t.HasCheckConstraint("CK_trip_currency_format", "\"Currency\" ~ '^[A-Z]{3}$'");
+            t.HasCheckConstraint(
+                "CK_trip_status_valid",
+                "\"Status\" IN ('Scheduled', 'InProgress', 'Completed', 'Cancelled')");
+        });
         builder.HasKey(t => t.Id);
         builder.Property(t => t.Origin).HasMaxLength(120).IsRequired();
         builder.Property(t => t.Destination).HasMaxLength(120).IsRequired();
@@ -23,7 +32,11 @@ internal sealed class TripConfiguration : IEntityTypeConfiguration<Trip>
         // lower(origin)/lower(destination) and only ever wants Scheduled trips, so the index is
         //   (lower("Origin"), lower("Destination"), "DepartureUtc") WHERE "Status" = 'Scheduled'.
         // A plain (Origin,Destination,DepartureUtc) index would NOT be used for the lower() compare.
-        builder.HasIndex(t => t.CompanyId);
+        //
+        // (CompanyId, DepartureUtc) serves the per-company report date-range scans AND the vendor
+        // trip list (filter CompanyId, order by DepartureUtc); CompanyId-only lookups + the FK use
+        // its leftmost prefix, so no separate single-column CompanyId index is needed.
+        builder.HasIndex(t => new { t.CompanyId, t.DepartureUtc });
 
         // Waypoints are owned by the trip: loaded via the backing field, cascade-deleted with it.
         builder.HasMany(t => t.Stops)
