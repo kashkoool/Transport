@@ -27,6 +27,7 @@ import { VendorNavComponent } from './vendor-nav';
         } @else if (drivers().length === 0) {
           <p class="rounded-lg bg-slate-100 p-4 text-slate-600">No drivers found. Add one, then assign them to a bus in Fleet.</p>
         } @else {
+          <div class="overflow-x-auto">
           <table class="w-full overflow-hidden rounded-xl border border-slate-200 bg-white text-sm">
             <thead class="bg-slate-50 text-left text-slate-500">
               <tr>
@@ -45,6 +46,7 @@ import { VendorNavComponent } from './vendor-nav';
               }
             </tbody>
           </table>
+          </div>
           <p class="mt-2 text-xs text-slate-400">{{ total() }} driver(s)</p>
         }
       </section>
