@@ -8,7 +8,8 @@ internal sealed class ReviewConfiguration : IEntityTypeConfiguration<Review>
 {
     public void Configure(EntityTypeBuilder<Review> builder)
     {
-        builder.ToTable("review");
+        builder.ToTable("review", t =>
+            t.HasCheckConstraint("CK_review_rating_range", "\"Rating\" BETWEEN 1 AND 5"));
         builder.HasKey(r => r.Id);
         builder.Property(r => r.CustomerEmail).HasMaxLength(256).IsRequired();
         builder.Property(r => r.DisplayName).HasMaxLength(120).IsRequired();

@@ -9,7 +9,8 @@ internal sealed class PromoCodeConfiguration : IEntityTypeConfiguration<PromoCod
 {
     public void Configure(EntityTypeBuilder<PromoCode> builder)
     {
-        builder.ToTable("promo_code");
+        builder.ToTable("promo_code", t =>
+            t.HasCheckConstraint("CK_promo_code_discount_nonneg", "\"DiscountValue\" >= 0"));
         builder.HasKey(p => p.Id);
         builder.Property(p => p.Code).HasMaxLength(PromoCode.MaxCodeLength).IsRequired();
         builder.Property(p => p.DiscountType).HasConversion<string>().HasMaxLength(20).IsRequired();

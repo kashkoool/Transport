@@ -13,7 +13,9 @@ internal sealed class ApplicationUserConfiguration : IEntityTypeConfiguration<Ap
     public void Configure(EntityTypeBuilder<ApplicationUser> builder)
     {
         builder.Property(u => u.StaffType).HasConversion<string>().HasMaxLength(20);
-        // Vendor staff/manager lookups and company-delete all filter users by company.
-        builder.HasIndex(u => u.CompanyId);
+        // Staff listings filter by (CompanyId, StaffType != null); company-delete filters CompanyId.
+        // The composite serves both — CompanyId-only via its leftmost prefix — so no separate
+        // single-column CompanyId index is needed.
+        builder.HasIndex(u => new { u.CompanyId, u.StaffType });
     }
 }

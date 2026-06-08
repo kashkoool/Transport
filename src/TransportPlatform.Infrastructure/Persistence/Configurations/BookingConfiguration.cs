@@ -9,7 +9,16 @@ internal sealed class BookingConfiguration : IEntityTypeConfiguration<Booking>
 {
     public void Configure(EntityTypeBuilder<Booking> builder)
     {
-        builder.ToTable("booking");
+        builder.ToTable("booking", t =>
+        {
+            // DB-level invariants: money is never negative and Status/Currency are well-formed.
+            t.HasCheckConstraint(
+                "CK_booking_amounts_nonneg", "\"TotalAmount\" >= 0 AND \"DiscountAmount\" >= 0");
+            t.HasCheckConstraint("CK_booking_currency_format", "\"Currency\" ~ '^[A-Z]{3}$'");
+            t.HasCheckConstraint(
+                "CK_booking_status_valid",
+                "\"Status\" IN ('PendingPayment', 'Confirmed', 'Cancelled', 'Expired')");
+        });
         builder.HasKey(b => b.Id);
         builder.Property(b => b.CustomerEmail).HasMaxLength(256).IsRequired();
         builder.Property(b => b.Reference).HasMaxLength(40).IsRequired();
@@ -23,11 +32,14 @@ internal sealed class BookingConfiguration : IEntityTypeConfiguration<Booking>
         builder.HasIndex(b => b.Reference).IsUnique();
         builder.HasIndex(b => b.IdempotencyKey).IsUnique();  // idempotent booking creation
         builder.HasIndex(b => b.CustomerEmail);
-        // Report access paths: status counts (admin/vendor summaries), date-range scans + ordering
-        // (booking report), and the per-operator grouping (employee report).
-        builder.HasIndex(b => b.Status);
+        // Report access paths. Composite indexes carry leftmost-prefix coverage, so we deliberately
+        // do NOT keep single-column Status/CreatedBy/TripId indexes too (dead write-weight on this
+        // hot table): (TripId, Status) covers confirmed-booking counts AND TripId-only lookups + the
+        // trip FK; (CreatedBy, CreatedAtUtc) covers the per-operator employee report; CreatedAtUtc
+        // alone stays for admin date-range scans.
+        builder.HasIndex(b => new { b.TripId, b.Status });
         builder.HasIndex(b => b.CreatedAtUtc);
-        builder.HasIndex(b => b.CreatedBy);
+        builder.HasIndex(b => new { b.CreatedBy, b.CreatedAtUtc });
 
         // FK → trip, Restrict: a trip with bookings can't be hard-deleted.
         builder.HasOne<Trip>().WithMany()

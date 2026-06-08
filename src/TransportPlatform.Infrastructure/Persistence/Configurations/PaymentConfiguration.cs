@@ -9,7 +9,14 @@ internal sealed class PaymentConfiguration : IEntityTypeConfiguration<Payment>
 {
     public void Configure(EntityTypeBuilder<Payment> builder)
     {
-        builder.ToTable("payment");
+        builder.ToTable("payment", t =>
+        {
+            t.HasCheckConstraint("CK_payment_amount_nonneg", "\"Amount\" >= 0");
+            t.HasCheckConstraint("CK_payment_currency_format", "\"Currency\" ~ '^[A-Z]{3}$'");
+            t.HasCheckConstraint(
+                "CK_payment_status_valid",
+                "\"Status\" IN ('Pending', 'Completed', 'Failed', 'Refunded')");
+        });
         builder.HasKey(p => p.Id);
         builder.Property(p => p.Gateway).HasMaxLength(50).IsRequired();
         builder.Property(p => p.GatewayTxnRef).HasMaxLength(200);
@@ -23,9 +30,10 @@ internal sealed class PaymentConfiguration : IEntityTypeConfiguration<Payment>
         builder.HasIndex(p => p.IdempotencyKey).IsUnique();
         builder.HasIndex(p => p.GatewayTxnRef);
 
-        // FK → booking, Cascade: a payment record belongs to its booking.
+        // FK → booking, Restrict: deleting a booking must never silently erase its payment record —
+        // financial history has to survive. Bookings are cancelled (a status change), not hard-deleted.
         builder.HasOne<Booking>().WithMany()
             .HasForeignKey(p => p.BookingId)
-            .OnDelete(DeleteBehavior.Cascade);
+            .OnDelete(DeleteBehavior.Restrict);
     }
 }
