@@ -103,34 +103,80 @@ interface Route {
     <!-- ░░ BODY ░░ -->
     <div class="py-12">
       @if (!searched()) {
-        <p class="eyebrow">Popular routes</p>
-        <h2 class="mt-1 text-2xl text-slate-900">Where Syria's heading</h2>
-        <div class="mt-5 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          @for (r of popularRoutes; track r.from + r.to) {
-            <button
-              type="button"
-              (click)="quickRoute(r)"
-              class="group relative overflow-hidden rounded-3xl bg-ink p-5 text-left text-white ring-1 ring-white/10 transition hover:-translate-y-0.5 hover:shadow-glow"
-            >
-              <div class="absolute inset-0 bg-linear-to-br from-brand-600/40 to-transparent opacity-70 transition group-hover:opacity-100"></div>
-              <div class="relative">
-                <p class="text-sm text-white/60">{{ r.from }}</p>
-                <p class="mt-0.5 text-xl font-bold">→ {{ r.to }}</p>
-                <p class="mt-8 text-xs font-semibold text-accent-300">View trips →</p>
-              </div>
-            </button>
-          }
-        </div>
+        <!-- Most booked routes -->
+        <section>
+          <p class="eyebrow">Most booked</p>
+          <h2 class="mt-1 text-2xl text-slate-900 sm:text-3xl">Trending routes this week</h2>
+          <div class="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            @for (r of popularRoutes; track r.from + r.to; let i = $index) {
+              <button
+                type="button"
+                (click)="quickRoute(r)"
+                class="group relative overflow-hidden rounded-3xl bg-ink p-5 text-left text-white ring-1 ring-white/10 transition hover:-translate-y-0.5 hover:shadow-glow"
+              >
+                <div class="absolute inset-0 bg-linear-to-br from-brand-600/50 to-transparent opacity-70 transition group-hover:opacity-100"></div>
+                @if (i === 0) {
+                  <span class="absolute right-3 top-3 z-10 rounded-full bg-accent-400 px-2 py-0.5 text-xs font-bold text-ink">🔥 Hot</span>
+                }
+                <div class="relative">
+                  <p class="text-sm text-white/60">{{ r.from }}</p>
+                  <p class="mt-0.5 text-xl font-bold">→ {{ r.to }}</p>
+                  <p class="mt-8 text-xs font-semibold text-accent-300">View trips →</p>
+                </div>
+              </button>
+            }
+          </div>
+        </section>
 
-        <div class="mt-14 grid gap-4 sm:grid-cols-3">
-          @for (f of features; track f.title) {
-            <div class="card p-6">
-              <span class="grid h-12 w-12 place-items-center rounded-2xl bg-brand-50 text-2xl">{{ f.icon }}</span>
-              <p class="mt-4 text-lg font-bold text-slate-900">{{ f.title }}</p>
-              <p class="mt-1 text-sm text-slate-500">{{ f.body }}</p>
+        <!-- Why TPX -->
+        <section class="mt-16">
+          <p class="eyebrow">Why TPX</p>
+          <h2 class="mt-1 text-2xl text-slate-900 sm:text-3xl">Everything in a couple of taps</h2>
+          <div class="mt-6 grid gap-4 sm:grid-cols-3">
+            @for (f of features; track f.title) {
+              <div class="card p-6">
+                <span class="grid h-12 w-12 place-items-center rounded-2xl bg-brand-50 text-2xl">{{ f.icon }}</span>
+                <p class="mt-4 text-lg font-bold text-slate-900">{{ f.title }}</p>
+                <p class="mt-1 text-sm text-slate-500">{{ f.body }}</p>
+              </div>
+            }
+          </div>
+        </section>
+
+        <!-- Reviews carousel (auto-moving) -->
+        <section class="mt-16">
+          <p class="eyebrow">Loved by travellers</p>
+          <h2 class="mt-1 text-2xl text-slate-900 sm:text-3xl">What riders say</h2>
+          <div class="marquee mt-6">
+            <div class="marquee-track flex gap-4 py-2">
+              @for (r of reviewsLoop; track $index) {
+                <figure class="card w-80 shrink-0 p-5">
+                  <div class="text-accent-400" aria-hidden="true">★★★★★</div>
+                  <blockquote class="mt-2 text-sm leading-relaxed text-slate-600">“{{ r.text }}”</blockquote>
+                  <figcaption class="mt-4 flex items-center gap-3">
+                    <span class="grid h-9 w-9 place-items-center rounded-full bg-brand-100 text-sm font-bold text-brand-700">{{ r.name.charAt(0) }}</span>
+                    <div>
+                      <p class="text-sm font-semibold text-slate-900">{{ r.name }}</p>
+                      <p class="text-xs text-slate-400">{{ r.route }}</p>
+                    </div>
+                  </figcaption>
+                </figure>
+              }
             </div>
-          }
-        </div>
+          </div>
+        </section>
+
+        <!-- CTA band -->
+        <section class="full-bleed mt-16">
+          <div class="mx-auto max-w-6xl px-4">
+            <div class="relative overflow-hidden rounded-3xl bg-linear-to-br from-brand-700 to-brand-500 px-6 py-12 text-center text-white sm:px-12 sm:py-16">
+              <div class="pointer-events-none absolute -right-10 -top-10 h-48 w-48 rounded-full bg-white/10 blur-2xl"></div>
+              <h2 class="text-2xl font-bold sm:text-3xl">Ready when you are.</h2>
+              <p class="mx-auto mt-2 max-w-md text-white/80">Pick a route and you'll be holding a ticket in under a minute.</p>
+              <button type="button" (click)="scrollTop()" class="btn btn-accent mt-6">Find your trip ↑</button>
+            </div>
+          </div>
+        </section>
       }
 
       <!-- Results -->
@@ -224,6 +270,16 @@ export class SearchComponent implements OnInit {
     { icon: '🎫', title: 'Instant ticket', body: 'Get a QR ticket the moment your booking is confirmed.' },
   ];
 
+  protected readonly reviews = [
+    { name: 'Rana K.', route: 'Damascus → Aleppo', text: 'Booked in a minute and picked my exact seat. So easy.' },
+    { name: 'Omar H.', route: 'Homs → Damascus', text: 'Loved seeing every company in one place and grabbing the best price.' },
+    { name: 'Lina S.', route: 'Latakia → Damascus', text: 'The QR ticket worked perfectly at boarding — no paper needed.' },
+    { name: 'Yusuf A.', route: 'Aleppo → Latakia', text: 'I had to cancel and the refund was quick and painless.' },
+    { name: 'Maya D.', route: 'Damascus → Latakia', text: 'Finally a clean, modern way to book buses. Highly recommend.' },
+  ];
+  // Duplicated so the marquee can loop seamlessly (the track scrolls by exactly one copy).
+  protected readonly reviewsLoop = [...this.reviews, ...this.reviews];
+
   protected readonly form = this.fb.nonNullable.group({
     origin: ['', [Validators.required, Validators.maxLength(120)]],
     destination: ['', [Validators.required, Validators.maxLength(120)]],
@@ -241,6 +297,10 @@ export class SearchComponent implements OnInit {
   protected quickRoute(route: Route): void {
     this.form.patchValue({ origin: route.from, destination: route.to });
     this.search();
+  }
+
+  protected scrollTop(): void {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   }
 
   protected search(): void {

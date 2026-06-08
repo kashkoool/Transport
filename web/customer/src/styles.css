@@ -127,8 +127,44 @@
     @apply text-xs font-bold uppercase tracking-[0.15em] text-brand-600;
   }
 
-  /* Header navigation links */
+  /* Header navigation links — colour is inherited from the header, so the same class reads well on
+     the white header and on the dark hero header (hover/active tint adapts via currentColor). */
   .navlink {
-    @apply inline-flex items-center rounded-full px-3.5 py-2 text-sm font-semibold text-slate-600 transition hover:bg-slate-100 hover:text-slate-900;
+    @apply inline-flex items-center rounded-full px-3.5 py-2 text-sm font-semibold transition;
+  }
+  .navlink:hover {
+    background-color: color-mix(in oklab, currentColor 12%, transparent);
+  }
+  .navlink-active {
+    background-color: color-mix(in oklab, currentColor 16%, transparent);
+  }
+
+  /* Auto-scrolling marquee (reviews). Pauses on hover; respects reduced-motion. */
+  .marquee {
+    @apply overflow-hidden;
+    -webkit-mask-image: linear-gradient(to right, transparent, #000 6%, #000 94%, transparent);
+    mask-image: linear-gradient(to right, transparent, #000 6%, #000 94%, transparent);
+  }
+  .marquee-track {
+    width: max-content;
+    animation: marquee 45s linear infinite;
+  }
+  .marquee:hover .marquee-track {
+    animation-play-state: paused;
+  }
+}
+
+@keyframes marquee {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-50%);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .marquee-track {
+    animation: none;
   }
 }
