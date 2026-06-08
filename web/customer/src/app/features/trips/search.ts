@@ -20,15 +20,17 @@ interface Route {
     <!-- ░░ HERO (full-bleed, immersive) ░░ -->
     <section class="full-bleed relative overflow-hidden bg-ink text-white">
       <div class="pointer-events-none absolute -left-24 -top-24 h-80 w-80 rounded-full bg-brand-600/40 blur-3xl"></div>
-      <div class="pointer-events-none absolute -right-24 top-8 h-80 w-80 rounded-full bg-fuchsia-500/20 blur-3xl"></div>
-      <div class="pointer-events-none absolute -bottom-24 left-1/2 h-72 w-160 -translate-x-1/2 rounded-full bg-accent-500/10 blur-3xl"></div>
+      <div class="pointer-events-none absolute -right-24 top-8 h-80 w-80 rounded-full bg-emerald-400/20 blur-3xl"></div>
+      <div class="pointer-events-none absolute -bottom-24 left-1/2 h-72 w-160 -translate-x-1/2 rounded-full bg-brand-500/10 blur-3xl"></div>
 
       <div class="relative mx-auto max-w-6xl px-4 py-16 sm:py-24">
         <div class="mx-auto max-w-3xl text-center">
-          <span class="badge bg-white/10 text-white ring-1 ring-white/15">✨ Every Syrian bus company, one search</span>
+          <span class="badge bg-white/10 text-white ring-1 ring-white/15">
+            <span class="tracking-[0.2em] text-flag">★★★</span> Every Syrian bus company, one search
+          </span>
           <h1 class="mt-5 text-4xl leading-[1.05] sm:text-6xl">
             Your next trip across
-            <span class="bg-linear-to-r from-brand-300 via-brand-200 to-accent-300 bg-clip-text text-transparent">
+            <span class="bg-linear-to-r from-brand-300 via-brand-200 to-white bg-clip-text text-transparent">
               Syria starts here.
             </span>
           </h1>
