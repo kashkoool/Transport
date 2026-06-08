@@ -1,7 +1,118 @@
 @import 'tailwindcss';
 
-/* App-wide base. Tailwind utilities cover the rest; this is just the page canvas. */
-html,
-body {
-  @apply h-full bg-slate-50 text-slate-900 antialiased;
+/*
+ * TPX Travel design system. Modern consumer-travel look: teal brand (sea/sky), a warm amber
+ * accent for energy, soft depth, generous rounding. Tokens live in @theme so they generate
+ * utilities (bg-brand-600, shadow-card, …); shared component classes keep templates consistent.
+ */
+@theme {
+  --font-sans: 'Plus Jakarta Sans', ui-sans-serif, system-ui, sans-serif;
+
+  /* Brand — teal */
+  --color-brand-50: #f0fdfa;
+  --color-brand-100: #ccfbf1;
+  --color-brand-200: #99f6e4;
+  --color-brand-300: #5eead4;
+  --color-brand-400: #2dd4bf;
+  --color-brand-500: #14b8a6;
+  --color-brand-600: #0d9488;
+  --color-brand-700: #0f766e;
+  --color-brand-800: #115e59;
+  --color-brand-900: #134e4a;
+
+  /* Accent — warm amber/orange for CTAs, deals and highlights */
+  --color-accent-50: #fff7ed;
+  --color-accent-100: #ffedd5;
+  --color-accent-200: #fed7aa;
+  --color-accent-300: #fdba74;
+  --color-accent-400: #fb923c;
+  --color-accent-500: #f59e0b;
+  --color-accent-600: #ea580c;
+
+  --shadow-card: 0 1px 2px rgb(15 23 42 / 0.04), 0 6px 20px rgb(15 23 42 / 0.06);
+  --shadow-lift: 0 12px 34px rgb(13 148 136 / 0.22);
+}
+
+@keyframes fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@layer base {
+  html,
+  body {
+    @apply h-full antialiased;
+  }
+  body {
+    @apply bg-slate-50 text-slate-900;
+    font-family: var(--font-sans);
+  }
+  h1,
+  h2,
+  h3 {
+    @apply font-bold tracking-tight;
+  }
+}
+
+@layer components {
+  /* Buttons — use two classes in markup, e.g. class="btn btn-primary". */
+  .btn {
+    @apply inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold transition
+      focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50;
+  }
+  .btn-primary {
+    @apply bg-brand-600 text-white shadow-sm hover:bg-brand-700 focus-visible:ring-brand-500;
+  }
+  .btn-accent {
+    @apply bg-accent-500 text-white shadow-sm hover:bg-accent-600 focus-visible:ring-accent-500;
+  }
+  .btn-ghost {
+    @apply bg-white text-slate-700 ring-1 ring-inset ring-slate-200 hover:bg-slate-50 focus-visible:ring-slate-400;
+  }
+  .btn-soft {
+    @apply bg-brand-50 text-brand-700 hover:bg-brand-100 focus-visible:ring-brand-300;
+  }
+  .btn-danger {
+    @apply bg-rose-600 text-white hover:bg-rose-700 focus-visible:ring-rose-400;
+  }
+
+  /* Forms */
+  .input {
+    @apply w-full rounded-xl border-0 bg-white px-3.5 py-2.5 text-slate-900 ring-1 ring-inset ring-slate-200
+      placeholder:text-slate-400 focus:ring-2 focus:ring-inset focus:ring-brand-500;
+  }
+  .label {
+    @apply mb-1.5 block text-sm font-medium text-slate-700;
+  }
+  .field-error {
+    @apply mt-1 text-xs font-medium text-rose-600;
+  }
+
+  /* Surfaces */
+  .card {
+    @apply rounded-2xl bg-white shadow-card ring-1 ring-slate-100;
+  }
+  .badge {
+    @apply inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-semibold;
+  }
+  .badge-brand {
+    @apply bg-brand-50 text-brand-700;
+  }
+  .badge-accent {
+    @apply bg-accent-100 text-accent-600;
+  }
+  .badge-muted {
+    @apply bg-slate-100 text-slate-600;
+  }
+
+  /* Header navigation links */
+  .navlink {
+    @apply inline-flex items-center rounded-lg px-3 py-2 font-medium text-slate-600 transition hover:bg-slate-100 hover:text-slate-900;
+  }
 }
