@@ -17,175 +17,183 @@ interface Route {
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [ReactiveFormsModule, DatePipe, DecimalPipe],
   template: `
-    <!-- Hero + search -->
-    <section
-      class="relative overflow-hidden rounded-3xl bg-linear-to-br from-brand-700 via-brand-600 to-cyan-500 px-6 pb-28 pt-12 text-white sm:px-12 sm:pt-16"
-    >
-      <div class="pointer-events-none absolute -right-16 -top-20 h-64 w-64 rounded-full bg-white/10 blur-2xl"></div>
-      <div class="pointer-events-none absolute -bottom-12 left-1/4 h-52 w-52 rounded-full bg-cyan-200/20 blur-2xl"></div>
-      <div class="relative max-w-2xl">
-        <span class="badge bg-white/15 text-white ring-1 ring-white/20">🚌 Syria's bus network, in one place</span>
-        <h1 class="mt-4 text-4xl font-extrabold leading-[1.1] sm:text-5xl">Travel Syria,<br />the easy way.</h1>
-        <p class="mt-4 max-w-lg text-base text-white/80">
-          Compare departures from every company, pick your exact seat, and pay securely — in a couple of taps.
-        </p>
+    <!-- ░░ HERO (full-bleed, immersive) ░░ -->
+    <section class="full-bleed relative overflow-hidden bg-ink text-white">
+      <div class="pointer-events-none absolute -left-24 -top-24 h-80 w-80 rounded-full bg-brand-600/40 blur-3xl"></div>
+      <div class="pointer-events-none absolute -right-24 top-8 h-80 w-80 rounded-full bg-fuchsia-500/20 blur-3xl"></div>
+      <div class="pointer-events-none absolute -bottom-24 left-1/2 h-72 w-160 -translate-x-1/2 rounded-full bg-accent-500/10 blur-3xl"></div>
+
+      <div class="relative mx-auto max-w-6xl px-4 py-16 sm:py-24">
+        <div class="mx-auto max-w-3xl text-center">
+          <span class="badge bg-white/10 text-white ring-1 ring-white/15">✨ Every Syrian bus company, one search</span>
+          <h1 class="mt-5 text-4xl leading-[1.05] sm:text-6xl">
+            Your next trip across
+            <span class="bg-linear-to-r from-brand-300 via-brand-200 to-accent-300 bg-clip-text text-transparent">
+              Syria starts here.
+            </span>
+          </h1>
+          <p class="mx-auto mt-5 max-w-xl text-base text-white/70 sm:text-lg">
+            Compare live departures, pick your exact seat, and pay securely — in under a minute.
+          </p>
+        </div>
+
+        <!-- Glass search bar -->
+        <form [formGroup]="form" (ngSubmit)="search()" class="mx-auto mt-10 max-w-4xl">
+          <div class="rounded-3xl bg-white p-2 shadow-glow sm:rounded-full">
+            <div class="grid gap-1 sm:grid-cols-[1fr_1fr_1fr_auto] sm:items-center">
+              <div class="rounded-2xl px-4 py-2 hover:bg-slate-50">
+                <label for="origin" class="block text-[11px] font-bold uppercase tracking-wide text-slate-400">From</label>
+                <input id="origin" formControlName="origin" placeholder="Damascus" class="w-full border-0 bg-transparent p-0 text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-0" />
+              </div>
+              <div class="rounded-2xl px-4 py-2 hover:bg-slate-50 sm:border-l sm:border-slate-100">
+                <label for="destination" class="block text-[11px] font-bold uppercase tracking-wide text-slate-400">To</label>
+                <input id="destination" formControlName="destination" placeholder="Latakia" class="w-full border-0 bg-transparent p-0 text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-0" />
+              </div>
+              <div class="rounded-2xl px-4 py-2 hover:bg-slate-50 sm:border-l sm:border-slate-100">
+                <label for="date" class="block text-[11px] font-bold uppercase tracking-wide text-slate-400">Date</label>
+                <input id="date" type="date" formControlName="date" class="w-full border-0 bg-transparent p-0 text-slate-900 focus:outline-none focus:ring-0" />
+              </div>
+              <button type="submit" [disabled]="loading()" class="btn btn-primary m-1 h-12 px-7">
+                @if (loading()) {
+                  <span class="h-4 w-4 animate-spin rounded-full border-2 border-white/40 border-t-white"></span>
+                } @else {
+                  <span>Search</span>
+                }
+              </button>
+            </div>
+          </div>
+
+          <details class="group mx-auto mt-3 max-w-4xl">
+            <summary class="cursor-pointer select-none text-center text-sm font-medium text-white/70 hover:text-white">
+              More filters
+            </summary>
+            <div class="mt-3 grid gap-3 rounded-2xl bg-white p-3 sm:grid-cols-3">
+              <div>
+                <label for="company" class="label">Company</label>
+                <select id="company" formControlName="companyId" class="input">
+                  <option value="">Any company</option>
+                  @for (c of companies(); track c.id) {
+                    <option [value]="c.id">{{ c.name }}</option>
+                  }
+                </select>
+              </div>
+              <div>
+                <label for="maxPrice" class="label">Max price</label>
+                <input id="maxPrice" type="number" min="0" step="1000" formControlName="maxPrice" placeholder="Any" class="input" />
+              </div>
+              <div>
+                <label for="departAfter" class="label">Depart after</label>
+                <input id="departAfter" type="time" formControlName="departAfter" class="input" />
+              </div>
+            </div>
+          </details>
+        </form>
+
+        <div class="mt-10 flex flex-wrap items-center justify-center gap-x-8 gap-y-2 text-sm text-white/50">
+          <span>🚌 Every company</span>
+          <span>💺 Live seat maps</span>
+          <span>🔒 Secure payments</span>
+          <span>🎫 Instant QR tickets</span>
+        </div>
       </div>
     </section>
 
-    <!-- Search card overlapping the hero -->
-    <form
-      [formGroup]="form"
-      (ngSubmit)="search()"
-      class="card relative z-10 -mt-16 p-5 sm:p-6"
-    >
-      <div class="grid gap-4 sm:grid-cols-[1fr_1fr_1fr_auto]">
-        <div>
-          <label for="origin" class="label">From</label>
-          <input id="origin" type="text" formControlName="origin" placeholder="Damascus" class="input" />
-        </div>
-        <div>
-          <label for="destination" class="label">To</label>
-          <input id="destination" type="text" formControlName="destination" placeholder="Latakia" class="input" />
-        </div>
-        <div>
-          <label for="date" class="label">Date</label>
-          <input id="date" type="date" formControlName="date" class="input" />
-        </div>
-        <div class="flex items-end">
-          <button type="submit" [disabled]="loading()" class="btn btn-accent w-full px-6 sm:w-auto">
-            @if (loading()) {
-              <span class="h-4 w-4 animate-spin rounded-full border-2 border-white/40 border-t-white"></span>
-              Searching…
-            } @else {
-              <span>🔍</span> Search
-            }
-          </button>
-        </div>
-      </div>
-
-      <details class="group mt-3">
-        <summary class="cursor-pointer select-none text-sm font-medium text-brand-700 hover:text-brand-800">
-          More filters
-        </summary>
-        <div class="mt-3 grid gap-4 sm:grid-cols-3">
-          <div>
-            <label for="company" class="label">Company</label>
-            <select id="company" formControlName="companyId" class="input">
-              <option value="">Any company</option>
-              @for (c of companies(); track c.id) {
-                <option [value]="c.id">{{ c.name }}</option>
-              }
-            </select>
-          </div>
-          <div>
-            <label for="maxPrice" class="label">Max price</label>
-            <input id="maxPrice" type="number" min="0" step="1000" formControlName="maxPrice" placeholder="Any" class="input" />
-          </div>
-          <div>
-            <label for="departAfter" class="label">Depart after</label>
-            <input id="departAfter" type="time" formControlName="departAfter" class="input" />
-          </div>
-        </div>
-      </details>
-    </form>
-
-    <!-- Pre-search: popular routes + value props -->
-    @if (!searched()) {
-      <div class="mt-8">
-        <h2 class="text-sm font-semibold uppercase tracking-wide text-slate-500">Popular routes</h2>
-        <div class="mt-3 flex flex-wrap gap-2">
+    <!-- ░░ BODY ░░ -->
+    <div class="py-12">
+      @if (!searched()) {
+        <p class="eyebrow">Popular routes</p>
+        <h2 class="mt-1 text-2xl text-slate-900">Where Syria's heading</h2>
+        <div class="mt-5 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           @for (r of popularRoutes; track r.from + r.to) {
-            <button type="button" (click)="quickRoute(r)" class="btn btn-ghost gap-1.5 px-3 py-1.5">
-              <span class="font-semibold text-slate-900">{{ r.from }}</span>
-              <span class="text-brand-600">→</span>
-              <span class="font-semibold text-slate-900">{{ r.to }}</span>
+            <button
+              type="button"
+              (click)="quickRoute(r)"
+              class="group relative overflow-hidden rounded-3xl bg-ink p-5 text-left text-white ring-1 ring-white/10 transition hover:-translate-y-0.5 hover:shadow-glow"
+            >
+              <div class="absolute inset-0 bg-linear-to-br from-brand-600/40 to-transparent opacity-70 transition group-hover:opacity-100"></div>
+              <div class="relative">
+                <p class="text-sm text-white/60">{{ r.from }}</p>
+                <p class="mt-0.5 text-xl font-bold">→ {{ r.to }}</p>
+                <p class="mt-8 text-xs font-semibold text-accent-300">View trips →</p>
+              </div>
             </button>
           }
         </div>
 
-        <div class="mt-8 grid gap-4 sm:grid-cols-3">
+        <div class="mt-14 grid gap-4 sm:grid-cols-3">
           @for (f of features; track f.title) {
-            <div class="card flex items-start gap-3 p-5">
-              <span class="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-brand-50 text-xl">{{ f.icon }}</span>
-              <div>
-                <p class="font-semibold text-slate-900">{{ f.title }}</p>
-                <p class="mt-0.5 text-sm text-slate-500">{{ f.body }}</p>
-              </div>
+            <div class="card p-6">
+              <span class="grid h-12 w-12 place-items-center rounded-2xl bg-brand-50 text-2xl">{{ f.icon }}</span>
+              <p class="mt-4 text-lg font-bold text-slate-900">{{ f.title }}</p>
+              <p class="mt-1 text-sm text-slate-500">{{ f.body }}</p>
             </div>
           }
         </div>
-      </div>
-    }
-
-    <!-- Results -->
-    <div class="mt-8 space-y-3">
-      @if (loading()) {
-        @for (s of [1, 2, 3]; track s) {
-          <div class="card flex animate-pulse items-center justify-between gap-4 p-5">
-            <div class="flex items-center gap-4">
-              <div class="h-12 w-12 rounded-xl bg-slate-100"></div>
-              <div class="space-y-2">
-                <div class="h-4 w-40 rounded bg-slate-100"></div>
-                <div class="h-3 w-56 rounded bg-slate-100"></div>
-              </div>
-            </div>
-            <div class="h-9 w-28 rounded-xl bg-slate-100"></div>
-          </div>
-        }
-      } @else {
-        @if (searched() && results().length === 0) {
-          <div class="card flex flex-col items-center gap-2 p-10 text-center">
-            <span class="text-4xl">🗺️</span>
-            <p class="font-semibold text-slate-900">No trips on that route yet</p>
-            <p class="text-sm text-slate-500">Try a different date, or clear the extra filters.</p>
-          </div>
-        }
-        @if (results().length > 0) {
-          <div class="flex items-center justify-between">
-            <h2 class="text-lg font-bold text-slate-900">{{ results().length }} trips found</h2>
-          </div>
-        }
-        @for (trip of results(); track trip.id) {
-          <article class="card flex flex-col gap-4 p-5 transition hover:shadow-lift sm:flex-row sm:items-center sm:justify-between">
-            <div class="flex items-center gap-4">
-              <div class="grid h-12 w-12 shrink-0 place-items-center rounded-xl bg-brand-50 text-xl">🚌</div>
-              <div>
-                <p class="flex items-center gap-2 text-base font-bold text-slate-900">
-                  {{ trip.origin }} <span class="text-brand-500">→</span> {{ trip.destination }}
-                </p>
-                <p class="text-sm text-slate-500">
-                  {{ trip.departureUtc | date: 'EEE, MMM d • HH:mm' }} — arrives {{ trip.arrivalUtc | date: 'HH:mm' }}
-                </p>
-                <div class="mt-1.5">
-                  @if (trip.availableSeats === 0) {
-                    <span class="badge badge-muted">Sold out</span>
-                  } @else if (trip.availableSeats <= 5) {
-                    <span class="badge badge-accent">Only {{ trip.availableSeats }} seats left</span>
-                  } @else {
-                    <span class="badge badge-brand">{{ trip.availableSeats }} seats available</span>
-                  }
-                </div>
-              </div>
-            </div>
-            <div class="flex items-center justify-between gap-5 sm:flex-col sm:items-end">
-              <div class="text-right">
-                <div class="text-xl font-extrabold text-slate-900">
-                  {{ trip.price | number: '1.0-0' }} <span class="text-sm font-semibold text-slate-500">{{ trip.currency }}</span>
-                </div>
-                <div class="text-xs text-slate-400">per seat</div>
-              </div>
-              <button
-                type="button"
-                [disabled]="trip.availableSeats === 0"
-                (click)="book(trip)"
-                class="btn btn-primary"
-              >
-                Select seats
-              </button>
-            </div>
-          </article>
-        }
       }
+
+      <!-- Results -->
+      <div class="space-y-3" [class.mt-2]="!searched()">
+        @if (loading()) {
+          @for (s of [1, 2, 3]; track s) {
+            <div class="card flex animate-pulse items-center justify-between gap-4 p-5">
+              <div class="flex items-center gap-4">
+                <div class="h-12 w-12 rounded-2xl bg-slate-100"></div>
+                <div class="space-y-2">
+                  <div class="h-4 w-40 rounded bg-slate-100"></div>
+                  <div class="h-3 w-56 rounded bg-slate-100"></div>
+                </div>
+              </div>
+              <div class="h-10 w-28 rounded-full bg-slate-100"></div>
+            </div>
+          }
+        } @else {
+          @if (searched() && results().length === 0) {
+            <div class="card flex flex-col items-center gap-2 p-12 text-center">
+              <span class="text-4xl">🗺️</span>
+              <p class="text-lg font-bold text-slate-900">No trips on that route yet</p>
+              <p class="text-sm text-slate-500">Try a different date, or clear the extra filters.</p>
+            </div>
+          }
+          @if (results().length > 0) {
+            <h2 class="text-xl text-slate-900">{{ results().length }} trips found</h2>
+          }
+          @for (trip of results(); track trip.id) {
+            <article class="card flex flex-col gap-4 p-5 transition hover:-translate-y-0.5 hover:shadow-glow sm:flex-row sm:items-center sm:justify-between">
+              <div class="flex items-center gap-4">
+                <div class="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-linear-to-br from-brand-500 to-brand-700 text-xl text-white">🚌</div>
+                <div>
+                  <p class="flex items-center gap-2 text-base font-bold text-slate-900">
+                    {{ trip.origin }} <span class="text-brand-500">→</span> {{ trip.destination }}
+                  </p>
+                  <p class="text-sm text-slate-500">
+                    {{ trip.departureUtc | date: 'EEE, MMM d • HH:mm' }} — arrives {{ trip.arrivalUtc | date: 'HH:mm' }}
+                  </p>
+                  <div class="mt-1.5">
+                    @if (trip.availableSeats === 0) {
+                      <span class="badge badge-muted">Sold out</span>
+                    } @else if (trip.availableSeats <= 5) {
+                      <span class="badge badge-accent">Only {{ trip.availableSeats }} seats left</span>
+                    } @else {
+                      <span class="badge badge-brand">{{ trip.availableSeats }} seats available</span>
+                    }
+                  </div>
+                </div>
+              </div>
+              <div class="flex items-center justify-between gap-5 sm:flex-col sm:items-end">
+                <div class="text-right">
+                  <div class="text-2xl font-bold text-slate-900">
+                    {{ trip.price | number: '1.0-0' }} <span class="text-sm font-semibold text-slate-500">{{ trip.currency }}</span>
+                  </div>
+                  <div class="text-xs text-slate-400">per seat</div>
+                </div>
+                <button type="button" [disabled]="trip.availableSeats === 0" (click)="book(trip)" class="btn btn-primary">
+                  Select seats
+                </button>
+              </div>
+            </article>
+          }
+        }
+      </div>
     </div>
   `,
 })
