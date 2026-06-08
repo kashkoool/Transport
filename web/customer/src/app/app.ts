@@ -1,4 +1,4 @@
-import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, HostListener, inject, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { NavigationEnd, Router, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
 import { filter } from 'rxjs';
@@ -14,13 +14,7 @@ import { NotificationBellComponent } from './core/notifications/notification-bel
     <div class="flex min-h-full flex-col">
       <!-- On the landing the header is dark and merges seamlessly into the hero; elsewhere it's a
            solid white sticky bar. -->
-      <header
-        [class]="
-          isLanding()
-            ? 'sticky top-0 z-40 bg-ink text-white'
-            : 'sticky top-0 z-40 border-b border-slate-200/70 bg-white/80 text-slate-700 backdrop-blur'
-        "
-      >
+      <header [class]="headerClass()">
         <nav class="mx-auto flex max-w-6xl items-center justify-between gap-4 px-4 py-3">
           <a [routerLink]="auth.homeRoute()" class="flex items-center gap-2.5">
             <span class="grid h-9 w-9 place-items-center rounded-xl bg-linear-to-br from-brand-500 to-brand-700 text-lg shadow-sm">🚌</span>
@@ -131,6 +125,21 @@ export class App {
   private readonly router = inject(Router);
 
   protected readonly isLanding = signal(this.atLanding());
+  /** True once the user scrolls off the top — flips the see-through landing header to frosted glass. */
+  protected readonly scrolled = signal(false);
+
+  /**
+   * Landing header is a glassmorphism bar: fully see-through over the hero at the top, frosted
+   * (translucent + blur) once scrolled. Every other page keeps the solid white sticky header.
+   */
+  protected readonly headerClass = computed(() => {
+    if (!this.isLanding()) {
+      return 'sticky top-0 z-40 border-b border-slate-200/70 bg-white/80 text-slate-700 backdrop-blur';
+    }
+    return this.scrolled()
+      ? 'fixed inset-x-0 top-0 z-40 border-b border-white/10 bg-ink/70 text-white backdrop-blur-md'
+      : 'fixed inset-x-0 top-0 z-40 bg-transparent text-white';
+  });
 
   constructor() {
     this.router.events
@@ -139,6 +148,11 @@ export class App {
         takeUntilDestroyed(),
       )
       .subscribe(() => this.isLanding.set(this.atLanding()));
+  }
+
+  @HostListener('window:scroll')
+  protected onScroll(): void {
+    this.scrolled.set(window.scrollY > 8);
   }
 
   protected initial(): string {

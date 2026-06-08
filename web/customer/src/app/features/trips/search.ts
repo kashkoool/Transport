@@ -23,7 +23,7 @@ interface Route {
       <div class="pointer-events-none absolute -right-24 top-8 h-80 w-80 rounded-full bg-emerald-400/20 blur-3xl"></div>
       <div class="pointer-events-none absolute -bottom-24 left-1/2 h-72 w-160 -translate-x-1/2 rounded-full bg-brand-500/10 blur-3xl"></div>
 
-      <div class="relative mx-auto max-w-6xl px-4 py-16 sm:py-24">
+      <div class="relative mx-auto max-w-6xl px-4 pb-16 pt-24 sm:pb-24 sm:pt-32">
         <div class="mx-auto max-w-3xl text-center">
           <span class="badge bg-white/10 text-white ring-1 ring-white/15">
             <span class="tracking-[0.2em] text-flag">★★★</span> Every Syrian bus company, one search
