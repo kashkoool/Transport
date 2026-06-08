@@ -9,13 +9,17 @@ import { ProblemDetails } from '../models';
  * ProblemDetails `detail`/`title` so the message is meaningful without leaking internals.
  * 401s are skipped — the auth interceptor (which runs closer to the backend) silently refreshes
  * and retries those, and only a truly-expired session should surface, as a redirect to login.
+ * The startup session-restore call (`/auth/refresh`) is also skipped: it fails by design for an
+ * anonymous visitor with no refresh cookie, and AuthService already handles that outcome — so a
+ * cold page load must never flash "Something went wrong."
  */
 export const errorInterceptor: HttpInterceptorFn = (req, next) => {
   const toasts = inject(ToastService);
+  const isSilentSessionCall = req.url.endsWith('/auth/refresh');
 
   return next(req).pipe(
     catchError((err: HttpErrorResponse) => {
-      if (err.status !== 401) {
+      if (err.status !== 401 && !isSilentSessionCall) {
         toasts.error(messageFor(err));
       }
       return throwError(() => err);
