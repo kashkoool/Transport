@@ -46,7 +46,7 @@ export class AuthService {
     if (this.isAdmin()) return '/admin/companies';
     if (this.isVendor()) return '/vendor/trips';
     if (this.isStaff()) return '/vendor/desk';
-    return '/search';
+    return '/';
   }
 
   register(email: string, password: string, fullName: string): Observable<void> {

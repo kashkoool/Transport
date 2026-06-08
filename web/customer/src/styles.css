@@ -47,7 +47,9 @@
     @apply h-full antialiased;
   }
   body {
-    @apply bg-slate-50 text-slate-900;
+    /* overflow-x-hidden: full-bleed hero sections use 100vw, which would otherwise overflow by the
+       scrollbar width and show a horizontal scrollbar. */
+    @apply overflow-x-hidden bg-slate-50 text-slate-900;
     font-family: var(--font-sans);
   }
   h1,

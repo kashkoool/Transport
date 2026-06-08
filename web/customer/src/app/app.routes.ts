@@ -7,7 +7,12 @@ import { roleGuard } from './core/auth/role.guard';
  * signed-in customer. Feature components are lazy-loaded so each route ships its own chunk.
  */
 export const routes: Routes = [
-  { path: '', pathMatch: 'full', redirectTo: 'search' },
+  {
+    // The landing lives at the root (/), not /search.
+    path: '',
+    pathMatch: 'full',
+    loadComponent: () => import('./features/trips/search').then((m) => m.SearchComponent),
+  },
   {
     path: 'login',
     loadComponent: () => import('./features/auth/login').then((m) => m.LoginComponent),
@@ -34,10 +39,7 @@ export const routes: Routes = [
     path: 'auth/callback',
     loadComponent: () => import('./features/auth/auth-callback').then((m) => m.AuthCallbackComponent),
   },
-  {
-    path: 'search',
-    loadComponent: () => import('./features/trips/search').then((m) => m.SearchComponent),
-  },
+  { path: 'search', pathMatch: 'full', redirectTo: '' },
   {
     path: 'book/:tripId',
     canActivate: [authGuard],

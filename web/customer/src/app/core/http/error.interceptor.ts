@@ -12,10 +12,13 @@ import { ProblemDetails } from '../models';
  */
 export const errorInterceptor: HttpInterceptorFn = (req, next) => {
   const toasts = inject(ToastService);
+  // The startup session-restore (/auth/refresh) returns 400 by design for an anonymous visitor;
+  // AuthService already handles it, so it must never flash a toast on a cold load.
+  const isSilentSessionCall = req.url.endsWith('/auth/refresh');
 
   return next(req).pipe(
     catchError((err: HttpErrorResponse) => {
-      if (err.status !== 401) {
+      if (err.status !== 401 && !isSilentSessionCall) {
         toasts.error(messageFor(err));
       }
       return throwError(() => err);

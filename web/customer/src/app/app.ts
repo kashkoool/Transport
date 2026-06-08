@@ -34,7 +34,7 @@ import { NotificationBellComponent } from './core/notifications/notification-bel
               <a [routerLink]="'/vendor/desk'" routerLinkActive="bg-brand-50 text-brand-700" class="navlink">Desk</a>
               <a [routerLink]="'/vendor/trips'" routerLinkActive="bg-brand-50 text-brand-700" class="navlink">Trips</a>
             } @else {
-              <a [routerLink]="'/search'" routerLinkActive="bg-brand-50 text-brand-700" class="navlink">Search</a>
+              <a [routerLink]="'/'" routerLinkActive="bg-brand-50 text-brand-700" [routerLinkActiveOptions]="{ exact: true }" class="navlink">Search</a>
               @if (auth.isAuthenticated()) {
                 <a [routerLink]="'/my-bookings'" routerLinkActive="bg-brand-50 text-brand-700" class="navlink">My trips</a>
               }
