@@ -22,7 +22,7 @@ type VerifyState = 'verifying' | 'success' | 'failure' | 'invalid';
           </div>
           <a
             routerLink="/login"
-            class="mt-4 inline-block rounded-md bg-indigo-600 px-4 py-2 font-medium text-white hover:bg-indigo-700"
+            class="mt-4 inline-block rounded-md bg-brand-600 px-4 py-2 font-medium text-white hover:bg-brand-700"
             >Continue to sign in</a
           >
         }
@@ -39,7 +39,7 @@ type VerifyState = 'verifying' | 'success' | 'failure' | 'invalid';
             type="button"
             (click)="resend()"
             [disabled]="resending()"
-            class="mt-4 rounded-md border border-indigo-600 px-4 py-2 font-medium text-indigo-600 hover:bg-indigo-50 disabled:opacity-50"
+            class="mt-4 rounded-md border border-brand-600 px-4 py-2 font-medium text-brand-600 hover:bg-brand-50 disabled:opacity-50"
           >
             {{ resending() ? 'Sending…' : 'Send a new link' }}
           </button>

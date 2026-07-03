@@ -19,7 +19,7 @@ const STRONG_PASSWORD = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^a-zA-Z0-9]).{10,}
     } @else if (loadFailed()) {
       <div class="rounded-xl bg-slate-100 p-6 text-center">
         <p class="text-slate-600">We couldn't load your account.</p>
-        <button type="button" (click)="reload()" class="mt-2 font-medium text-indigo-600 hover:text-indigo-700">Try again</button>
+        <button type="button" (click)="reload()" class="mt-2 font-medium text-brand-600 hover:text-brand-700">Try again</button>
       </div>
     } @else if (profile(); as p) {
       <div class="grid gap-6 lg:grid-cols-2">
@@ -29,13 +29,13 @@ const STRONG_PASSWORD = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^a-zA-Z0-9]).{10,}
           <form [formGroup]="profileForm" (ngSubmit)="saveProfile()" class="space-y-3">
             <div>
               <label for="fullName" class="mb-1 block text-sm font-medium text-slate-700">Full name</label>
-              <input id="fullName" type="text" formControlName="fullName" class="w-full rounded-md border border-slate-300 px-3 py-2 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500" />
+              <input id="fullName" type="text" formControlName="fullName" class="w-full rounded-md border border-slate-300 px-3 py-2 focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500" />
             </div>
             <div>
               <label for="phone" class="mb-1 block text-sm font-medium text-slate-700">Phone (optional)</label>
-              <input id="phone" type="tel" formControlName="phone" class="w-full rounded-md border border-slate-300 px-3 py-2 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500" />
+              <input id="phone" type="tel" formControlName="phone" class="w-full rounded-md border border-slate-300 px-3 py-2 focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500" />
             </div>
-            <button type="submit" [disabled]="savingProfile()" class="rounded-md bg-indigo-600 px-5 py-2 font-medium text-white hover:bg-indigo-700 disabled:opacity-50">
+            <button type="submit" [disabled]="savingProfile()" class="rounded-md bg-brand-600 px-5 py-2 font-medium text-white hover:bg-brand-700 disabled:opacity-50">
               {{ savingProfile() ? 'Saving…' : 'Save profile' }}
             </button>
           </form>
@@ -46,11 +46,11 @@ const STRONG_PASSWORD = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^a-zA-Z0-9]).{10,}
           <form [formGroup]="passwordForm" (ngSubmit)="changePassword()" class="space-y-3">
             <div>
               <label for="current" class="mb-1 block text-sm font-medium text-slate-700">Current password</label>
-              <input id="current" type="password" autocomplete="current-password" formControlName="currentPassword" class="w-full rounded-md border border-slate-300 px-3 py-2 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500" />
+              <input id="current" type="password" autocomplete="current-password" formControlName="currentPassword" class="w-full rounded-md border border-slate-300 px-3 py-2 focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500" />
             </div>
             <div>
               <label for="next" class="mb-1 block text-sm font-medium text-slate-700">New password</label>
-              <input id="next" type="password" autocomplete="new-password" formControlName="newPassword" class="w-full rounded-md border border-slate-300 px-3 py-2 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500" />
+              <input id="next" type="password" autocomplete="new-password" formControlName="newPassword" class="w-full rounded-md border border-slate-300 px-3 py-2 focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500" />
               <p class="mt-1 text-xs text-slate-400">≥10 chars with upper, lower, a digit and a symbol.</p>
             </div>
             <button type="submit" [disabled]="changingPassword()" class="rounded-md bg-slate-800 px-5 py-2 font-medium text-white hover:bg-slate-900 disabled:opacity-50">

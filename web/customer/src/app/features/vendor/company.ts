@@ -34,13 +34,13 @@ import { VendorNavComponent } from './vendor-nav';
         <form [formGroup]="form" (ngSubmit)="submit()" class="space-y-3 border-t border-slate-100 pt-4">
           <div>
             <label for="name" class="mb-1 block text-sm font-medium text-slate-700">Company name</label>
-            <input id="name" type="text" formControlName="name" class="w-full rounded-md border border-slate-300 px-3 py-2 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500" />
+            <input id="name" type="text" formControlName="name" class="w-full rounded-md border border-slate-300 px-3 py-2 focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500" />
           </div>
           <div>
             <label for="phone" class="mb-1 block text-sm font-medium text-slate-700">Phone (optional)</label>
-            <input id="phone" type="tel" formControlName="phone" class="w-full rounded-md border border-slate-300 px-3 py-2 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500" />
+            <input id="phone" type="tel" formControlName="phone" class="w-full rounded-md border border-slate-300 px-3 py-2 focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500" />
           </div>
-          <button type="submit" [disabled]="submitting()" class="rounded-md bg-indigo-600 px-5 py-2 font-medium text-white hover:bg-indigo-700 disabled:opacity-50">
+          <button type="submit" [disabled]="submitting()" class="rounded-md bg-brand-600 px-5 py-2 font-medium text-white hover:bg-brand-700 disabled:opacity-50">
             {{ submitting() ? 'Saving…' : 'Save changes' }}
           </button>
         </form>

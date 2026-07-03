@@ -13,7 +13,7 @@ import { Ticket } from '../../core/models';
     <div class="mx-auto max-w-md">
       @if (ticket(); as t) {
         <div class="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
-          <div class="flex items-center justify-between bg-indigo-600 px-6 py-4 text-white">
+          <div class="flex items-center justify-between bg-brand-600 px-6 py-4 text-white">
             <span class="font-semibold">Boarding ticket</span>
             <span
               class="rounded-full px-3 py-1 text-xs font-semibold"
@@ -63,7 +63,7 @@ import { Ticket } from '../../core/models';
           </div>
         </div>
 
-        <a routerLink="/my-bookings" class="mt-4 block text-center text-sm text-indigo-600 hover:text-indigo-700">
+        <a routerLink="/my-bookings" class="mt-4 block text-center text-sm text-brand-600 hover:text-brand-700">
           View all my bookings
         </a>
       } @else if (!loading()) {

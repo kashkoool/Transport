@@ -17,7 +17,7 @@ import { BookingSummary } from '../../core/models';
     } @else if (bookings().length === 0) {
       <div class="rounded-xl bg-slate-100 p-6 text-center">
         <p class="text-slate-600">You have no bookings yet.</p>
-        <a routerLink="/search" class="mt-2 inline-block font-medium text-indigo-600 hover:text-indigo-700">
+        <a routerLink="/search" class="mt-2 inline-block font-medium text-brand-600 hover:text-brand-700">
           Find a trip →
         </a>
       </div>
@@ -50,7 +50,7 @@ import { BookingSummary } from '../../core/models';
             </div>
 
             <div class="mt-3 flex flex-wrap items-center gap-2 border-t border-slate-100 pt-3">
-              <a [routerLink]="['/ticket', b.bookingId]" class="text-sm font-medium text-indigo-600 hover:text-indigo-700">
+              <a [routerLink]="['/ticket', b.bookingId]" class="text-sm font-medium text-brand-600 hover:text-brand-700">
                 View ticket →
               </a>
 
@@ -89,11 +89,11 @@ import { BookingSummary } from '../../core/models';
                   rows="2"
                   maxlength="1000"
                   placeholder="How was your trip? (optional)"
-                  class="w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                  class="w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
                 ></textarea>
                 <div class="mt-2 flex gap-2">
                   <button type="button" [disabled]="busy() === b.bookingId" (click)="submitReview(b.bookingId)"
-                    class="rounded-md bg-indigo-600 px-3 py-1 text-sm font-medium text-white hover:bg-indigo-700 disabled:opacity-50">
+                    class="rounded-md bg-brand-600 px-3 py-1 text-sm font-medium text-white hover:bg-brand-700 disabled:opacity-50">
                     {{ busy() === b.bookingId ? 'Submitting…' : 'Submit review' }}
                   </button>
                   <button type="button" (click)="reviewing.set(null)" class="text-sm text-slate-500 hover:text-slate-700">Cancel</button>
@@ -129,7 +129,7 @@ export class MyBookingsComponent implements OnInit {
       next: (res) => {
         this.busy.set(null);
         this.confirmingCancel.set(null);
-        this.toasts.success(res.refundInitiated ? 'Booking cancelled — a refund is on its way.' : 'Booking cancelled.');
+        this.toasts.success(res.refundInitiated ? 'Booking cancelled. A refund is on its way.' : 'Booking cancelled.');
         this.load();
       },
       error: () => {

@@ -2,6 +2,16 @@ import { ChangeDetectionStrategy, Component, inject, OnInit, signal } from '@ang
 import { DatePipe, DecimalPipe } from '@angular/common';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router } from '@angular/router';
+import { NgIcon, provideIcons } from '@ng-icons/core';
+import {
+  phosphorBus,
+  phosphorSeat,
+  phosphorLockKey,
+  phosphorTicket,
+  phosphorQrCode,
+  phosphorFire,
+  phosphorMapTrifold,
+} from '@ng-icons/phosphor-icons/regular';
 import { ApiService } from '../../core/api/api.service';
 import { AuthService } from '../../core/auth/auth.service';
 import { BookingFlow } from '../../core/booking-flow';
@@ -15,87 +25,103 @@ interface Route {
 @Component({
   selector: 'app-search',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [ReactiveFormsModule, DatePipe, DecimalPipe],
+  imports: [ReactiveFormsModule, DatePipe, DecimalPipe, NgIcon],
+  providers: [
+    provideIcons({
+      phosphorBus,
+      phosphorSeat,
+      phosphorLockKey,
+      phosphorTicket,
+      phosphorQrCode,
+      phosphorFire,
+      phosphorMapTrifold,
+    }),
+  ],
   template: `
-    <!-- ░░ HERO (full-bleed, immersive) ░░ -->
-    <section class="full-bleed relative flex min-h-dvh items-center overflow-hidden bg-ink text-white">
-      <div class="pointer-events-none absolute -left-24 -top-24 h-80 w-80 rounded-full bg-brand-600/40 blur-3xl"></div>
-      <div class="pointer-events-none absolute -right-24 top-8 h-80 w-80 rounded-full bg-emerald-400/20 blur-3xl"></div>
-      <div class="pointer-events-none absolute -bottom-24 left-1/2 h-72 w-160 -translate-x-1/2 rounded-full bg-brand-500/10 blur-3xl"></div>
+    <!-- ░░ HERO — static image with the search content over it ░░ -->
+    <section
+      class="full-bleed relative flex min-h-[88vh] items-center overflow-hidden bg-ink bg-cover bg-center"
+      style="background-image: url('assets/hero.jpg')"
+    >
+      <!-- Light scrims only (nav top + section blend at bottom); the image stays clearly visible.
+           Text legibility comes from text-shadow on the copy, not a heavy overlay. -->
+      <div class="pointer-events-none absolute inset-x-0 top-0 h-28 bg-linear-to-b from-ink/45 to-transparent"></div>
+      <div class="pointer-events-none absolute inset-x-0 bottom-0 h-44 bg-linear-to-t from-ink/70 to-transparent"></div>
 
-      <div class="relative mx-auto w-full max-w-6xl px-4 py-24">
-        <div class="mx-auto max-w-3xl text-center">
-          <span class="badge bg-white/10 text-white ring-1 ring-white/15">
-            <span class="tracking-[0.2em] text-flag">★★★</span> Every Syrian bus company, one search
-          </span>
-          <h1 class="mt-5 text-4xl leading-[1.05] sm:text-6xl">
-            Your next trip across
-            <span class="bg-linear-to-r from-brand-300 via-brand-200 to-white bg-clip-text text-transparent">
-              Syria starts here.
+      <!-- Hero content (relative z-10 so it sits above the scrims; over the dark hero → white styling) -->
+      <div class="relative z-10 w-full">
+        <div class="mx-auto w-full max-w-6xl px-4 py-24 text-white">
+          <div class="max-w-2xl text-center [text-shadow:0_2px_18px_rgb(0_0_0_/_0.85)] lg:text-left">
+            <span class="badge bg-black/30 text-white ring-1 ring-white/20 backdrop-blur-sm">
+              <span class="tracking-[0.2em] text-flag">★★★</span> Every Syrian bus company, one search
             </span>
-          </h1>
-          <p class="mx-auto mt-5 max-w-xl text-base text-white/70 sm:text-lg">
-            Compare live departures, pick your exact seat, and pay securely — in under a minute.
-          </p>
-        </div>
-
-        <!-- Glass search bar -->
-        <form [formGroup]="form" (ngSubmit)="search()" class="mx-auto mt-10 max-w-4xl">
-          <div class="rounded-3xl bg-white p-2 shadow-glow sm:rounded-full">
-            <div class="grid gap-1 sm:grid-cols-[1fr_1fr_1fr_auto] sm:items-center">
-              <div class="rounded-2xl px-4 py-2 hover:bg-slate-50">
-                <label for="origin" class="block text-[11px] font-bold uppercase tracking-wide text-slate-400">From</label>
-                <input id="origin" formControlName="origin" placeholder="Damascus" class="w-full border-0 bg-transparent p-0 text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-0" />
-              </div>
-              <div class="rounded-2xl px-4 py-2 hover:bg-slate-50 sm:border-l sm:border-slate-100">
-                <label for="destination" class="block text-[11px] font-bold uppercase tracking-wide text-slate-400">To</label>
-                <input id="destination" formControlName="destination" placeholder="Latakia" class="w-full border-0 bg-transparent p-0 text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-0" />
-              </div>
-              <div class="rounded-2xl px-4 py-2 hover:bg-slate-50 sm:border-l sm:border-slate-100">
-                <label for="date" class="block text-[11px] font-bold uppercase tracking-wide text-slate-400">Date</label>
-                <input id="date" type="date" formControlName="date" class="w-full border-0 bg-transparent p-0 text-slate-900 focus:outline-none focus:ring-0" />
-              </div>
-              <button type="submit" [disabled]="loading()" class="btn btn-primary m-1 h-12 px-7">
-                @if (loading()) {
-                  <span class="h-4 w-4 animate-spin rounded-full border-2 border-white/40 border-t-white"></span>
-                } @else {
-                  <span>Search</span>
-                }
-              </button>
-            </div>
+            <h1 class="mt-5 text-4xl leading-[1.05] sm:text-6xl">
+              Your next trip across
+              <span class="text-brand-300">Syria starts here.</span>
+            </h1>
+            <p class="mx-auto mt-5 max-w-xl text-base text-white/75 sm:text-lg lg:mx-0">
+              Compare live departures, pick your exact seat, and pay securely, all in under a minute.
+            </p>
           </div>
 
-          <details class="group mx-auto mt-3 max-w-4xl">
-            <summary class="cursor-pointer select-none text-center text-sm font-medium text-white/70 hover:text-white">
-              More filters
-            </summary>
-            <div class="mt-3 grid gap-3 rounded-2xl bg-white p-3 sm:grid-cols-3">
-              <div>
-                <label for="company" class="label">Company</label>
-                <select id="company" formControlName="companyId" class="input">
-                  <option value="">Any company</option>
-                  @for (c of companies(); track c.id) {
-                    <option [value]="c.id">{{ c.name }}</option>
+          <!-- Styled search bar (pointer-events-auto to stay usable over the pinned canvas) -->
+          <form [formGroup]="form" (ngSubmit)="search()" class="pointer-events-auto mt-9 max-w-3xl">
+            <div class="rounded-3xl bg-white p-2 shadow-glow ring-1 ring-black/5 sm:rounded-full">
+              <div class="grid gap-1 sm:grid-cols-[1fr_1fr_1fr_auto] sm:items-center">
+                <div class="rounded-2xl px-4 py-2 hover:bg-slate-50">
+                  <label for="origin" class="block text-[11px] font-bold uppercase tracking-wide text-slate-400">From</label>
+                  <input id="origin" formControlName="origin" placeholder="Damascus" class="w-full border-0 bg-transparent p-0 text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-0" />
+                </div>
+                <div class="rounded-2xl px-4 py-2 hover:bg-slate-50 sm:border-l sm:border-slate-100">
+                  <label for="destination" class="block text-[11px] font-bold uppercase tracking-wide text-slate-400">To</label>
+                  <input id="destination" formControlName="destination" placeholder="Latakia" class="w-full border-0 bg-transparent p-0 text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-0" />
+                </div>
+                <div class="rounded-2xl px-4 py-2 hover:bg-slate-50 sm:border-l sm:border-slate-100">
+                  <label for="date" class="block text-[11px] font-bold uppercase tracking-wide text-slate-400">Date</label>
+                  <input id="date" type="date" formControlName="date" class="w-full border-0 bg-transparent p-0 text-slate-900 focus:outline-none focus:ring-0" />
+                </div>
+                <button type="submit" [disabled]="loading()" class="btn btn-primary m-1 h-12 px-7">
+                  @if (loading()) {
+                    <span class="h-4 w-4 animate-spin rounded-full border-2 border-white/40 border-t-white"></span>
+                  } @else {
+                    <span>Search</span>
                   }
-                </select>
-              </div>
-              <div>
-                <label for="maxPrice" class="label">Max price</label>
-                <input id="maxPrice" type="number" min="0" step="1000" formControlName="maxPrice" placeholder="Any" class="input" />
-              </div>
-              <div>
-                <label for="departAfter" class="label">Depart after</label>
-                <input id="departAfter" type="time" formControlName="departAfter" class="input" />
+                </button>
               </div>
             </div>
-          </details>
-        </form>
 
-        <div class="mt-10 flex flex-wrap items-center justify-center gap-x-8 gap-y-2 text-sm text-white/50">
-          <span>🚌 Every company</span>
-          <span>💺 Live seat maps</span>
-          <span>🔒 Secure payments</span>
-          <span>🎫 Instant QR tickets</span>
+            <details class="mt-3 max-w-3xl">
+              <summary class="cursor-pointer select-none text-center text-sm font-medium text-white/70 hover:text-white lg:text-left">
+                Advanced search
+              </summary>
+              <div class="mt-3 grid gap-3 rounded-2xl bg-white p-3 shadow-soft sm:grid-cols-3">
+                <div>
+                  <label for="company" class="mb-1.5 block text-sm font-semibold text-slate-700">Company</label>
+                  <select id="company" formControlName="companyId" class="w-full rounded-xl border-0 bg-slate-50 px-3 py-2 text-slate-900 ring-1 ring-inset ring-slate-200 focus:ring-2 focus:ring-inset focus:ring-brand-500">
+                    <option value="">Any company</option>
+                    @for (c of companies(); track c.id) {
+                      <option [value]="c.id">{{ c.name }}</option>
+                    }
+                  </select>
+                </div>
+                <div>
+                  <label for="maxPrice" class="mb-1.5 block text-sm font-semibold text-slate-700">Max price</label>
+                  <input id="maxPrice" type="number" min="0" step="1000" formControlName="maxPrice" placeholder="Any" class="w-full rounded-xl border-0 bg-slate-50 px-3 py-2 text-slate-900 ring-1 ring-inset ring-slate-200 focus:ring-2 focus:ring-inset focus:ring-brand-500" />
+                </div>
+                <div>
+                  <label for="departAfter" class="mb-1.5 block text-sm font-semibold text-slate-700">Depart after</label>
+                  <input id="departAfter" type="time" formControlName="departAfter" class="w-full rounded-xl border-0 bg-slate-50 px-3 py-2 text-slate-900 ring-1 ring-inset ring-slate-200 focus:ring-2 focus:ring-inset focus:ring-brand-500" />
+                </div>
+              </div>
+            </details>
+          </form>
+
+          <div class="mt-8 flex flex-wrap items-center justify-center gap-x-8 gap-y-2 text-sm text-white/80 [text-shadow:0_1px_10px_rgb(0_0_0_/_0.9)] lg:justify-start">
+            <span class="inline-flex items-center gap-1.5"><ng-icon name="phosphorBus" /> Every company</span>
+            <span class="inline-flex items-center gap-1.5"><ng-icon name="phosphorSeat" /> Live seat maps</span>
+            <span class="inline-flex items-center gap-1.5"><ng-icon name="phosphorLockKey" /> Secure payments</span>
+            <span class="inline-flex items-center gap-1.5"><ng-icon name="phosphorQrCode" /> Instant QR tickets</span>
+          </div>
         </div>
       </div>
     </section>
@@ -106,17 +132,17 @@ interface Route {
         <!-- Most booked routes -->
         <section>
           <p class="eyebrow">Most booked</p>
-          <h2 class="mt-1 text-2xl text-slate-900 sm:text-3xl">Trending routes this week</h2>
+          <h2 class="mt-1 text-2xl text-slate-900 dark:text-slate-100 sm:text-3xl">Trending routes this week</h2>
           <div class="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
             @for (r of popularRoutes; track r.from + r.to; let i = $index) {
               <button
                 type="button"
                 (click)="quickRoute(r)"
-                class="group relative overflow-hidden rounded-3xl bg-ink p-5 text-left text-white ring-1 ring-white/10 transition hover:-translate-y-0.5 hover:shadow-glow"
+                class="group relative overflow-hidden rounded-3xl bg-ink p-5 text-left text-white ring-1 ring-white/10 transition hover:-translate-y-0.5 hover:shadow-glow dark:bg-ink-700"
               >
                 <div class="absolute inset-0 bg-linear-to-br from-brand-600/50 to-transparent opacity-70 transition group-hover:opacity-100"></div>
                 @if (i === 0) {
-                  <span class="absolute right-3 top-3 z-10 rounded-full bg-accent-400 px-2 py-0.5 text-xs font-bold text-ink">🔥 Hot</span>
+                  <span class="absolute right-3 top-3 z-10 inline-flex items-center gap-1 rounded-full bg-accent-400 px-2 py-0.5 text-xs font-bold text-ink"><ng-icon name="phosphorFire" /> Hot</span>
                 }
                 <div class="relative">
                   <p class="text-sm text-white/60">{{ r.from }}</p>
@@ -130,14 +156,13 @@ interface Route {
 
         <!-- Why TPX -->
         <section class="mt-16">
-          <p class="eyebrow">Why TPX</p>
-          <h2 class="mt-1 text-2xl text-slate-900 sm:text-3xl">Everything in a couple of taps</h2>
+          <h2 class="text-2xl text-slate-900 dark:text-slate-100 sm:text-3xl">Everything in a couple of taps</h2>
           <div class="mt-6 grid gap-4 sm:grid-cols-3">
             @for (f of features; track f.title) {
               <div class="card p-6">
-                <span class="grid h-12 w-12 place-items-center rounded-2xl bg-brand-50 text-2xl">{{ f.icon }}</span>
-                <p class="mt-4 text-lg font-bold text-slate-900">{{ f.title }}</p>
-                <p class="mt-1 text-sm text-slate-500">{{ f.body }}</p>
+                <span class="grid h-12 w-12 place-items-center rounded-2xl bg-brand-50 text-2xl text-brand-600"><ng-icon [name]="f.icon" /></span>
+                <p class="mt-4 text-lg font-bold text-slate-900 dark:text-slate-100">{{ f.title }}</p>
+                <p class="mt-1 text-sm text-slate-500 dark:text-slate-400">{{ f.body }}</p>
               </div>
             }
           </div>
@@ -145,19 +170,18 @@ interface Route {
 
         <!-- Reviews carousel (auto-moving) -->
         <section class="mt-16">
-          <p class="eyebrow">Loved by travellers</p>
-          <h2 class="mt-1 text-2xl text-slate-900 sm:text-3xl">What riders say</h2>
+          <h2 class="text-2xl text-slate-900 dark:text-slate-100 sm:text-3xl">What riders say</h2>
           <div class="marquee mt-6">
             <div class="marquee-track flex gap-4 py-2">
               @for (r of reviewsLoop; track $index) {
                 <figure class="card w-80 shrink-0 p-5">
                   <div class="text-accent-400" aria-hidden="true">★★★★★</div>
-                  <blockquote class="mt-2 text-sm leading-relaxed text-slate-600">“{{ r.text }}”</blockquote>
+                  <blockquote class="mt-2 text-sm leading-relaxed text-slate-600 dark:text-slate-300">“{{ r.text }}”</blockquote>
                   <figcaption class="mt-4 flex items-center gap-3">
-                    <span class="grid h-9 w-9 place-items-center rounded-full bg-brand-100 text-sm font-bold text-brand-700">{{ r.name.charAt(0) }}</span>
+                    <span class="grid h-9 w-9 place-items-center rounded-full bg-brand-100 text-sm font-bold text-brand-700 dark:bg-brand-500/20 dark:text-brand-300">{{ r.name.charAt(0) }}</span>
                     <div>
-                      <p class="text-sm font-semibold text-slate-900">{{ r.name }}</p>
-                      <p class="text-xs text-slate-400">{{ r.route }}</p>
+                      <p class="text-sm font-semibold text-slate-900 dark:text-slate-100">{{ r.name }}</p>
+                      <p class="text-xs text-slate-400 dark:text-slate-500">{{ r.route }}</p>
                     </div>
                   </figcaption>
                 </figure>
@@ -187,8 +211,8 @@ interface Route {
               <div class="flex items-center gap-4">
                 <div class="h-12 w-12 rounded-2xl bg-slate-100"></div>
                 <div class="space-y-2">
-                  <div class="h-4 w-40 rounded bg-slate-100"></div>
-                  <div class="h-3 w-56 rounded bg-slate-100"></div>
+                  <div class="h-4 w-40 rounded bg-slate-100 dark:bg-white/10"></div>
+                  <div class="h-3 w-56 rounded bg-slate-100 dark:bg-white/10"></div>
                 </div>
               </div>
               <div class="h-10 w-28 rounded-full bg-slate-100"></div>
@@ -197,24 +221,24 @@ interface Route {
         } @else {
           @if (searched() && results().length === 0) {
             <div class="card flex flex-col items-center gap-2 p-12 text-center">
-              <span class="text-4xl">🗺️</span>
-              <p class="text-lg font-bold text-slate-900">No trips on that route yet</p>
-              <p class="text-sm text-slate-500">Try a different date, or clear the extra filters.</p>
+              <ng-icon name="phosphorMapTrifold" class="text-4xl text-slate-300 dark:text-slate-600" />
+              <p class="text-lg font-bold text-slate-900 dark:text-slate-100">No trips on that route yet</p>
+              <p class="text-sm text-slate-500 dark:text-slate-400">Try a different date, or clear the extra filters.</p>
             </div>
           }
           @if (results().length > 0) {
-            <h2 class="text-xl text-slate-900">{{ results().length }} trips found</h2>
+            <h2 class="text-xl text-slate-900 dark:text-slate-100">{{ results().length }} trips found</h2>
           }
           @for (trip of results(); track trip.id) {
             <article class="card flex flex-col gap-4 p-5 transition hover:-translate-y-0.5 hover:shadow-glow sm:flex-row sm:items-center sm:justify-between">
               <div class="flex items-center gap-4">
-                <div class="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-linear-to-br from-brand-500 to-brand-700 text-xl text-white">🚌</div>
+                <div class="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-linear-to-br from-brand-500 to-brand-700 text-xl text-white"><ng-icon name="phosphorBus" /></div>
                 <div>
-                  <p class="flex items-center gap-2 text-base font-bold text-slate-900">
+                  <p class="flex items-center gap-2 text-base font-bold text-slate-900 dark:text-slate-100">
                     {{ trip.origin }} <span class="text-brand-500">→</span> {{ trip.destination }}
                   </p>
-                  <p class="text-sm text-slate-500">
-                    {{ trip.departureUtc | date: 'EEE, MMM d • HH:mm' }} — arrives {{ trip.arrivalUtc | date: 'HH:mm' }}
+                  <p class="text-sm text-slate-500 dark:text-slate-400">
+                    {{ trip.departureUtc | date: 'EEE, MMM d, HH:mm' }} · arrives {{ trip.arrivalUtc | date: 'HH:mm' }}
                   </p>
                   <div class="mt-1.5">
                     @if (trip.availableSeats === 0) {
@@ -229,10 +253,10 @@ interface Route {
               </div>
               <div class="flex items-center justify-between gap-5 sm:flex-col sm:items-end">
                 <div class="text-right">
-                  <div class="text-2xl font-bold text-slate-900">
-                    {{ trip.price | number: '1.0-0' }} <span class="text-sm font-semibold text-slate-500">{{ trip.currency }}</span>
+                  <div class="text-2xl font-bold text-slate-900 dark:text-slate-100">
+                    {{ trip.price | number: '1.0-0' }} <span class="text-sm font-semibold text-slate-500 dark:text-slate-400">{{ trip.currency }}</span>
                   </div>
-                  <div class="text-xs text-slate-400">per seat</div>
+                  <div class="text-xs text-slate-400 dark:text-slate-500">per seat</div>
                 </div>
                 <button type="button" [disabled]="trip.availableSeats === 0" (click)="book(trip)" class="btn btn-primary">
                   Select seats
@@ -265,15 +289,15 @@ export class SearchComponent implements OnInit {
   ];
 
   protected readonly features = [
-    { icon: '💺', title: 'Pick your seat', body: 'A live seat map for every bus — choose exactly where you sit.' },
-    { icon: '🔒', title: 'Secure payment', body: 'Pay through a trusted gateway. We never store your card.' },
-    { icon: '🎫', title: 'Instant ticket', body: 'Get a QR ticket the moment your booking is confirmed.' },
+    { icon: 'phosphorSeat', title: 'Pick your seat', body: 'A live seat map for every bus, so you pick exactly where you sit.' },
+    { icon: 'phosphorLockKey', title: 'Secure payment', body: 'Pay through a trusted gateway. We never store your card.' },
+    { icon: 'phosphorTicket', title: 'Instant ticket', body: 'Get a QR ticket the moment your booking is confirmed.' },
   ];
 
   protected readonly reviews = [
     { name: 'Rana K.', route: 'Damascus → Aleppo', text: 'Booked in a minute and picked my exact seat. So easy.' },
     { name: 'Omar H.', route: 'Homs → Damascus', text: 'Loved seeing every company in one place and grabbing the best price.' },
-    { name: 'Lina S.', route: 'Latakia → Damascus', text: 'The QR ticket worked perfectly at boarding — no paper needed.' },
+    { name: 'Lina S.', route: 'Latakia → Damascus', text: 'The QR ticket worked perfectly at boarding. No paper needed.' },
     { name: 'Yusuf A.', route: 'Aleppo → Latakia', text: 'I had to cancel and the refund was quick and painless.' },
     { name: 'Maya D.', route: 'Damascus → Latakia', text: 'Finally a clean, modern way to book buses. Highly recommend.' },
   ];

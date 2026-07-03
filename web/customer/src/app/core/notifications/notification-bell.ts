@@ -26,7 +26,7 @@ import { NotificationService } from './notification.service';
         <div class="absolute right-0 z-20 mt-2 w-80 rounded-md border border-slate-200 bg-white shadow-lg">
           <div class="flex items-center justify-between border-b border-slate-100 px-3 py-2">
             <span class="text-sm font-semibold text-slate-700">Notifications</span>
-            <button type="button" (click)="notifications.markAllRead()" class="text-xs text-indigo-600 hover:text-indigo-700">
+            <button type="button" (click)="notifications.markAllRead()" class="text-xs text-brand-600 hover:text-brand-700">
               Mark all read
             </button>
           </div>
@@ -34,7 +34,7 @@ import { NotificationService } from './notification.service';
             @for (n of notifications.notifications(); track n.id) {
               <div
                 class="flex items-start gap-2 border-b border-slate-50 px-3 py-2 hover:bg-slate-50"
-                [class.bg-indigo-50]="!n.isRead"
+                [class.bg-brand-50]="!n.isRead"
               >
                 <button type="button" (click)="notifications.markRead(n.id)" class="flex-1 text-left">
                   <p class="text-sm font-medium text-slate-800">{{ n.title }}</p>

@@ -17,7 +17,7 @@ import { AdminNavComponent } from './admin-nav';
       [value]="search()"
       (input)="onSearch($event)"
       placeholder="Search by name or email…"
-      class="mb-3 w-full max-w-sm rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+      class="mb-3 w-full max-w-sm rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
     />
 
     @if (loading()) {
@@ -65,7 +65,7 @@ import { AdminNavComponent } from './admin-nav';
           </tbody>
         </table>
       </div>
-      <p class="mt-2 text-xs text-slate-400">Showing {{ customers().length }} of {{ total() }} customer(s) — refine with search.</p>
+      <p class="mt-2 text-xs text-slate-400">Showing {{ customers().length }} of {{ total() }} customer(s). Refine with search.</p>
     }
   `,
 })

@@ -54,6 +54,11 @@
          everywhere. (This app uses no XML signing/SAML, so the vulnerable code path is never hit
          — the pin is defense-in-depth + a clean restore.) -->
     <PackageVersion Include="System.Security.Cryptography.Xml" Version="10.0.8" />
+    <!-- Microsoft.AspNetCore.OpenApi 10.0.0 transitively pulls Microsoft.OpenApi 2.0.0, which
+         carries a high-severity advisory (GHSA-v5pm-xwqc-g5wc), which also affects 2.0.1/2.2.0.
+         Pin to the latest 2.x (past the advisory) — same major, API-compatible with the OpenAPI
+         package — rather than 3.x, which is a major bump the ASP.NET OpenAPI package doesn't expect. -->
+    <PackageVersion Include="Microsoft.OpenApi" Version="2.9.0" />
   </ItemGroup>
 
   <ItemGroup Label="Reports / exports">

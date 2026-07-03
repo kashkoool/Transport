@@ -68,11 +68,11 @@ import { VendorNavComponent } from './vendor-nav';
         <form [formGroup]="form" (ngSubmit)="submit()" class="space-y-3">
           <div>
             <label for="code" class="mb-1 block text-sm font-medium text-slate-700">Code</label>
-            <input id="code" type="text" formControlName="code" class="w-full rounded-md border border-slate-300 px-3 py-2 uppercase focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500" />
+            <input id="code" type="text" formControlName="code" class="w-full rounded-md border border-slate-300 px-3 py-2 uppercase focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500" />
           </div>
           <div>
             <label for="discountType" class="mb-1 block text-sm font-medium text-slate-700">Type</label>
-            <select id="discountType" formControlName="discountType" class="w-full rounded-md border border-slate-300 px-3 py-2 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500">
+            <select id="discountType" formControlName="discountType" class="w-full rounded-md border border-slate-300 px-3 py-2 focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500">
               <option value="Percent">Percentage</option>
               <option value="Fixed">Fixed amount</option>
             </select>
@@ -81,17 +81,17 @@ import { VendorNavComponent } from './vendor-nav';
             <label for="discountValue" class="mb-1 block text-sm font-medium text-slate-700">
               {{ form.controls.discountType.value === 'Percent' ? 'Percent off (1–100)' : 'Amount off' }}
             </label>
-            <input id="discountValue" type="number" min="1" formControlName="discountValue" class="w-full rounded-md border border-slate-300 px-3 py-2 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500" />
+            <input id="discountValue" type="number" min="1" formControlName="discountValue" class="w-full rounded-md border border-slate-300 px-3 py-2 focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500" />
           </div>
           <div>
             <label for="maxRedemptions" class="mb-1 block text-sm font-medium text-slate-700">Max uses (optional)</label>
-            <input id="maxRedemptions" type="number" min="1" formControlName="maxRedemptions" class="w-full rounded-md border border-slate-300 px-3 py-2 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500" />
+            <input id="maxRedemptions" type="number" min="1" formControlName="maxRedemptions" class="w-full rounded-md border border-slate-300 px-3 py-2 focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500" />
           </div>
           <div>
             <label for="expires" class="mb-1 block text-sm font-medium text-slate-700">Expires (optional)</label>
-            <input id="expires" type="date" formControlName="expires" class="w-full rounded-md border border-slate-300 px-3 py-2 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500" />
+            <input id="expires" type="date" formControlName="expires" class="w-full rounded-md border border-slate-300 px-3 py-2 focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500" />
           </div>
-          <button type="submit" [disabled]="submitting()" class="w-full rounded-md bg-indigo-600 px-4 py-2 font-medium text-white hover:bg-indigo-700 disabled:opacity-50">
+          <button type="submit" [disabled]="submitting()" class="w-full rounded-md bg-brand-600 px-4 py-2 font-medium text-white hover:bg-brand-700 disabled:opacity-50">
             {{ submitting() ? 'Creating…' : 'Create code' }}
           </button>
         </form>

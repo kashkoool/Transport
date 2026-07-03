@@ -20,7 +20,7 @@ import { VendorNavComponent } from './vendor-nav';
           [value]="search()"
           (input)="onSearch($event)"
           placeholder="Search by name or phone…"
-          class="mb-3 w-full max-w-sm rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+          class="mb-3 w-full max-w-sm rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
         />
         @if (loading()) {
           <p class="text-slate-500">Loading…</p>
@@ -56,17 +56,17 @@ import { VendorNavComponent } from './vendor-nav';
         <form [formGroup]="form" (ngSubmit)="submit()" class="space-y-3">
           <div>
             <label for="fullName" class="mb-1 block text-sm font-medium text-slate-700">Full name</label>
-            <input id="fullName" type="text" formControlName="fullName" class="w-full rounded-md border border-slate-300 px-3 py-2 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500" />
+            <input id="fullName" type="text" formControlName="fullName" class="w-full rounded-md border border-slate-300 px-3 py-2 focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500" />
           </div>
           <div>
             <label for="phone" class="mb-1 block text-sm font-medium text-slate-700">Phone (optional)</label>
-            <input id="phone" type="tel" formControlName="phone" class="w-full rounded-md border border-slate-300 px-3 py-2 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500" />
+            <input id="phone" type="tel" formControlName="phone" class="w-full rounded-md border border-slate-300 px-3 py-2 focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500" />
           </div>
           <div>
             <label for="licenseNumber" class="mb-1 block text-sm font-medium text-slate-700">License # (optional)</label>
-            <input id="licenseNumber" type="text" formControlName="licenseNumber" class="w-full rounded-md border border-slate-300 px-3 py-2 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500" />
+            <input id="licenseNumber" type="text" formControlName="licenseNumber" class="w-full rounded-md border border-slate-300 px-3 py-2 focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500" />
           </div>
-          <button type="submit" [disabled]="submitting()" class="w-full rounded-md bg-indigo-600 px-4 py-2 font-medium text-white hover:bg-indigo-700 disabled:opacity-50">
+          <button type="submit" [disabled]="submitting()" class="w-full rounded-md bg-brand-600 px-4 py-2 font-medium text-white hover:bg-brand-700 disabled:opacity-50">
             {{ submitting() ? 'Adding…' : 'Add driver' }}
           </button>
         </form>

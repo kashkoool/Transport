@@ -27,13 +27,13 @@ type Tab = 'trips' | 'bookings' | 'employees';
     <form [formGroup]="rangeForm" (ngSubmit)="load()" class="mb-6 flex flex-wrap items-end gap-3">
       <div>
         <label for="from" class="mb-1 block text-sm font-medium text-slate-700">From</label>
-        <input id="from" type="date" formControlName="from" class="rounded-md border border-slate-300 px-3 py-2 focus:border-indigo-500 focus:outline-none" />
+        <input id="from" type="date" formControlName="from" class="rounded-md border border-slate-300 px-3 py-2 focus:border-brand-500 focus:outline-none" />
       </div>
       <div>
         <label for="to" class="mb-1 block text-sm font-medium text-slate-700">To</label>
-        <input id="to" type="date" formControlName="to" class="rounded-md border border-slate-300 px-3 py-2 focus:border-indigo-500 focus:outline-none" />
+        <input id="to" type="date" formControlName="to" class="rounded-md border border-slate-300 px-3 py-2 focus:border-brand-500 focus:outline-none" />
       </div>
-      <button type="submit" class="rounded-md bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700">Apply</button>
+      <button type="submit" class="rounded-md bg-brand-600 px-4 py-2 text-sm font-medium text-white hover:bg-brand-700">Apply</button>
       <span class="flex-1"></span>
       @if (tab() !== 'employees') {
         <div class="flex gap-2">
@@ -71,7 +71,7 @@ type Tab = 'trips' | 'bookings' | 'employees';
           @for (t of tabs; track t.key) {
             <button type="button" (click)="setTab(t.key)"
               class="-mb-px border-b-2 px-4 py-2 text-sm font-medium"
-              [class.border-indigo-600]="tab() === t.key" [class.text-indigo-700]="tab() === t.key"
+              [class.border-brand-600]="tab() === t.key" [class.text-brand-700]="tab() === t.key"
               [class.border-transparent]="tab() !== t.key" [class.text-slate-500]="tab() !== t.key">
               {{ t.label }}
             </button>
@@ -155,10 +155,10 @@ type Tab = 'trips' | 'bookings' | 'employees';
         <h2 class="mb-3 font-semibold text-slate-900">Demand forecast</h2>
         <form [formGroup]="demandForm" (ngSubmit)="predict()" class="space-y-3">
           <div class="grid grid-cols-2 gap-2">
-            <input type="text" formControlName="origin" placeholder="From" class="rounded-md border border-slate-300 px-3 py-2 focus:border-indigo-500 focus:outline-none" />
-            <input type="text" formControlName="destination" placeholder="To" class="rounded-md border border-slate-300 px-3 py-2 focus:border-indigo-500 focus:outline-none" />
+            <input type="text" formControlName="origin" placeholder="From" class="rounded-md border border-slate-300 px-3 py-2 focus:border-brand-500 focus:outline-none" />
+            <input type="text" formControlName="destination" placeholder="To" class="rounded-md border border-slate-300 px-3 py-2 focus:border-brand-500 focus:outline-none" />
           </div>
-          <input type="date" formControlName="date" class="w-full rounded-md border border-slate-300 px-3 py-2 focus:border-indigo-500 focus:outline-none" />
+          <input type="date" formControlName="date" class="w-full rounded-md border border-slate-300 px-3 py-2 focus:border-brand-500 focus:outline-none" />
           <button type="submit" [disabled]="predicting()" class="w-full rounded-md bg-slate-800 px-4 py-2 text-sm font-medium text-white hover:bg-slate-900 disabled:opacity-50">
             {{ predicting() ? 'Forecasting…' : 'Forecast' }}
           </button>

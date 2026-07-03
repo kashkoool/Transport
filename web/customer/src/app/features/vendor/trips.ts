@@ -53,7 +53,7 @@ import { VendorNavComponent } from './vendor-nav';
                 <div class="mt-3 flex flex-wrap items-center gap-2 border-t border-slate-100 pt-3">
                   @if (t.status === 'Scheduled') {
                     <button type="button" [disabled]="busy() === t.id" (click)="start(t)" class="rounded-md bg-sky-50 px-3 py-1.5 text-sm font-medium text-sky-700 hover:bg-sky-100 disabled:opacity-50">Start</button>
-                    <button type="button" (click)="edit(t)" class="text-sm font-medium text-indigo-600 hover:text-indigo-700">Edit</button>
+                    <button type="button" (click)="edit(t)" class="text-sm font-medium text-brand-600 hover:text-brand-700">Edit</button>
                     <button type="button" (click)="openStops(t)" class="text-sm font-medium text-slate-600 hover:text-slate-800">Stops</button>
                     <button type="button" [disabled]="busy() === t.id" (click)="cancel(t)" class="text-sm font-medium text-rose-600 hover:text-rose-700">Cancel</button>
                     @if (confirmingDelete() === t.id) {
@@ -76,16 +76,16 @@ import { VendorNavComponent } from './vendor-nav';
                     <div formArrayName="stops" class="space-y-2">
                       @for (g of stops.controls; track $index) {
                         <div [formGroupName]="$index" class="flex flex-wrap items-center gap-2">
-                          <input type="text" formControlName="name" placeholder="Stop name" class="flex-1 rounded-md border border-slate-300 px-2 py-1 text-sm focus:border-indigo-500 focus:outline-none" />
-                          <input type="datetime-local" formControlName="arrival" class="rounded-md border border-slate-300 px-2 py-1 text-sm focus:border-indigo-500 focus:outline-none" />
+                          <input type="text" formControlName="name" placeholder="Stop name" class="flex-1 rounded-md border border-slate-300 px-2 py-1 text-sm focus:border-brand-500 focus:outline-none" />
+                          <input type="datetime-local" formControlName="arrival" class="rounded-md border border-slate-300 px-2 py-1 text-sm focus:border-brand-500 focus:outline-none" />
                           <button type="button" (click)="removeStop($index)" class="text-sm text-rose-500 hover:text-rose-700">✕</button>
                         </div>
                       }
                     </div>
                     <div class="mt-2 flex gap-2">
-                      <button type="button" (click)="addStop()" class="text-sm font-medium text-indigo-600 hover:text-indigo-700">+ Add stop</button>
+                      <button type="button" (click)="addStop()" class="text-sm font-medium text-brand-600 hover:text-brand-700">+ Add stop</button>
                       <span class="flex-1"></span>
-                      <button type="submit" [disabled]="busy() === t.id" class="rounded-md bg-indigo-600 px-3 py-1 text-sm font-medium text-white hover:bg-indigo-700 disabled:opacity-50">Save stops</button>
+                      <button type="submit" [disabled]="busy() === t.id" class="rounded-md bg-brand-600 px-3 py-1 text-sm font-medium text-white hover:bg-brand-700 disabled:opacity-50">Save stops</button>
                       <button type="button" (click)="stopsTripId.set(null)" class="text-sm text-slate-500">Close</button>
                     </div>
                   </form>
@@ -105,7 +105,7 @@ import { VendorNavComponent } from './vendor-nav';
           <form [formGroup]="form" (ngSubmit)="submit()" class="space-y-3">
             <div>
               <label for="busId" class="mb-1 block text-sm font-medium text-slate-700">Bus</label>
-              <select id="busId" formControlName="busId" [attr.disabled]="editingId() ? '' : null" class="w-full rounded-md border border-slate-300 px-3 py-2 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500">
+              <select id="busId" formControlName="busId" [attr.disabled]="editingId() ? '' : null" class="w-full rounded-md border border-slate-300 px-3 py-2 focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500">
                 <option value="">Select…</option>
                 @for (b of buses(); track b.id) {
                   <option [value]="b.id">{{ b.busNumber }} ({{ b.seatCount }} seats, {{ b.type }})</option>
@@ -113,22 +113,22 @@ import { VendorNavComponent } from './vendor-nav';
               </select>
             </div>
             <div class="grid grid-cols-2 gap-2">
-              <input type="text" formControlName="origin" placeholder="From" class="rounded-md border border-slate-300 px-3 py-2 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500" />
-              <input type="text" formControlName="destination" placeholder="To" class="rounded-md border border-slate-300 px-3 py-2 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500" />
+              <input type="text" formControlName="origin" placeholder="From" class="rounded-md border border-slate-300 px-3 py-2 focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500" />
+              <input type="text" formControlName="destination" placeholder="To" class="rounded-md border border-slate-300 px-3 py-2 focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500" />
             </div>
             <div>
               <label for="departure" class="mb-1 block text-sm font-medium text-slate-700">Departure</label>
-              <input id="departure" type="datetime-local" formControlName="departure" class="w-full rounded-md border border-slate-300 px-3 py-2 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500" />
+              <input id="departure" type="datetime-local" formControlName="departure" class="w-full rounded-md border border-slate-300 px-3 py-2 focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500" />
             </div>
             <div>
               <label for="arrival" class="mb-1 block text-sm font-medium text-slate-700">Arrival</label>
-              <input id="arrival" type="datetime-local" formControlName="arrival" class="w-full rounded-md border border-slate-300 px-3 py-2 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500" />
+              <input id="arrival" type="datetime-local" formControlName="arrival" class="w-full rounded-md border border-slate-300 px-3 py-2 focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500" />
             </div>
             <div class="grid grid-cols-2 gap-2">
-              <input type="number" min="0" step="1000" formControlName="price" placeholder="Price" class="rounded-md border border-slate-300 px-3 py-2 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500" />
-              <input type="text" maxlength="3" formControlName="currency" placeholder="SYP" class="rounded-md border border-slate-300 px-3 py-2 uppercase focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500" />
+              <input type="number" min="0" step="1000" formControlName="price" placeholder="Price" class="rounded-md border border-slate-300 px-3 py-2 focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500" />
+              <input type="text" maxlength="3" formControlName="currency" placeholder="SYP" class="rounded-md border border-slate-300 px-3 py-2 uppercase focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500" />
             </div>
-            <button type="submit" [disabled]="submitting()" class="w-full rounded-md bg-indigo-600 px-4 py-2 font-medium text-white hover:bg-indigo-700 disabled:opacity-50">
+            <button type="submit" [disabled]="submitting()" class="w-full rounded-md bg-brand-600 px-4 py-2 font-medium text-white hover:bg-brand-700 disabled:opacity-50">
               {{ submitting() ? 'Saving…' : editingId() ? 'Save changes' : 'Schedule trip' }}
             </button>
             @if (editingId()) {
@@ -282,7 +282,7 @@ export class VendorTripsComponent implements OnInit {
       next: (r) => {
         this.busy.set(null);
         const extra = r.confirmedBookingsAffected > 0 ? ` ${r.confirmedBookingsAffected} paid booking(s) need a refund.` : '';
-        this.toasts.info(`Trip cancelled — released ${r.releasedHolds} hold(s), cancelled ${r.cancelledPendingBookings} pending.${extra}`);
+        this.toasts.info(`Trip cancelled. Released ${r.releasedHolds} hold(s), cancelled ${r.cancelledPendingBookings} pending.${extra}`);
         this.load();
       },
       error: () => this.busy.set(null),

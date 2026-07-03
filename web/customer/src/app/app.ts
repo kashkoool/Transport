@@ -2,14 +2,18 @@ import { ChangeDetectionStrategy, Component, computed, HostListener, inject, sig
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { NavigationEnd, Router, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
 import { filter } from 'rxjs';
+import { NgIcon, provideIcons } from '@ng-icons/core';
+import { phosphorBus, phosphorSun, phosphorMoon } from '@ng-icons/phosphor-icons/regular';
 import { AuthService } from './core/auth/auth.service';
+import { ThemeService } from './core/theme/theme.service';
 import { ToastComponent } from './core/toast/toast';
 import { NotificationBellComponent } from './core/notifications/notification-bell';
 
 @Component({
   selector: 'app-root',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [RouterOutlet, RouterLink, RouterLinkActive, ToastComponent, NotificationBellComponent],
+  imports: [RouterOutlet, RouterLink, RouterLinkActive, ToastComponent, NotificationBellComponent, NgIcon],
+  providers: [provideIcons({ phosphorBus, phosphorSun, phosphorMoon })],
   template: `
     <div class="flex min-h-full flex-col">
       <!-- On the landing the header is dark and merges seamlessly into the hero; elsewhere it's a
@@ -17,9 +21,9 @@ import { NotificationBellComponent } from './core/notifications/notification-bel
       <header [class]="headerClass()">
         <nav class="mx-auto flex max-w-6xl items-center justify-between gap-4 px-4 py-3">
           <a [routerLink]="auth.homeRoute()" class="flex items-center gap-2.5">
-            <span class="grid h-9 w-9 place-items-center rounded-xl bg-linear-to-br from-brand-500 to-brand-700 text-lg shadow-sm">🚌</span>
-            <span class="text-lg font-extrabold tracking-tight" [class.text-white]="isLanding()" [class.text-slate-900]="!isLanding()">
-              TPX<span [class.text-brand-300]="isLanding()" [class.text-brand-600]="!isLanding()">Travel</span>
+            <span class="grid h-9 w-9 place-items-center rounded-xl bg-linear-to-br from-brand-500 to-brand-700 text-lg shadow-sm"><ng-icon name="phosphorBus" class="text-white" /></span>
+            <span class="text-lg font-extrabold tracking-tight">
+              TPX<span class="text-brand-600 dark:text-brand-300">Travel</span>
             </span>
           </a>
 
@@ -41,17 +45,25 @@ import { NotificationBellComponent } from './core/notifications/notification-bel
               }
             }
 
+            <button
+              type="button"
+              (click)="theme.toggle()"
+              [attr.aria-label]="theme.theme() === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'"
+              class="navlink px-2.5"
+            >
+              <ng-icon [name]="theme.theme() === 'dark' ? 'phosphorSun' : 'phosphorMoon'" class="text-lg" />
+            </button>
+
             @if (auth.isAuthenticated()) {
               <app-notification-bell />
               <a
                 [routerLink]="'/account'"
-                class="hidden items-center gap-2 rounded-full py-1 pl-1 pr-3 ring-1 sm:flex"
-                [class]="isLanding() ? 'bg-white/10 ring-white/15 hover:bg-white/20' : 'bg-slate-50 ring-slate-200 hover:bg-slate-100'"
+                class="hidden items-center gap-2 rounded-full py-1 pl-1 pr-3 ring-1 bg-slate-50 ring-slate-200 hover:bg-slate-100 dark:bg-white/10 dark:ring-white/15 dark:hover:bg-white/20 sm:flex"
               >
                 <span class="grid h-7 w-7 place-items-center rounded-full bg-brand-600 text-xs font-bold text-white">{{ initial() }}</span>
-                <span class="max-w-40 truncate text-xs font-medium" [class.text-white]="isLanding()" [class.text-slate-600]="!isLanding()">{{ auth.email() }}</span>
+                <span class="max-w-40 truncate text-xs font-medium text-slate-600 dark:text-slate-300">{{ auth.email() }}</span>
               </a>
-              <button type="button" (click)="logout()" class="btn px-3 py-1.5" [class]="isLanding() ? 'bg-white/10 text-white hover:bg-white/20' : 'btn-ghost'">
+              <button type="button" (click)="logout()" class="btn btn-ghost px-3 py-1.5">
                 Log out
               </button>
             } @else {
@@ -70,11 +82,11 @@ import { NotificationBellComponent } from './core/notifications/notification-bel
         <div class="mx-auto grid max-w-6xl gap-8 px-4 py-12 sm:grid-cols-2 lg:grid-cols-4">
           <div class="sm:col-span-2 lg:col-span-1">
             <div class="flex items-center gap-2.5">
-              <span class="grid h-9 w-9 place-items-center rounded-xl bg-linear-to-br from-brand-500 to-brand-700 text-lg">🚌</span>
+              <span class="grid h-9 w-9 place-items-center rounded-xl bg-linear-to-br from-brand-500 to-brand-700 text-lg"><ng-icon name="phosphorBus" class="text-white" /></span>
               <span class="text-lg font-extrabold">TPX<span class="text-brand-300">Travel</span></span>
             </div>
             <p class="mt-4 max-w-xs text-sm text-white/60">
-              Book bus trips across Syria — compare every company, pick your seat, and pay securely.
+              Book bus trips across Syria. Compare every company, pick your seat, and pay securely.
             </p>
             <p class="mt-4 tracking-[0.3em] text-flag">★★★</p>
           </div>
@@ -122,6 +134,7 @@ import { NotificationBellComponent } from './core/notifications/notification-bel
 })
 export class App {
   protected readonly auth = inject(AuthService);
+  protected readonly theme = inject(ThemeService);
   private readonly router = inject(Router);
 
   protected readonly isLanding = signal(this.atLanding());
@@ -134,10 +147,10 @@ export class App {
    */
   protected readonly headerClass = computed(() => {
     if (!this.isLanding()) {
-      return 'sticky top-0 z-40 border-b border-slate-200/70 bg-white/80 text-slate-700 backdrop-blur';
+      return 'sticky top-0 z-40 border-b border-slate-200/70 bg-white/80 text-slate-700 backdrop-blur dark:border-white/10 dark:bg-ink/80 dark:text-slate-200';
     }
     return this.scrolled()
-      ? 'fixed inset-x-0 top-0 z-40 border-b border-white/10 bg-ink/70 text-white backdrop-blur-md'
+      ? 'fixed inset-x-0 top-0 z-40 border-b border-slate-200/70 bg-white/70 text-slate-900 backdrop-blur-md dark:border-white/10 dark:bg-ink/70 dark:text-white'
       : 'fixed inset-x-0 top-0 z-40 bg-transparent text-white';
   });
 

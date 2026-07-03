@@ -26,13 +26,13 @@ import { AuthService } from '../../core/auth/auth.service';
               type="email"
               formControlName="email"
               autocomplete="email"
-              class="w-full rounded-md border border-slate-300 px-3 py-2 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+              class="w-full rounded-md border border-slate-300 px-3 py-2 focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
             />
           </div>
           <button
             type="submit"
             [disabled]="submitting()"
-            class="w-full rounded-md bg-indigo-600 px-4 py-2 font-medium text-white hover:bg-indigo-700 disabled:opacity-50"
+            class="w-full rounded-md bg-brand-600 px-4 py-2 font-medium text-white hover:bg-brand-700 disabled:opacity-50"
           >
             {{ submitting() ? 'Sending…' : 'Send reset link' }}
           </button>
@@ -40,7 +40,7 @@ import { AuthService } from '../../core/auth/auth.service';
       }
       <p class="mt-4 text-center text-sm text-slate-600">
         Remembered it?
-        <a routerLink="/login" class="font-medium text-indigo-600 hover:text-indigo-700">Back to sign in</a>
+        <a routerLink="/login" class="font-medium text-brand-600 hover:text-brand-700">Back to sign in</a>
       </p>
     </div>
   `,

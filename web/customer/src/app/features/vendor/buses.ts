@@ -26,7 +26,7 @@ const BUS_TYPES: BusType[] = ['Standard', 'Premium', 'Luxury', 'Sleeper'];
           [value]="search()"
           (input)="onSearch($event)"
           placeholder="Search by bus number or model…"
-          class="mb-3 w-full max-w-sm rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+          class="mb-3 w-full max-w-sm rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
         />
         @if (loading()) {
           <p class="text-slate-500">Loading…</p>
@@ -56,16 +56,16 @@ const BUS_TYPES: BusType[] = ['Standard', 'Premium', 'Luxury', 'Sleeper'];
                       <select
                         [value]="b.driverId ?? ''"
                         (change)="assignDriver(b, $any($event.target).value)"
-                        class="rounded-md border border-slate-300 px-2 py-1 text-sm focus:border-indigo-500 focus:outline-none"
+                        class="rounded-md border border-slate-300 px-2 py-1 text-sm focus:border-brand-500 focus:outline-none"
                       >
-                        <option value="">— none —</option>
+                        <option value="">(none)</option>
                         @for (d of drivers(); track d.id) {
                           <option [value]="d.id">{{ d.fullName }}</option>
                         }
                       </select>
                     </td>
                     <td class="px-4 py-2 text-right whitespace-nowrap">
-                      <button type="button" (click)="edit(b)" class="text-sm font-medium text-indigo-600 hover:text-indigo-700">Edit</button>
+                      <button type="button" (click)="edit(b)" class="text-sm font-medium text-brand-600 hover:text-brand-700">Edit</button>
                       @if (confirmingDelete() === b.id) {
                         <button type="button" [disabled]="busy()" (click)="remove(b)" class="ml-3 text-sm font-medium text-rose-600 hover:text-rose-700">Confirm</button>
                         <button type="button" (click)="confirmingDelete.set(null)" class="ml-2 text-sm text-slate-500">Keep</button>
@@ -87,21 +87,21 @@ const BUS_TYPES: BusType[] = ['Standard', 'Premium', 'Luxury', 'Sleeper'];
         <form [formGroup]="form" (ngSubmit)="submit()" class="space-y-3">
           <div>
             <label for="busNumber" class="mb-1 block text-sm font-medium text-slate-700">Bus number</label>
-            <input id="busNumber" type="text" formControlName="busNumber" [readonly]="!!editingId()" class="w-full rounded-md border border-slate-300 px-3 py-2 read-only:bg-slate-50 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500" />
+            <input id="busNumber" type="text" formControlName="busNumber" [readonly]="!!editingId()" class="w-full rounded-md border border-slate-300 px-3 py-2 read-only:bg-slate-50 focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500" />
           </div>
           <div class="grid grid-cols-2 gap-2">
             <div>
               <label for="seatCount" class="mb-1 block text-sm font-medium text-slate-700">Seats</label>
-              <input id="seatCount" type="number" min="1" max="120" formControlName="seatCount" class="w-full rounded-md border border-slate-300 px-3 py-2 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500" />
+              <input id="seatCount" type="number" min="1" max="120" formControlName="seatCount" class="w-full rounded-md border border-slate-300 px-3 py-2 focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500" />
             </div>
             <div>
               <label for="seatsPerRow" class="mb-1 block text-sm font-medium text-slate-700">Seats / row</label>
-              <input id="seatsPerRow" type="number" min="1" max="6" formControlName="seatsPerRow" class="w-full rounded-md border border-slate-300 px-3 py-2 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500" />
+              <input id="seatsPerRow" type="number" min="1" max="6" formControlName="seatsPerRow" class="w-full rounded-md border border-slate-300 px-3 py-2 focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500" />
             </div>
           </div>
           <div>
             <label for="type" class="mb-1 block text-sm font-medium text-slate-700">Type</label>
-            <select id="type" formControlName="type" class="w-full rounded-md border border-slate-300 px-3 py-2 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500">
+            <select id="type" formControlName="type" class="w-full rounded-md border border-slate-300 px-3 py-2 focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500">
               @for (t of busTypes; track t) {
                 <option [value]="t">{{ t }}</option>
               }
@@ -109,9 +109,9 @@ const BUS_TYPES: BusType[] = ['Standard', 'Premium', 'Luxury', 'Sleeper'];
           </div>
           <div>
             <label for="model" class="mb-1 block text-sm font-medium text-slate-700">Model (optional)</label>
-            <input id="model" type="text" formControlName="model" class="w-full rounded-md border border-slate-300 px-3 py-2 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500" />
+            <input id="model" type="text" formControlName="model" class="w-full rounded-md border border-slate-300 px-3 py-2 focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500" />
           </div>
-          <button type="submit" [disabled]="submitting()" class="w-full rounded-md bg-indigo-600 px-4 py-2 font-medium text-white hover:bg-indigo-700 disabled:opacity-50">
+          <button type="submit" [disabled]="submitting()" class="w-full rounded-md bg-brand-600 px-4 py-2 font-medium text-white hover:bg-brand-700 disabled:opacity-50">
             {{ submitting() ? 'Saving…' : editingId() ? 'Save changes' : 'Add bus' }}
           </button>
           @if (editingId()) {

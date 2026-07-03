@@ -1,8 +1,12 @@
 @import 'tailwindcss';
 
+/* Dark mode is driven by a `dark` class on <html> (toggled by ThemeService), not the OS media
+   query, so users can override their system preference. `dark:` utilities key off this. */
+@custom-variant dark (&:where(.dark, .dark *));
+
 /*
- * TPX Travel — design system (v2, from scratch).
- * Premium, immersive travel look: an ink/midnight base for hero & accents, a violet→indigo
+ * TPX Travel design system (v2, from scratch).
+ * Premium, immersive travel look: an ink/midnight base for hero & accents, a Syrian-green
  * brand, a warm amber pop, geometric display type (Space Grotesk) over Inter body. Tokens live
  * in @theme so they emit utilities (bg-brand-600, text-ink, shadow-soft, font-display); shared
  * component classes below keep every screen consistent.
@@ -47,10 +51,13 @@
     @apply h-full antialiased;
   }
   body {
-    /* overflow-x-hidden: full-bleed hero sections use 100vw, which would otherwise overflow by the
-       scrollbar width and show a horizontal scrollbar. */
-    @apply overflow-x-hidden bg-slate-50 text-slate-900;
+    /* overflow-x-clip (not hidden): full-bleed 100vw sections would otherwise show a horizontal
+       scrollbar. `clip` hides the overflow WITHOUT turning the body into a scroll container —
+       `hidden` computes overflow-y:auto, which steals the scroller from the window and breaks
+       GSAP ScrollTrigger pinning. */
+    @apply overflow-x-clip bg-slate-50 text-slate-900 dark:bg-ink dark:text-slate-100;
     font-family: var(--font-sans);
+    transition: background-color 0.3s ease, color 0.3s ease;
   }
   h1,
   h2,
@@ -84,10 +91,12 @@
     @apply bg-ink text-white hover:bg-ink-800 focus-visible:ring-ink;
   }
   .btn-ghost {
-    @apply bg-white text-slate-700 ring-1 ring-inset ring-slate-200 hover:bg-slate-50 focus-visible:ring-slate-400;
+    @apply bg-white text-slate-700 ring-1 ring-inset ring-slate-200 hover:bg-slate-50 focus-visible:ring-slate-400
+      dark:bg-white/5 dark:text-slate-200 dark:ring-white/15 dark:hover:bg-white/10;
   }
   .btn-soft {
-    @apply bg-brand-50 text-brand-700 hover:bg-brand-100 focus-visible:ring-brand-300;
+    @apply bg-brand-50 text-brand-700 hover:bg-brand-100 focus-visible:ring-brand-300
+      dark:bg-brand-500/15 dark:text-brand-300 dark:hover:bg-brand-500/25;
   }
   .btn-danger {
     @apply bg-rose-600 text-white hover:bg-rose-700 focus-visible:ring-rose-400;
@@ -96,10 +105,11 @@
   /* Forms */
   .input {
     @apply w-full rounded-2xl border-0 bg-white px-4 py-3 text-slate-900 ring-1 ring-inset ring-slate-200
-      placeholder:text-slate-400 focus:ring-2 focus:ring-inset focus:ring-brand-500;
+      placeholder:text-slate-400 focus:ring-2 focus:ring-inset focus:ring-brand-500
+      dark:bg-ink-800 dark:text-slate-100 dark:ring-white/10 dark:placeholder:text-slate-500 dark:focus:ring-brand-400;
   }
   .label {
-    @apply mb-1.5 block text-sm font-semibold text-slate-700;
+    @apply mb-1.5 block text-sm font-semibold text-slate-700 dark:text-slate-300;
   }
   .field-error {
     @apply mt-1 text-xs font-medium text-rose-600;
@@ -107,24 +117,25 @@
 
   /* Surfaces */
   .card {
-    @apply rounded-3xl bg-white shadow-soft ring-1 ring-slate-200/70;
+    @apply rounded-3xl bg-white shadow-soft ring-1 ring-slate-200/70
+      dark:bg-ink-800 dark:shadow-none dark:ring-white/10;
   }
   .badge {
     @apply inline-flex items-center gap-1 rounded-full px-3 py-1 text-xs font-semibold;
   }
   .badge-brand {
-    @apply bg-brand-50 text-brand-700;
+    @apply bg-brand-50 text-brand-700 dark:bg-brand-500/15 dark:text-brand-300;
   }
   .badge-accent {
-    @apply bg-accent-300/30 text-accent-600;
+    @apply bg-accent-300/30 text-accent-600 dark:bg-accent-400/15 dark:text-accent-300;
   }
   .badge-muted {
-    @apply bg-slate-100 text-slate-600;
+    @apply bg-slate-100 text-slate-600 dark:bg-white/10 dark:text-slate-300;
   }
 
   /* Section heading eyebrow */
   .eyebrow {
-    @apply text-xs font-bold uppercase tracking-[0.15em] text-brand-600;
+    @apply text-xs font-bold uppercase tracking-[0.15em] text-brand-600 dark:text-brand-400;
   }
 
   /* Header navigation links — colour is inherited from the header, so the same class reads well on

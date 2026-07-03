@@ -12,7 +12,7 @@ import { VendorNavComponent } from './vendor-nav';
   imports: [ReactiveFormsModule, DatePipe, DecimalPipe, VendorNavComponent],
   template: `
     <app-vendor-nav />
-    <h1 class="mb-6 text-2xl font-bold text-slate-900">Desk — sell at the counter</h1>
+    <h1 class="mb-6 text-2xl font-bold text-slate-900">Desk: sell at the counter</h1>
 
     <div class="grid gap-6 lg:grid-cols-3">
       <section class="rounded-xl border border-slate-200 bg-white p-4">
@@ -20,7 +20,7 @@ import { VendorNavComponent } from './vendor-nav';
         <form [formGroup]="form" (ngSubmit)="submit()" class="space-y-3">
           <div>
             <label for="tripId" class="mb-1 block text-sm font-medium text-slate-700">Trip</label>
-            <select id="tripId" formControlName="tripId" class="w-full rounded-md border border-slate-300 px-3 py-2 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500">
+            <select id="tripId" formControlName="tripId" class="w-full rounded-md border border-slate-300 px-3 py-2 focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500">
               <option value="">Select…</option>
               @for (t of trips(); track t.id) {
                 <option [value]="t.id">{{ t.origin }} → {{ t.destination }} · {{ t.departureUtc | date: 'MMM d, HH:mm' }}</option>
@@ -29,7 +29,7 @@ import { VendorNavComponent } from './vendor-nav';
           </div>
           <div>
             <label for="customerEmail" class="mb-1 block text-sm font-medium text-slate-700">Customer email</label>
-            <input id="customerEmail" type="email" formControlName="customerEmail" class="w-full rounded-md border border-slate-300 px-3 py-2 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500" />
+            <input id="customerEmail" type="email" formControlName="customerEmail" class="w-full rounded-md border border-slate-300 px-3 py-2 focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500" />
             <p class="mt-1 text-xs text-slate-400">The e-ticket is emailed here.</p>
           </div>
 
@@ -37,15 +37,15 @@ import { VendorNavComponent } from './vendor-nav';
             <p class="text-sm font-medium text-slate-700">Passengers</p>
             @for (g of passengers.controls; track $index) {
               <div [formGroupName]="$index" class="flex items-center gap-2">
-                <input type="text" formControlName="firstName" placeholder="First" class="w-1/3 rounded-md border border-slate-300 px-2 py-1.5 text-sm focus:border-indigo-500 focus:outline-none" />
-                <input type="text" formControlName="lastName" placeholder="Last" class="w-1/3 rounded-md border border-slate-300 px-2 py-1.5 text-sm focus:border-indigo-500 focus:outline-none" />
-                <input type="number" min="1" formControlName="seatNumber" placeholder="Seat" class="w-1/4 rounded-md border border-slate-300 px-2 py-1.5 text-sm focus:border-indigo-500 focus:outline-none" />
+                <input type="text" formControlName="firstName" placeholder="First" class="w-1/3 rounded-md border border-slate-300 px-2 py-1.5 text-sm focus:border-brand-500 focus:outline-none" />
+                <input type="text" formControlName="lastName" placeholder="Last" class="w-1/3 rounded-md border border-slate-300 px-2 py-1.5 text-sm focus:border-brand-500 focus:outline-none" />
+                <input type="number" min="1" formControlName="seatNumber" placeholder="Seat" class="w-1/4 rounded-md border border-slate-300 px-2 py-1.5 text-sm focus:border-brand-500 focus:outline-none" />
                 @if (passengers.length > 1) {
                   <button type="button" (click)="removePassenger($index)" class="text-rose-500 hover:text-rose-700">✕</button>
                 }
               </div>
             }
-            <button type="button" (click)="addPassenger()" class="text-sm font-medium text-indigo-600 hover:text-indigo-700">+ Add passenger</button>
+            <button type="button" (click)="addPassenger()" class="text-sm font-medium text-brand-600 hover:text-brand-700">+ Add passenger</button>
           </div>
 
           <button type="submit" [disabled]="submitting()" class="w-full rounded-md bg-emerald-600 px-4 py-2 font-medium text-white hover:bg-emerald-700 disabled:opacity-50">
@@ -164,7 +164,7 @@ export class VendorDeskComponent implements OnInit {
       next: (r) => {
         this.busy.set(null);
         this.confirmingCancel.set(null);
-        this.toasts.success(r.refundInitiated ? 'Cancelled — refund initiated.' : 'Cancelled (cash refund is manual).');
+        this.toasts.success(r.refundInitiated ? 'Cancelled. Refund initiated.' : 'Cancelled (cash refund is manual).');
         this.loadBookings();
       },
       error: () => { this.busy.set(null); this.confirmingCancel.set(null); },

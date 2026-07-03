@@ -23,7 +23,7 @@ import { environment } from '../../../environments/environment';
             type="button"
             [disabled]="busy()"
             (click)="startCheckout()"
-            class="w-full rounded-md bg-indigo-600 px-4 py-3 font-medium text-white hover:bg-indigo-700 disabled:opacity-50"
+            class="w-full rounded-md bg-brand-600 px-4 py-3 font-medium text-white hover:bg-brand-700 disabled:opacity-50"
           >
             {{ busy() ? 'Starting…' : 'Proceed to payment' }}
           </button>
@@ -34,7 +34,7 @@ import { environment } from '../../../environments/environment';
           <!-- Development stand-in for the gateway's hosted page (no real card entry). -->
           <div class="rounded-xl border border-dashed border-slate-300 bg-white p-4">
             <p class="mb-4 text-sm text-slate-600">
-              Sandbox gateway — simulate the payment result the provider would send back:
+              Sandbox gateway. Simulate the payment result the provider would send back:
             </p>
             <div class="flex gap-3">
               <button

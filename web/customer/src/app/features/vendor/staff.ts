@@ -24,7 +24,7 @@ const STRONG_PASSWORD = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{10,}$/;
           [value]="search()"
           (input)="onSearch($event)"
           placeholder="Search by name or email…"
-          class="mb-3 w-full max-w-sm rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+          class="mb-3 w-full max-w-sm rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
         />
 
         @if (loading()) {
@@ -57,7 +57,7 @@ const STRONG_PASSWORD = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{10,}$/;
                       </span>
                     </td>
                     <td class="px-4 py-2 text-right whitespace-nowrap">
-                      <button type="button" (click)="edit(s)" class="text-sm font-medium text-indigo-600 hover:text-indigo-700">Edit</button>
+                      <button type="button" (click)="edit(s)" class="text-sm font-medium text-brand-600 hover:text-brand-700">Edit</button>
                       @if (s.suspended) {
                         <button type="button" [disabled]="busy() === s.id" (click)="reactivate(s)" class="ml-3 text-sm font-medium text-emerald-600 hover:text-emerald-700">Reactivate</button>
                       } @else {
@@ -84,28 +84,28 @@ const STRONG_PASSWORD = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{10,}$/;
         <form [formGroup]="form" (ngSubmit)="submit()" class="space-y-3">
           <div>
             <label for="fullName" class="mb-1 block text-sm font-medium text-slate-700">Full name</label>
-            <input id="fullName" type="text" formControlName="fullName" class="w-full rounded-md border border-slate-300 px-3 py-2 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500" />
+            <input id="fullName" type="text" formControlName="fullName" class="w-full rounded-md border border-slate-300 px-3 py-2 focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500" />
           </div>
           @if (!editingId()) {
             <div>
               <label for="email" class="mb-1 block text-sm font-medium text-slate-700">Email</label>
-              <input id="email" type="email" formControlName="email" class="w-full rounded-md border border-slate-300 px-3 py-2 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500" />
+              <input id="email" type="email" formControlName="email" class="w-full rounded-md border border-slate-300 px-3 py-2 focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500" />
             </div>
             <div>
               <label for="password" class="mb-1 block text-sm font-medium text-slate-700">Temporary password</label>
-              <input id="password" type="password" formControlName="password" class="w-full rounded-md border border-slate-300 px-3 py-2 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500" />
+              <input id="password" type="password" formControlName="password" class="w-full rounded-md border border-slate-300 px-3 py-2 focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500" />
               <p class="mt-1 text-xs text-slate-400">≥10 chars, with upper, lower and a digit.</p>
             </div>
           }
           <div>
             <label for="staffType" class="mb-1 block text-sm font-medium text-slate-700">Role</label>
-            <select id="staffType" formControlName="staffType" class="w-full rounded-md border border-slate-300 px-3 py-2 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500">
+            <select id="staffType" formControlName="staffType" class="w-full rounded-md border border-slate-300 px-3 py-2 focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500">
               @for (t of staffTypes; track t) {
                 <option [value]="t">{{ t }}</option>
               }
             </select>
           </div>
-          <button type="submit" [disabled]="submitting()" class="w-full rounded-md bg-indigo-600 px-4 py-2 font-medium text-white hover:bg-indigo-700 disabled:opacity-50">
+          <button type="submit" [disabled]="submitting()" class="w-full rounded-md bg-brand-600 px-4 py-2 font-medium text-white hover:bg-brand-700 disabled:opacity-50">
             {{ submitting() ? 'Saving…' : editingId() ? 'Save changes' : 'Add staff' }}
           </button>
           @if (editingId()) {

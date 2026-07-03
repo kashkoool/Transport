@@ -25,7 +25,7 @@ const DOCUMENT_TYPES = ['National ID', 'Passport', 'Driver License'] as const;
   imports: [ReactiveFormsModule, DecimalPipe, DatePipe],
   template: `
     @if (trip(); as t) {
-      <button type="button" class="text-sm text-indigo-600 hover:text-indigo-700" (click)="back()">
+      <button type="button" class="text-sm text-brand-600 hover:text-brand-700" (click)="back()">
         ← Back to search
       </button>
       <h1 class="mt-2 text-2xl font-bold text-slate-900">{{ t.origin }} → {{ t.destination }}</h1>
@@ -60,7 +60,7 @@ const DOCUMENT_TYPES = ['National ID', 'Passport', 'Driver License'] as const;
                 <li class="text-sm">
                   <span class="text-amber-400">{{ stars(rev.rating) }}</span>
                   <span class="font-medium text-slate-700">{{ rev.displayName }}</span>
-                  @if (rev.comment) { <span class="text-slate-500">— {{ rev.comment }}</span> }
+                  @if (rev.comment) { <span class="italic text-slate-500">“{{ rev.comment }}”</span> }
                 </li>
               }
             </ul>
@@ -81,9 +81,9 @@ const DOCUMENT_TYPES = ['National ID', 'Passport', 'Driver License'] as const;
                     [disabled]="isTaken(seat)"
                     (click)="toggleSeat(seat)"
                     class="h-10 w-10 rounded-md border text-sm font-medium"
-                    [class.bg-indigo-600]="isSelected(seat)"
+                    [class.bg-brand-600]="isSelected(seat)"
                     [class.text-white]="isSelected(seat)"
-                    [class.border-indigo-600]="isSelected(seat)"
+                    [class.border-brand-600]="isSelected(seat)"
                     [class.bg-slate-200]="isTaken(seat)"
                     [class.text-slate-400]="isTaken(seat)"
                     [class.cursor-not-allowed]="isTaken(seat)"
@@ -100,7 +100,7 @@ const DOCUMENT_TYPES = ['National ID', 'Passport', 'Driver License'] as const;
             type="button"
             [disabled]="selectedSeats().length === 0 || holding()"
             (click)="hold()"
-            class="mt-4 rounded-md bg-indigo-600 px-4 py-2 font-medium text-white hover:bg-indigo-700 disabled:opacity-50"
+            class="mt-4 rounded-md bg-brand-600 px-4 py-2 font-medium text-white hover:bg-brand-700 disabled:opacity-50"
           >
             {{ holding() ? 'Holding…' : 'Hold ' + selectedSeats().length + ' seat(s)' }}
           </button>
@@ -116,7 +116,7 @@ const DOCUMENT_TYPES = ['National ID', 'Passport', 'Driver License'] as const;
               [class.bg-rose-100]="remaining() === 0"
               [class.text-rose-700]="remaining() === 0"
             >
-              {{ remaining() > 0 ? 'Held — ' + countdown() + ' left' : 'Hold expired' }}
+              {{ remaining() > 0 ? 'Held · ' + countdown() + ' left' : 'Hold expired' }}
             </span>
           </div>
 
@@ -130,17 +130,17 @@ const DOCUMENT_TYPES = ['National ID', 'Passport', 'Driver License'] as const;
                       type="text"
                       formControlName="firstName"
                       placeholder="First name"
-                      class="rounded-md border border-slate-300 px-3 py-2 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                      class="rounded-md border border-slate-300 px-3 py-2 focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
                     />
                     <input
                       type="text"
                       formControlName="lastName"
                       placeholder="Last name"
-                      class="rounded-md border border-slate-300 px-3 py-2 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                      class="rounded-md border border-slate-300 px-3 py-2 focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
                     />
                     <select
                       formControlName="documentType"
-                      class="rounded-md border border-slate-300 px-3 py-2 text-slate-700 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                      class="rounded-md border border-slate-300 px-3 py-2 text-slate-700 focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
                     >
                       <option value="">ID document (optional)</option>
                       @for (dt of documentTypes; track dt) {
@@ -151,7 +151,7 @@ const DOCUMENT_TYPES = ['National ID', 'Passport', 'Driver License'] as const;
                       type="text"
                       formControlName="documentNumber"
                       placeholder="Document number (optional)"
-                      class="rounded-md border border-slate-300 px-3 py-2 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                      class="rounded-md border border-slate-300 px-3 py-2 focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
                     />
                   </div>
                 </div>
@@ -167,7 +167,7 @@ const DOCUMENT_TYPES = ['National ID', 'Passport', 'Driver License'] as const;
                   [value]="promoCode()"
                   (input)="onPromoInput($event)"
                   placeholder="e.g. SAVE20"
-                  class="flex-1 rounded-md border border-slate-300 px-3 py-2 uppercase focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                  class="flex-1 rounded-md border border-slate-300 px-3 py-2 uppercase focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
                 />
                 <button
                   type="button"
@@ -384,7 +384,7 @@ export class BookingComponent implements OnInit, OnDestroy {
         const clashes = this.selectedSeats().filter((s) => taken.has(s));
         if (clashes.length > 0) {
           this.selectedSeats.update((seats) => seats.filter((s) => !taken.has(s)));
-          this.toasts.info('Some seats were just taken — please reselect.');
+          this.toasts.info('Some seats were just taken. Please reselect.');
         }
       },
       error: () => undefined,
