@@ -1,0 +1,100 @@
+name: staging-and-dynamic
+
+# Tier 3 (post-deploy verification) + Tier 4 (scheduled resilience) from the test-gate ladder.
+# These need a reachable, deployed target, so they are DORMANT until a `STAGING_URL` repository
+# secret is set — the `guard` job reads it and every downstream job skips cleanly when it is empty.
+#   Tier 3: on-demand (workflow_dispatch) or after a deploy — E2E golden flow + ZAP baseline + k6 smoke.
+#   Tier 4: nightly schedule — k6 soak + ZAP full active scan.
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '0 3 * * *' # 03:00 UTC nightly (Tier 4)
+
+permissions:
+  contents: read
+
+jobs:
+  guard:
+    name: check staging configured
+    runs-on: ubuntu-latest
+    outputs:
+      enabled: ${{ steps.check.outputs.enabled }}
+    steps:
+      - id: check
+        # Secrets can't be referenced in job-level `if`, so gate here and fan out via this output.
+        run: |
+          if [ -n "${STAGING_URL}" ]; then echo "enabled=true" >> "$GITHUB_OUTPUT";
+          else echo "enabled=false" >> "$GITHUB_OUTPUT"; echo "::notice::STAGING_URL not set — staging/dynamic jobs skipped."; fi
+        env:
+          STAGING_URL: ${{ secrets.STAGING_URL }}
+
+  # ── Tier 3: post-deploy verification ────────────────────────────────────────────
+  e2e:
+    name: E2E golden flow (staging)
+    needs: guard
+    if: needs.guard.outputs.enabled == 'true' && github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: tests/e2e
+    steps:
+      - uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5
+      - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5
+        with:
+          node-version: '22'
+      - run: npm install --ignore-scripts
+      - run: npx playwright install --with-deps chromium
+      - name: Run golden flow against staging
+        # E2E_SKIP_RESET=1 → don't touch a local compose stack; hit the remote target instead.
+        run: npx playwright test
+        env:
+          BASE_URL: ${{ secrets.STAGING_URL }}
+          E2E_SKIP_RESET: '1'
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        if: always()
+        with:
+          name: e2e-report
+          path: tests/e2e/playwright-report
+
+  zap-baseline:
+    name: ZAP baseline (passive)
+    needs: guard
+    if: needs.guard.outputs.enabled == 'true' && github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    steps:
+      - name: OWASP ZAP baseline scan
+        uses: zaproxy/action-baseline@66042c8e7e24680119199a017e5b0e8603bf4dae # v0.12.0
+        with:
+          target: ${{ secrets.STAGING_URL }}
+
+  k6-smoke:
+    name: k6 smoke
+    needs: guard
+    if: needs.guard.outputs.enabled == 'true' && github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5
+      - uses: grafana/setup-k6-action@db07bd9765aac508ef18982e52ab937fe633a065 # v1
+      - run: k6 run tests/load/baseline.js -e BASE_URL=${{ secrets.STAGING_URL }} -e PROFILE=smoke
+
+  # ── Tier 4: scheduled resilience ────────────────────────────────────────────────
+  k6-soak:
+    name: k6 soak (nightly)
+    needs: guard
+    if: needs.guard.outputs.enabled == 'true' && github.event_name == 'schedule'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5
+      - uses: grafana/setup-k6-action@db07bd9765aac508ef18982e52ab937fe633a065 # v1
+      - run: k6 run tests/load/baseline.js -e BASE_URL=${{ secrets.STAGING_URL }} -e PROFILE=soak
+
+  zap-full:
+    name: ZAP full active scan (nightly)
+    needs: guard
+    if: needs.guard.outputs.enabled == 'true' && github.event_name == 'schedule'
+    runs-on: ubuntu-latest
+    steps:
+      - name: OWASP ZAP full scan
+        uses: zaproxy/action-full-scan@75ee1686750ab1511a73b26b77a2aedd295053ed # v0.12.0
+        with:
+          target: ${{ secrets.STAGING_URL }}

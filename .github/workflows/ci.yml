@@ -19,8 +19,8 @@ jobs:
     name: backend (build + test)
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5
-      - uses: actions/setup-dotnet@v5
+      - uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5
+      - uses: actions/setup-dotnet@26b0ec14cb23fa6904739307f278c14f94c95bf1 # v5
         with:
           dotnet-version: '10.0.x'
       - name: Restore
@@ -39,8 +39,8 @@ jobs:
       run:
         working-directory: web/customer
     steps:
-      - uses: actions/checkout@v5
-      - uses: actions/setup-node@v5
+      - uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5
+      - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5
         with:
           node-version: '22'
           cache: npm
@@ -52,37 +52,84 @@ jobs:
         run: npx ng lint
 
   docker-build:
-    name: docker build smoke (no push)
+    name: docker build + image CVE scan (no push)
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5
-      - uses: docker/setup-buildx-action@v4
-      - name: API image
-        uses: docker/build-push-action@v7
+      - uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5
+      - uses: docker/setup-buildx-action@bb05f3f5519dd87d3ba754cc423b652a5edd6d2c # v4
+
+      # Build both images into the local daemon (load: true) so Trivy can scan them.
+      - name: Build API image
+        uses: docker/build-push-action@53b7df96c91f9c12dcc8a07bcb9ccacbed38856a # v7
         with:
           context: .
           file: src/TransportPlatform.Api/Dockerfile
           push: false
+          load: true
           pull: true
+          tags: tpx-api:ci
           cache-from: type=gha
           cache-to: type=gha,mode=max
-      - name: Web image
-        uses: docker/build-push-action@v7
+      - name: Build web image
+        uses: docker/build-push-action@53b7df96c91f9c12dcc8a07bcb9ccacbed38856a # v7
         with:
           context: web/customer
           file: web/customer/Dockerfile
           push: false
+          load: true
           pull: true
+          tags: tpx-web:ci
           cache-from: type=gha
           cache-to: type=gha,mode=max
+
+      # Fail the PR on any fixable CRITICAL/HIGH OS/library CVE, or a secret baked into a layer.
+      - name: Scan API image (Trivy)
+        uses: aquasecurity/trivy-action@915b19bbe73b92a6cf82a1bc12b087c9a19a5fe2 # v0.28.0
+        with:
+          image-ref: tpx-api:ci
+          severity: CRITICAL,HIGH
+          exit-code: '1'
+          ignore-unfixed: true
+          scanners: vuln,secret
+      - name: Scan web image (Trivy)
+        uses: aquasecurity/trivy-action@915b19bbe73b92a6cf82a1bc12b087c9a19a5fe2 # v0.28.0
+        with:
+          image-ref: tpx-web:ci
+          severity: CRITICAL,HIGH
+          exit-code: '1'
+          ignore-unfixed: true
+          scanners: vuln,secret
 
   gitleaks:
     name: secret scan
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5
         with:
           fetch-depth: 0
-      - uses: gitleaks/gitleaks-action@v3
+      - uses: gitleaks/gitleaks-action@e0c47f4f8be36e29cdc102c57e68cb5cbf0e8d1e # v3
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  semgrep:
+    name: SAST (Semgrep)
+    runs-on: ubuntu-latest
+    # Complements CodeQL with OWASP + language rulesets. Findings surface in the Security tab
+    # (SARIF); report-only for now (|| true) so it augments rather than blocks — flip to a hard
+    # gate once the baseline is triaged.
+    permissions:
+      contents: read
+      security-events: write
+    steps:
+      - uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
+        with:
+          python-version: '3.12'
+      - run: pip install semgrep
+      - name: Scan
+        run: semgrep scan --sarif --output=semgrep.sarif --config=p/default --config=p/owasp-top-ten || true
+      - uses: github/codeql-action/upload-sarif@411c4c9a36b3fca4d674f06b6396b2c6d23522c6 # v3
+        if: always()
+        with:
+          sarif_file: semgrep.sarif
+          category: semgrep
