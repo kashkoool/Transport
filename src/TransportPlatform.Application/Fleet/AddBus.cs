@@ -5,7 +5,8 @@ using TransportPlatform.Domain.Fleet;
 
 namespace TransportPlatform.Application.Fleet;
 
-public sealed record AddBusCommand(string BusNumber, int SeatCount, BusType Type, string? Model, int SeatsPerRow = Bus.DefaultSeatsPerRow);
+public sealed record AddBusCommand(string BusNumber, int SeatCount, BusType Type, string? Model,
+    int SeatsPerRow = Bus.DefaultSeatsPerRow, string? LicensePlate = null, DateTimeOffset? InsuranceExpiryUtc = null);
 
 public sealed class AddBusValidator : AbstractValidator<AddBusCommand>
 {
@@ -16,6 +17,7 @@ public sealed class AddBusValidator : AbstractValidator<AddBusCommand>
         RuleFor(x => x.Type).IsInEnum();
         RuleFor(x => x.Model).MaximumLength(100);
         RuleFor(x => x.SeatsPerRow).InclusiveBetween(1, Bus.MaxSeatsPerRow);
+        RuleFor(x => x.LicensePlate).MaximumLength(20);
     }
 }
 
@@ -28,7 +30,8 @@ public sealed class AddBusHandler(IApplicationDbContext db, ICurrentUser current
     public async Task<BusDto> HandleAsync(AddBusCommand command, CancellationToken ct)
     {
         var companyId = currentUser.RequireCompanyId();
-        var bus = new Bus(companyId, command.BusNumber, command.SeatCount, command.Type, command.Model, command.SeatsPerRow);
+        var bus = new Bus(companyId, command.BusNumber, command.SeatCount, command.Type, command.Model,
+            command.SeatsPerRow, command.LicensePlate, command.InsuranceExpiryUtc);
         db.Buses.Add(bus);
 
         try

@@ -21,6 +21,9 @@ namespace TransportPlatform.Infrastructure;
 
 public static class DependencyInjection
 {
+    // Pin JWT signing to HS256 (the symmetric alg we issue with) to defend against alg-confusion.
+    private static readonly string[] AllowedJwtAlgorithms = ["HS256"];
+
     public static IServiceCollection AddInfrastructure(this IServiceCollection services, IConfiguration config)
     {
         services.AddSingleton<IClock, SystemClock>();
@@ -107,6 +110,9 @@ public static class DependencyInjection
                     ValidAudience = jwtSection[nameof(JwtOptions.Audience)],
                     ValidateIssuerSigningKey = true,
                     IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(signingKey)),
+                    // Pin the accepted signature algorithm to defend against alg-confusion attacks
+                    // (e.g. a token forged with "none" or an asymmetric alg the key isn't meant for).
+                    ValidAlgorithms = AllowedJwtAlgorithms,
                     ValidateLifetime = true,
                     ClockSkew = TimeSpan.FromSeconds(30),
                     RoleClaimType = ClaimTypes.Role,
@@ -125,6 +131,40 @@ public static class DependencyInjection
                             context.Token = accessToken;
                         }
                         return Task.CompletedTask;
+                    },
+                    // Per-request user-state check: without this, a suspended (locked-out) or
+                    // deleted user's already-issued access token stays valid until it naturally
+                    // expires (AccessTokenMinutes, default 15). Authorization is otherwise decided
+                    // purely from JWT claims, so revocation would lag by up to that window. We accept
+                    // one DB lookup per authenticated request as the cost of *immediate* revocation:
+                    // if the user is gone or locked out, the token is rejected 401 right now. The
+                    // refresh path enforces the same lockout re-check (JwtTokenService.RefreshAsync)
+                    // so a suspended user can neither use an existing access token nor mint a new one.
+                    OnTokenValidated = async context =>
+                    {
+                        try
+                        {
+                            var userId = context.Principal?.FindFirst("sub")?.Value;
+                            if (string.IsNullOrWhiteSpace(userId))
+                            {
+                                context.Fail("Token is missing the subject claim.");
+                                return;
+                            }
+
+                            var userManager = context.HttpContext.RequestServices
+                                .GetRequiredService<UserManager<ApplicationUser>>();
+                            var user = await userManager.FindByIdAsync(userId);
+
+                            // User deleted, or account suspended (locked out) → reject immediately.
+                            if (user is null || await userManager.IsLockedOutAsync(user))
+                                context.Fail("The account is no longer active.");
+                        }
+                        catch
+                        {
+                            // Fail closed: any lookup error rejects the request rather than letting a
+                            // possibly-revoked token through. Never rethrow — that would surface as a 500.
+                            context.Fail("Unable to verify the account state.");
+                        }
                     },
                 };
             });

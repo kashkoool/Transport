@@ -10,6 +10,7 @@ using TransportPlatform.Application.Payments;
 using TransportPlatform.Application.Promotions;
 using TransportPlatform.Application.Reports;
 using TransportPlatform.Application.Reviews;
+using TransportPlatform.Application.Seo;
 using TransportPlatform.Application.Staff;
 using TransportPlatform.Application.Trips;
 
@@ -28,13 +29,16 @@ public static class DependencyInjection
         services.AddScoped<HoldSeatsHandler>();
         services.AddScoped<CreateBookingHandler>();
         services.AddScoped<CancelBookingHandler>();
+        services.AddScoped<ChangeSeatHandler>();
         services.AddScoped<CounterBookingHandler>();
         services.AddScoped<CancelCompanyBookingHandler>();
+        services.AddScoped<MarkNoShowHandler>();
         services.AddScoped<ListCompanyBookingsHandler>();
         services.AddScoped<GetTicketHandler>();
         services.AddScoped<ListMyBookingsHandler>();
         services.AddScoped<StartCheckoutHandler>();
         services.AddScoped<ProcessPaymentWebhookHandler>();
+        services.AddScoped<ProcessPendingRefundsHandler>();
 
         // Auth
         services.AddScoped<RegisterHandler>();
@@ -47,6 +51,7 @@ public static class DependencyInjection
         services.AddScoped<ResendVerificationHandler>();
         services.AddScoped<GoogleSignInHandler>();
         services.AddScoped<ChangePasswordHandler>();
+        services.AddScoped<DeleteMyAccountHandler>();
         services.AddScoped<GetProfileHandler>();
         services.AddScoped<UpdateProfileHandler>();
 
@@ -65,6 +70,12 @@ public static class DependencyInjection
         // Public company directory (trip-search company filter)
         services.AddScoped<ListPublicCompaniesHandler>();
 
+        // Public SEO data (routes/cities/sitemap for prerender + crawlers)
+        services.AddScoped<ListSeoRoutesHandler>();
+        services.AddScoped<GetSeoRouteDetailHandler>();
+        services.AddScoped<ListSeoCitiesHandler>();
+        services.AddScoped<BuildSitemapHandler>();
+
         // Vendor · fleet + trips
         services.AddScoped<AddBusHandler>();
         services.AddScoped<ListBusesHandler>();
@@ -73,6 +84,8 @@ public static class DependencyInjection
         services.AddScoped<ScheduleTripHandler>();
         services.AddScoped<ListVendorTripsHandler>();
         services.AddScoped<CancelTripHandler>();
+        services.AddScoped<RescheduleTripHandler>();
+        services.AddScoped<TripManifestHandler>();
         services.AddScoped<UpdateTripHandler>();
         services.AddScoped<DeleteTripHandler>();
         services.AddScoped<StartTripHandler>();
@@ -107,6 +120,8 @@ public static class DependencyInjection
         services.AddScoped<VendorEmployeeReportHandler>();
         services.AddScoped<AdminSystemSummaryHandler>();
         services.AddScoped<AdminCompanyReportHandler>();
+        services.AddScoped<ListRefundsHandler>();
+        services.AddScoped<RetryRefundHandler>();
         services.AddScoped<PredictDemandHandler>();
 
         // Admin · customers

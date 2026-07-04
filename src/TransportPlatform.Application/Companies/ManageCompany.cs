@@ -18,7 +18,8 @@ public sealed class GetMyCompanyHandler(IApplicationDbContext db, ICurrentUser c
     }
 }
 
-public sealed record UpdateMyCompanyCommand(string Name, string? Phone);
+public sealed record UpdateMyCompanyCommand(string Name, string? Phone,
+    string? TaxId = null, string? BankAccount = null, string? Address = null);
 
 public sealed class UpdateMyCompanyValidator : AbstractValidator<UpdateMyCompanyCommand>
 {
@@ -26,6 +27,9 @@ public sealed class UpdateMyCompanyValidator : AbstractValidator<UpdateMyCompany
     {
         RuleFor(x => x.Name).NotEmpty().MaximumLength(200);
         RuleFor(x => x.Phone).MaximumLength(40);
+        RuleFor(x => x.TaxId).MaximumLength(50);
+        RuleFor(x => x.BankAccount).MaximumLength(64);
+        RuleFor(x => x.Address).MaximumLength(200);
     }
 }
 
@@ -36,7 +40,7 @@ public sealed class UpdateMyCompanyHandler(IApplicationDbContext db, ICurrentUse
         var companyId = currentUser.RequireCompanyId();
         var company = await db.Companies.FirstOrDefaultAsync(c => c.Id == companyId, ct)
             ?? throw new NotFoundException("Company", companyId);
-        company.Update(command.Name, command.Phone);
+        company.Update(command.Name, command.Phone, command.TaxId, command.BankAccount, command.Address);
         await db.SaveChangesAsync(ct);
         return CompanyDto.From(company);
     }
@@ -44,7 +48,8 @@ public sealed class UpdateMyCompanyHandler(IApplicationDbContext db, ICurrentUse
 
 // ── Admin: edit + delete any company ────────────────────────────────────────────
 
-public sealed record UpdateCompanyCommand(Guid CompanyId, string Name, string? Phone);
+public sealed record UpdateCompanyCommand(Guid CompanyId, string Name, string? Phone,
+    string? TaxId = null, string? BankAccount = null, string? Address = null);
 
 public sealed class UpdateCompanyValidator : AbstractValidator<UpdateCompanyCommand>
 {
@@ -53,6 +58,9 @@ public sealed class UpdateCompanyValidator : AbstractValidator<UpdateCompanyComm
         RuleFor(x => x.CompanyId).NotEmpty();
         RuleFor(x => x.Name).NotEmpty().MaximumLength(200);
         RuleFor(x => x.Phone).MaximumLength(40);
+        RuleFor(x => x.TaxId).MaximumLength(50);
+        RuleFor(x => x.BankAccount).MaximumLength(64);
+        RuleFor(x => x.Address).MaximumLength(200);
     }
 }
 
@@ -62,7 +70,7 @@ public sealed class UpdateCompanyHandler(IApplicationDbContext db)
     {
         var company = await db.Companies.FirstOrDefaultAsync(c => c.Id == command.CompanyId, ct)
             ?? throw new NotFoundException("Company", command.CompanyId);
-        company.Update(command.Name, command.Phone);
+        company.Update(command.Name, command.Phone, command.TaxId, command.BankAccount, command.Address);
         await db.SaveChangesAsync(ct);
         return CompanyDto.From(company);
     }

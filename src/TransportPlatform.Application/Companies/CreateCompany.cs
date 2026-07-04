@@ -5,7 +5,8 @@ using TransportPlatform.Domain.Companies;
 
 namespace TransportPlatform.Application.Companies;
 
-public sealed record CreateCompanyCommand(string Name, string Email, string? Phone);
+public sealed record CreateCompanyCommand(string Name, string Email, string? Phone,
+    string? TaxId = null, string? BankAccount = null, string? Address = null);
 
 public sealed class CreateCompanyValidator : AbstractValidator<CreateCompanyCommand>
 {
@@ -14,6 +15,9 @@ public sealed class CreateCompanyValidator : AbstractValidator<CreateCompanyComm
         RuleFor(x => x.Name).NotEmpty().MaximumLength(200);
         RuleFor(x => x.Email).NotEmpty().EmailAddress().MaximumLength(256);
         RuleFor(x => x.Phone).MaximumLength(40);
+        RuleFor(x => x.TaxId).MaximumLength(50);
+        RuleFor(x => x.BankAccount).MaximumLength(64);
+        RuleFor(x => x.Address).MaximumLength(200);
     }
 }
 
@@ -22,7 +26,8 @@ public sealed class CreateCompanyHandler(IApplicationDbContext db)
 {
     public async Task<CompanyDto> HandleAsync(CreateCompanyCommand command, CancellationToken ct)
     {
-        var company = new Company(command.Name, command.Email, command.Phone);
+        var company = new Company(command.Name, command.Email, command.Phone,
+            command.TaxId, command.BankAccount, command.Address);
         db.Companies.Add(company);
 
         try

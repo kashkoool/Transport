@@ -13,9 +13,13 @@ public sealed class Driver : AggregateRoot
     public string? Phone { get; private set; }
     public string? LicenseNumber { get; private set; }
 
+    /// <summary>When the driver's license expires, if tracked.</summary>
+    public DateTimeOffset? LicenseExpiryUtc { get; private set; }
+
     private Driver() { } // EF
 
-    public Driver(Guid companyId, string fullName, string? phone = null, string? licenseNumber = null)
+    public Driver(Guid companyId, string fullName, string? phone = null, string? licenseNumber = null,
+        DateTimeOffset? licenseExpiryUtc = null)
     {
         if (companyId == Guid.Empty)
             throw new DomainException("driver.company_required", "A driver must belong to a company.");
@@ -26,5 +30,6 @@ public sealed class Driver : AggregateRoot
         FullName = fullName.Trim();
         Phone = string.IsNullOrWhiteSpace(phone) ? null : phone.Trim();
         LicenseNumber = string.IsNullOrWhiteSpace(licenseNumber) ? null : licenseNumber.Trim();
+        LicenseExpiryUtc = licenseExpiryUtc;
     }
 }

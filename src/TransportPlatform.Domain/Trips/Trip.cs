@@ -1,4 +1,5 @@
 using TransportPlatform.Domain.Common;
+using TransportPlatform.Domain.Trips.Events;
 
 namespace TransportPlatform.Domain.Trips;
 
@@ -20,6 +21,12 @@ public sealed class Trip : AggregateRoot
     public decimal Price { get; private set; }
     public string Currency { get; private set; } = "SYP";
     public TripStatus Status { get; private set; } = TripStatus.Scheduled;
+
+    /// <summary>When the trip actually set off. Null until it is started.</summary>
+    public DateTimeOffset? ActualDepartureUtc { get; private set; }
+
+    /// <summary>When the trip actually finished. Null until it is completed.</summary>
+    public DateTimeOffset? ActualArrivalUtc { get; private set; }
 
     public Money Fare => new(Price, Currency);
 
@@ -86,7 +93,15 @@ public sealed class Trip : AggregateRoot
             throw new DomainException("trip.departed", "This trip has already departed.");
     }
 
-    public void Cancel() => Status = TripStatus.Cancelled;
+    /// <summary>Cancel a scheduled trip. Idempotent; an in-progress or completed trip cannot be cancelled.</summary>
+    public void Cancel()
+    {
+        if (Status == TripStatus.Cancelled)
+            return; // idempotent
+        if (Status != TripStatus.Scheduled)
+            throw new DomainException("trip.not_cancellable", "Only a scheduled trip can be cancelled.");
+        Status = TripStatus.Cancelled;
+    }
 
     /// <summary>
     /// Replace the trip's intermediate waypoints. Stops are re-sequenced 1..N in the order
@@ -123,20 +138,41 @@ public sealed class Trip : AggregateRoot
         Currency = fare.Currency;
     }
 
+    /// <summary>
+    /// Delay / reschedule a still-scheduled trip to new times. Raises a rescheduled event so every
+    /// confirmed passenger is notified of the new departure. The caller re-checks bus availability.
+    /// </summary>
+    public void Reschedule(DateTimeOffset departureUtc, DateTimeOffset arrivalUtc)
+    {
+        if (Status != TripStatus.Scheduled)
+            throw new DomainException("trip.not_editable", "Only a scheduled trip can be rescheduled.");
+        if (arrivalUtc <= departureUtc)
+            throw new DomainException("trip.time_invalid", "Arrival must be after departure.");
+
+        var oldDeparture = DepartureUtc;
+        DepartureUtc = departureUtc;
+        ArrivalUtc = arrivalUtc;
+        Raise(new TripRescheduledDomainEvent(Id, Origin, Destination, oldDeparture, departureUtc));
+    }
+
     /// <summary>Scheduled → InProgress (the bus has set off).</summary>
-    public void Start()
+    /// <param name="actualDepartureUtc">The real departure time; recorded on the trip when supplied.</param>
+    public void Start(DateTimeOffset? actualDepartureUtc = null)
     {
         if (Status != TripStatus.Scheduled)
             throw new DomainException("trip.not_startable", "Only a scheduled trip can be started.");
         Status = TripStatus.InProgress;
+        ActualDepartureUtc = actualDepartureUtc;
     }
 
     /// <summary>InProgress → Completed (the trip has finished).</summary>
-    public void Complete()
+    /// <param name="actualArrivalUtc">The real arrival time; recorded on the trip when supplied.</param>
+    public void Complete(DateTimeOffset? actualArrivalUtc = null)
     {
         if (Status != TripStatus.InProgress)
             throw new DomainException("trip.not_completable", "Only an in-progress trip can be completed.");
         Status = TripStatus.Completed;
+        ActualArrivalUtc = actualArrivalUtc;
     }
 
     /// <summary>Cancelled → Scheduled ("re-activate"). Caller must first ensure the bus is free again.</summary>

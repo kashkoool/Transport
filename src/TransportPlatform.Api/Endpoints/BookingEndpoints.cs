@@ -10,7 +10,8 @@ public static class BookingEndpoints
     // The customer is taken from the JWT, never the request body — so requests carry only
     // the trip + seats/passengers.
     public sealed record HoldRequest(Guid TripId, IReadOnlyList<int> SeatNumbers);
-    public sealed record CreateBookingRequest(Guid TripId, IReadOnlyList<PassengerInput> Passengers, string? PromoCode);
+    public sealed record CreateBookingRequest(Guid TripId, IReadOnlyList<PassengerInput> Passengers, string? PromoCode, string? ContactPhone = null);
+    public sealed record ChangeSeatBody(int FromSeat, int ToSeat);
 
     public static IEndpointRouteBuilder MapBookingEndpoints(this IEndpointRouteBuilder app)
     {
@@ -41,7 +42,7 @@ public static class BookingEndpoints
             if (string.IsNullOrWhiteSpace(idempotencyKey))
                 return Results.BadRequest(new { code = "idempotency.required", message = "Idempotency-Key header is required." });
 
-            var command = new CreateBookingCommand(body.TripId, body.Passengers, idempotencyKey, body.PromoCode);
+            var command = new CreateBookingCommand(body.TripId, body.Passengers, idempotencyKey, body.PromoCode, body.ContactPhone);
             await validator.ValidateAndThrowAsync(command, ct);
             var result = await handler.HandleAsync(command, ct);
             return Results.Ok(result);
@@ -67,7 +68,18 @@ public static class BookingEndpoints
             Guid id, CancelBookingHandler handler, CancellationToken ct) =>
             Results.Ok(await handler.HandleAsync(new CancelBookingCommand(id), ct)))
         .WithName("CancelBooking")
-        .WithSummary("Cancel your booking (confirmed bookings: only ≥48h before departure; refunds if paid).");
+        .WithSummary("Cancel your booking before departure; refund is tiered by time-to-departure (100/50/0%).");
+
+        group.MapPost("/{id:guid}/change-seat", async (
+            Guid id, ChangeSeatBody body, ChangeSeatHandler handler,
+            IValidator<ChangeSeatCommand> validator, CancellationToken ct) =>
+        {
+            var command = new ChangeSeatCommand(id, body.FromSeat, body.ToSeat);
+            await validator.ValidateAndThrowAsync(command, ct);
+            return Results.Ok(await handler.HandleAsync(command, ct));
+        })
+        .WithName("ChangeSeat")
+        .WithSummary("Move a passenger to a different free seat on the same trip (no price change).");
 
         group.MapGet("/promo-preview", async (
             Guid tripId, string code, int? seats, PreviewPromoHandler handler,

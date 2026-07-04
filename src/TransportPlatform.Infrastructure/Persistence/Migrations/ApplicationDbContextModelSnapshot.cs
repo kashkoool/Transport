@@ -157,6 +157,14 @@ namespace TransportPlatform.Infrastructure.Persistence.Migrations
                     b.Property<Guid>("Id")
                         .HasColumnType("uuid");
 
+                    b.Property<string>("CancellationReason")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<string>("ContactPhone")
+                        .HasMaxLength(30)
+                        .HasColumnType("character varying(30)");
+
                     b.Property<DateTimeOffset>("CreatedAtUtc")
                         .HasColumnType("timestamp with time zone");
 
@@ -337,6 +345,14 @@ namespace TransportPlatform.Infrastructure.Persistence.Migrations
                     b.Property<Guid>("Id")
                         .HasColumnType("uuid");
 
+                    b.Property<string>("Address")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<string>("BankAccount")
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
                     b.Property<DateTimeOffset>("CreatedAtUtc")
                         .HasColumnType("timestamp with time zone");
 
@@ -361,6 +377,10 @@ namespace TransportPlatform.Infrastructure.Persistence.Migrations
                         .IsRequired()
                         .HasMaxLength(20)
                         .HasColumnType("character varying(20)");
+
+                    b.Property<string>("TaxId")
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
 
                     b.Property<DateTimeOffset?>("UpdatedAtUtc")
                         .HasColumnType("timestamp with time zone");
@@ -396,6 +416,13 @@ namespace TransportPlatform.Infrastructure.Persistence.Migrations
 
                     b.Property<Guid?>("DriverId")
                         .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset?>("InsuranceExpiryUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("LicensePlate")
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
 
                     b.Property<string>("Model")
                         .HasMaxLength(100)
@@ -445,6 +472,9 @@ namespace TransportPlatform.Infrastructure.Persistence.Migrations
                         .IsRequired()
                         .HasMaxLength(200)
                         .HasColumnType("character varying(200)");
+
+                    b.Property<DateTimeOffset?>("LicenseExpiryUtc")
+                        .HasColumnType("timestamp with time zone");
 
                     b.Property<string>("LicenseNumber")
                         .HasMaxLength(60)
@@ -689,6 +719,8 @@ namespace TransportPlatform.Infrastructure.Persistence.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("BookingId");
+
                     b.HasIndex("GatewayRefundRef");
 
                     b.HasIndex("IdempotencyKey")
@@ -805,6 +837,12 @@ namespace TransportPlatform.Infrastructure.Persistence.Migrations
                 {
                     b.Property<Guid>("Id")
                         .HasColumnType("uuid");
+
+                    b.Property<DateTimeOffset?>("ActualArrivalUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTimeOffset?>("ActualDepartureUtc")
+                        .HasColumnType("timestamp with time zone");
 
                     b.Property<DateTimeOffset>("ArrivalUtc")
                         .HasColumnType("timestamp with time zone");
@@ -1082,6 +1120,15 @@ namespace TransportPlatform.Infrastructure.Persistence.Migrations
                         .WithMany()
                         .HasForeignKey("CompanyId")
                         .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("TransportPlatform.Domain.Identity.RefreshToken", b =>
+                {
+                    b.HasOne("TransportPlatform.Infrastructure.Identity.ApplicationUser", null)
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
                 });
 

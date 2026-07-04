@@ -18,20 +18,25 @@ namespace TransportPlatform.Api.Endpoints;
 
 public static class VendorEndpoints
 {
-    public sealed record AddBusRequest(string BusNumber, int SeatCount, BusType Type, string? Model, int? SeatsPerRow);
+    public sealed record AddBusRequest(string BusNumber, int SeatCount, BusType Type, string? Model, int? SeatsPerRow,
+        string? LicensePlate = null, DateTimeOffset? InsuranceExpiryUtc = null);
     public sealed record ScheduleTripRequest(
         Guid BusId, string Origin, string Destination,
         DateTimeOffset DepartureUtc, DateTimeOffset ArrivalUtc, decimal Price, string Currency);
     public sealed record CreateStaffRequest(string Email, string Password, string FullName, StaffType StaffType);
     public sealed record UpdateStaffRequest(string FullName, StaffType StaffType);
-    public sealed record AddDriverRequest(string FullName, string? Phone, string? LicenseNumber);
+    public sealed record AddDriverRequest(string FullName, string? Phone, string? LicenseNumber,
+        DateTimeOffset? LicenseExpiryUtc = null);
     public sealed record AssignDriverRequest(Guid? DriverId);
     public sealed record CounterBookingRequest(Guid TripId, IReadOnlyList<PassengerInput> Passengers, string CustomerEmail);
-    public sealed record UpdateBusRequest(int SeatCount, BusType Type, string? Model, int? SeatsPerRow);
+    public sealed record UpdateBusRequest(int SeatCount, BusType Type, string? Model, int? SeatsPerRow,
+        string? LicensePlate = null, DateTimeOffset? InsuranceExpiryUtc = null);
     public sealed record UpdateTripRequest(
         string Origin, string Destination, DateTimeOffset DepartureUtc, DateTimeOffset ArrivalUtc, decimal Price, string Currency);
     public sealed record SetTripStopsRequest(IReadOnlyList<TripStopInput> Stops);
-    public sealed record UpdateCompanyProfileRequest(string Name, string? Phone);
+    public sealed record RescheduleTripBody(DateTimeOffset DepartureUtc, DateTimeOffset ArrivalUtc);
+    public sealed record UpdateCompanyProfileRequest(string Name, string? Phone,
+        string? TaxId = null, string? BankAccount = null, string? Address = null);
     public sealed record CreatePromoRequest(
         string Code, DiscountType DiscountType, decimal DiscountValue, int? MaxRedemptions, DateTimeOffset? ExpiresAtUtc);
 
@@ -55,7 +60,7 @@ public static class VendorEndpoints
             IValidator<AddBusCommand> validator, CancellationToken ct) =>
         {
             var command = new AddBusCommand(body.BusNumber, body.SeatCount, body.Type, body.Model,
-                body.SeatsPerRow ?? Bus.DefaultSeatsPerRow);
+                body.SeatsPerRow ?? Bus.DefaultSeatsPerRow, body.LicensePlate, body.InsuranceExpiryUtc);
             await validator.ValidateAndThrowAsync(command, ct);
             return Results.Ok(await handler.HandleAsync(command, ct));
         })
@@ -93,6 +98,23 @@ public static class VendorEndpoints
             Results.Ok(await handler.HandleAsync(new CancelTripCommand(id), ct)))
         .WithName("CancelTrip")
         .WithSummary("Cancel one of your trips.");
+
+        shared.MapPost("/trips/{id:guid}/reschedule", async (
+            Guid id, RescheduleTripBody body, RescheduleTripHandler handler,
+            IValidator<RescheduleTripCommand> validator, CancellationToken ct) =>
+        {
+            var command = new RescheduleTripCommand(id, body.DepartureUtc, body.ArrivalUtc);
+            await validator.ValidateAndThrowAsync(command, ct);
+            return Results.Ok(await handler.HandleAsync(command, ct));
+        })
+        .WithName("RescheduleTrip")
+        .WithSummary("Delay / reschedule a trip to new times (notifies confirmed passengers).");
+
+        shared.MapGet("/trips/{id:guid}/manifest", async (
+            Guid id, TripManifestHandler handler, CancellationToken ct) =>
+            Results.Ok(await handler.HandleAsync(id, ct)))
+        .WithName("TripManifest")
+        .WithSummary("Boarding list: confirmed passengers + seats for one of your trips.");
 
         // ── Staff ─────────────────────────────────────────────────────────────────────
         group.MapPost("/staff", async (
@@ -155,7 +177,7 @@ public static class VendorEndpoints
             AddDriverRequest body, AddDriverHandler handler,
             IValidator<AddDriverCommand> validator, CancellationToken ct) =>
         {
-            var command = new AddDriverCommand(body.FullName, body.Phone, body.LicenseNumber);
+            var command = new AddDriverCommand(body.FullName, body.Phone, body.LicenseNumber, body.LicenseExpiryUtc);
             await validator.ValidateAndThrowAsync(command, ct);
             return Results.Ok(await handler.HandleAsync(command, ct));
         })
@@ -251,7 +273,7 @@ public static class VendorEndpoints
             IValidator<UpdateBusCommand> validator, CancellationToken ct) =>
         {
             var command = new UpdateBusCommand(id, body.SeatCount, body.Type, body.Model,
-                body.SeatsPerRow ?? Bus.DefaultSeatsPerRow);
+                body.SeatsPerRow ?? Bus.DefaultSeatsPerRow, body.LicensePlate, body.InsuranceExpiryUtc);
             await validator.ValidateAndThrowAsync(command, ct);
             return Results.Ok(await handler.HandleAsync(command, ct));
         })
@@ -314,7 +336,7 @@ public static class VendorEndpoints
             UpdateCompanyProfileRequest body, UpdateMyCompanyHandler handler,
             IValidator<UpdateMyCompanyCommand> validator, CancellationToken ct) =>
         {
-            var command = new UpdateMyCompanyCommand(body.Name, body.Phone);
+            var command = new UpdateMyCompanyCommand(body.Name, body.Phone, body.TaxId, body.BankAccount, body.Address);
             await validator.ValidateAndThrowAsync(command, ct);
             return Results.Ok(await handler.HandleAsync(command, ct));
         })
@@ -371,6 +393,12 @@ public static class VendorEndpoints
             Results.Ok(await handler.HandleAsync(new CancelCompanyBookingCommand(id), ct)))
         .WithName("CancelCompanyBooking")
         .WithSummary("Cancel + refund one of your company's bookings (cash = manual refund).");
+
+        desk.MapPost("/{id:guid}/no-show", async (
+            Guid id, MarkNoShowHandler handler, CancellationToken ct) =>
+            Results.Ok(await handler.HandleAsync(new MarkNoShowCommand(id), ct)))
+        .WithName("MarkNoShow")
+        .WithSummary("Record a confirmed passenger as a no-show (after departure; no refund).");
 
         return app;
     }

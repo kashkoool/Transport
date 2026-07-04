@@ -40,7 +40,14 @@ public sealed record CheckoutRequest(
 
 public sealed record CheckoutSession(string CheckoutUrl, string GatewayReference);
 
-public sealed record PaymentWebhook(string GatewayReference, string BookingReference, bool Succeeded);
+/// <summary>
+/// A parsed, signature-verified gateway event. <paramref name="Amount"/>/<paramref name="Currency"/>
+/// carry the amount the gateway actually captured (when the provider reports it) so the caller can
+/// re-verify it equals the booking total before confirming — defence against a signature-valid
+/// webhook for the wrong amount. Null when the provider doesn't report an amount for the event.
+/// </summary>
+public sealed record PaymentWebhook(
+    string GatewayReference, string BookingReference, bool Succeeded, decimal? Amount = null, string? Currency = null);
 
 public sealed record RefundRequest(string GatewayTransactionRef, decimal Amount, string Currency, string IdempotencyKey);
 

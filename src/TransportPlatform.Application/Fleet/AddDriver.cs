@@ -4,7 +4,8 @@ using TransportPlatform.Domain.Fleet;
 
 namespace TransportPlatform.Application.Fleet;
 
-public sealed record AddDriverCommand(string FullName, string? Phone, string? LicenseNumber);
+public sealed record AddDriverCommand(string FullName, string? Phone, string? LicenseNumber,
+    DateTimeOffset? LicenseExpiryUtc = null);
 
 public sealed class AddDriverValidator : AbstractValidator<AddDriverCommand>
 {
@@ -22,7 +23,8 @@ public sealed class AddDriverHandler(IApplicationDbContext db, ICurrentUser curr
     public async Task<DriverDto> HandleAsync(AddDriverCommand command, CancellationToken ct)
     {
         var companyId = currentUser.RequireCompanyId();
-        var driver = new Driver(companyId, command.FullName, command.Phone, command.LicenseNumber);
+        var driver = new Driver(companyId, command.FullName, command.Phone, command.LicenseNumber,
+            command.LicenseExpiryUtc);
         db.Drivers.Add(driver);
         await db.SaveChangesAsync(ct);
         return DriverDto.From(driver);

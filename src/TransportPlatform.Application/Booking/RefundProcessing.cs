@@ -1,16 +1,34 @@
 using Microsoft.EntityFrameworkCore;
 using TransportPlatform.Application.Abstractions;
 using TransportPlatform.Application.Common;
+using TransportPlatform.Domain.Common;
+using TransportPlatform.Domain.Payments;
 
 namespace TransportPlatform.Application.Bookings;
 
 /// <summary>
 /// Shared helper that processes a recorded (Pending) refund through the gateway AFTER the
 /// cancellation transaction has committed — never inside a DB transaction. Best-effort: a gateway
-/// failure leaves the refund Pending for a reconciliation job to retry (the cancel already stands).
+/// failure leaves the refund Pending for the <c>RefundReconciliationWorker</c> to retry (the cancel
+/// already stands).
 /// </summary>
 internal static class RefundProcessing
 {
+    /// <summary>
+    /// Record a full-amount Pending refund for a captured payment inside the caller's transaction,
+    /// returning its id to process after commit. The idempotency key MUST be <c>refund-{bookingId:N}</c>
+    /// on every path (customer cancel, trip cancel, webhook compensation) so the unique index makes a
+    /// booking refundable at most once regardless of which path fires.
+    /// </summary>
+    public static Guid RecordRefund(
+        IApplicationDbContext db, Payment payment, Guid bookingId, string reason, Money? amount = null)
+    {
+        var refund = new Refund(
+            payment.Id, bookingId, amount ?? new Money(payment.Amount, payment.Currency), reason, $"refund-{bookingId:N}");
+        db.Refunds.Add(refund);
+        return refund.Id;
+    }
+
     public static async Task<bool> TryProcessAsync(
         IApplicationDbContext db, IPaymentGateway gateway, Guid refundId, CancellationToken ct)
     {

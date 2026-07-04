@@ -18,7 +18,8 @@ public sealed record CreateBookingCommand(
     Guid TripId,
     IReadOnlyList<PassengerInput> Passengers,
     string IdempotencyKey,
-    string? PromoCode = null);
+    string? PromoCode = null,
+    string? ContactPhone = null);
 
 public sealed record CreateBookingResult(Guid BookingId, string Reference, decimal TotalAmount, string Currency);
 
@@ -89,30 +90,24 @@ public sealed class CreateBookingHandler(
             .Select(p => new Passenger(p.FirstName, p.LastName, p.SeatNumber, p.DocumentType, p.DocumentNumber))
             .ToList();
 
-        // Optional promo code: validate + compute the discount, then redeem with an ATOMIC
-        // conditional UPDATE so concurrent bookings can never push RedemptionCount past the cap
-        // (the WHERE clause re-checks active/expiry/cap; 0 rows affected = no longer redeemable).
+        // Optional promo code: validate + compute the discount (read-only here). The actual
+        // redemption is an ATOMIC conditional UPDATE performed INSIDE the booking transaction below,
+        // so if the booking insert fails the redemption rolls back with it (no leaked redemptions).
         decimal discount = 0;
         string? appliedPromo = null;
+        Guid? promoId = null;
         if (!string.IsNullOrWhiteSpace(command.PromoCode))
         {
             var grossTotal = trip.Fare.Amount * passengers.Count;
             var (promo, computed) = await PromoEvaluation.EvaluateAsync(db, trip.CompanyId, command.PromoCode, grossTotal, now, ct);
-            var redeemed = await db.PromoCodes
-                .Where(p => p.Id == promo.Id
-                            && p.Active
-                            && (p.ExpiresAtUtc == null || p.ExpiresAtUtc > now)
-                            && (p.MaxRedemptions == null || p.RedemptionCount < p.MaxRedemptions))
-                .ExecuteUpdateAsync(s => s.SetProperty(p => p.RedemptionCount, p => p.RedemptionCount + 1), ct);
-            if (redeemed == 0)
-                throw new ConflictException("promo.exhausted", "This promo code is no longer available.");
             discount = computed;
             appliedPromo = promo.Code;
+            promoId = promo.Id;
         }
 
         var booking = Booking.Create(
             trip.Id, customerEmail, references.NewBookingReference(),
-            passengers, trip.Fare, command.IdempotencyKey, discount, appliedPromo);
+            passengers, trip.Fare, command.IdempotencyKey, discount, appliedPromo, command.ContactPhone);
 
         foreach (var hold in holds)
             hold.AssignToBooking(booking.Id);
@@ -121,7 +116,24 @@ public sealed class CreateBookingHandler(
 
         try
         {
-            await db.SaveChangesAsync(ct);
+            await db.ExecuteInTransactionAsync(async token =>
+            {
+                // Redeem the promo atomically with the same conditional-cap check; 0 rows affected
+                // means it's no longer redeemable. Rolls back with the booking if the save fails.
+                if (promoId is { } id)
+                {
+                    var redeemed = await db.PromoCodes
+                        .Where(p => p.Id == id
+                                    && p.Active
+                                    && (p.ExpiresAtUtc == null || p.ExpiresAtUtc > now)
+                                    && (p.MaxRedemptions == null || p.RedemptionCount < p.MaxRedemptions))
+                        .ExecuteUpdateAsync(s => s.SetProperty(p => p.RedemptionCount, p => p.RedemptionCount + 1), token);
+                    if (redeemed == 0)
+                        throw new ConflictException("promo.exhausted", "This promo code is no longer available.");
+                }
+
+                await db.SaveChangesAsync(token);
+            }, ct);
         }
         catch (DbUpdateException)
         {

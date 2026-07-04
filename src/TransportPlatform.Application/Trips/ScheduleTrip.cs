@@ -29,6 +29,8 @@ public sealed class ScheduleTripValidator : AbstractValidator<ScheduleTripComman
         RuleFor(x => x.Currency).NotEmpty().Length(3)
             .Must(supported.IsSupported)
             .WithMessage($"Currency must be one of: {string.Join(", ", supported.Supported)}.");
+        // Arrival must be after departure (parity with UpdateTripValidator, which already has this).
+        RuleFor(x => x.ArrivalUtc).GreaterThan(x => x.DepartureUtc);
     }
 }
 

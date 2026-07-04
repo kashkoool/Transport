@@ -1,10 +1,13 @@
 using System.Text.Json;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using TransportPlatform.Application.Abstractions;
 using TransportPlatform.Application.Common;
+using TransportPlatform.Domain.Bookings;
 using TransportPlatform.Domain.Bookings.Events;
 using TransportPlatform.Domain.Notifications;
+using TransportPlatform.Domain.Trips.Events;
 using TransportPlatform.Infrastructure.Email;
 
 namespace TransportPlatform.Infrastructure.Persistence;
@@ -25,6 +28,7 @@ public sealed class OutboxEventDispatcher(
 {
     private static readonly string BookingConfirmedType = typeof(BookingConfirmedDomainEvent).FullName!;
     private static readonly string BookingCancelledType = typeof(BookingCancelledDomainEvent).FullName!;
+    private static readonly string TripRescheduledType = typeof(TripRescheduledDomainEvent).FullName!;
     private readonly EmailOptions _email = emailOptions.Value;
 
     public async Task DispatchAsync(string eventType, string payload, CancellationToken cancellationToken = default)
@@ -47,6 +51,21 @@ public sealed class OutboxEventDispatcher(
             await NotifyCustomerAsync(evt.CustomerEmail, "Booking cancelled",
                 $"Your booking {evt.BookingReference} was cancelled. Any payment will be refunded.", "warning", cancellationToken);
             await BroadcastSeatUpdateAsync(evt.TripId, cancellationToken);
+            return;
+        }
+
+        if (eventType == TripRescheduledType)
+        {
+            var evt = Deserialize<TripRescheduledDomainEvent>(payload);
+            // Notify every confirmed passenger on the trip of the new departure time.
+            var affected = await db.Bookings
+                .Where(b => b.TripId == evt.TripId && b.Status == BookingStatus.Confirmed)
+                .Select(b => new { b.Reference, b.CustomerEmail })
+                .ToListAsync(cancellationToken);
+            foreach (var booking in affected)
+                await NotifyCustomerAsync(booking.CustomerEmail, "Trip rescheduled",
+                    $"Your trip {evt.Origin} → {evt.Destination} (booking {booking.Reference}) now departs " +
+                    $"{evt.NewDepartureUtc.UtcDateTime:yyyy-MM-dd HH:mm} UTC.", "warning", cancellationToken);
             return;
         }
 

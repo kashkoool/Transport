@@ -27,7 +27,12 @@ public sealed class CreatePromoCodeValidator : AbstractValidator<CreatePromoCode
         RuleFor(x => x.DiscountValue).LessThanOrEqualTo(100)
             .When(x => x.DiscountType == DiscountType.Percent)
             .WithMessage("A percentage discount cannot exceed 100.");
-        RuleFor(x => x.MaxRedemptions).GreaterThan(0).When(x => x.MaxRedemptions.HasValue);
+        // A FIXED-amount discount was previously only lower-bounded; cap it to the same money
+        // ceiling as a trip fare so an absurd value can't be stored.
+        RuleFor(x => x.DiscountValue).LessThanOrEqualTo(9_999_999.99m)
+            .When(x => x.DiscountType == DiscountType.Fixed)
+            .WithMessage("A fixed discount is out of range.");
+        RuleFor(x => x.MaxRedemptions).InclusiveBetween(1, 1_000_000).When(x => x.MaxRedemptions.HasValue);
     }
 }
 

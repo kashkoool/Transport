@@ -1,4 +1,5 @@
 using ClosedXML.Excel;
+using QuestPDF.Drawing;
 using QuestPDF.Fluent;
 using QuestPDF.Helpers;
 using QuestPDF.Infrastructure;
@@ -9,11 +10,28 @@ namespace TransportPlatform.Infrastructure.Reports;
 
 /// <summary>
 /// Renders the per-trip report to XLSX (ClosedXML) and PDF (QuestPDF). XLSX cells are written as
-/// typed values (numbers/dates as numbers/dates, text as inline strings — never formulas).
+/// typed values (numbers/dates as numbers/dates, text as inline strings — never formulas). PDFs use
+/// an Arabic-capable font so Arabic city/company names render as text, not tofu boxes.
 /// </summary>
 public sealed class ReportExporter : IReportExporter
 {
-    static ReportExporter() => QuestPDF.Settings.License = LicenseType.Community; // QuestPDF community licence
+    /// <summary>The registered PDF font family — Amiri carries both Arabic and Latin glyphs.</summary>
+    private const string PdfFont = "Amiri";
+
+    static ReportExporter()
+    {
+        QuestPDF.Settings.License = LicenseType.Community; // QuestPDF community licence
+
+        // Register the Arabic-capable font(s) so QuestPDF can shape Arabic text. The default font
+        // has no Arabic glyphs, which would render Arabic report values as empty boxes.
+        var fontsDir = Path.Combine(AppContext.BaseDirectory, "Reports", "Fonts");
+        foreach (var file in new[] { "Amiri-Regular.ttf", "Amiri-Bold.ttf" })
+        {
+            var path = Path.Combine(fontsDir, file);
+            if (File.Exists(path))
+                FontManager.RegisterFont(File.OpenRead(path));
+        }
+    }
 
     public byte[] TripsToXlsx(IReadOnlyList<TripReportRow> rows)
     {
@@ -54,7 +72,7 @@ public sealed class ReportExporter : IReportExporter
             {
                 page.Size(PageSizes.A4.Landscape());
                 page.Margin(28);
-                page.DefaultTextStyle(t => t.FontSize(9));
+                page.DefaultTextStyle(t => t.FontSize(9).FontFamily(PdfFont));
 
                 page.Header().Text("Trips report").FontSize(16).Bold();
 
@@ -118,7 +136,7 @@ public sealed class ReportExporter : IReportExporter
             {
                 page.Size(PageSizes.A4.Landscape());
                 page.Margin(28);
-                page.DefaultTextStyle(t => t.FontSize(9));
+                page.DefaultTextStyle(t => t.FontSize(9).FontFamily(PdfFont));
 
                 page.Header().Text(title).FontSize(16).Bold();
 

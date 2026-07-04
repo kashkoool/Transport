@@ -10,4 +10,8 @@ public enum BookingStatus
     Confirmed = 1,
     Cancelled = 2,
     Expired = 3,
+
+    /// <summary>Confirmed passenger who didn't board (recorded by staff after departure). Terminal;
+    /// the trip ran so there is no refund, but it closes the booking's reconciliation loop.</summary>
+    NoShow = 4,
 }

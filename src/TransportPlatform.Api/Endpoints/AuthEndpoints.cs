@@ -237,6 +237,13 @@ public static class AuthEndpoints
         .WithName("ChangePassword")
         .WithSummary("Change the caller's password (verifies the current one; revokes other sessions).");
 
+        group.MapDelete("/account", async (DeleteMyAccountHandler handler, CancellationToken ct) =>
+            Results.Ok(await handler.HandleAsync(ct)))
+        .RequireAuthorization()
+        .RequireRateLimiting(RateLimitPolicies.Sensitive)
+        .WithName("DeleteMyAccount")
+        .WithSummary("Permanently delete the caller's own account (GDPR); blocked while they have upcoming trips.");
+
         return app;
     }
 

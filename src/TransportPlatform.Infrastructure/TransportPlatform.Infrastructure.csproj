@@ -25,6 +25,11 @@
   </ItemGroup>
 
   <ItemGroup>
+    <!-- Arabic-capable font (includes Latin) copied to output so QuestPDF can render Arabic in PDFs. -->
+    <None Include="Reports\Fonts\*.ttf" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
+  <ItemGroup>
     <ProjectReference Include="..\TransportPlatform.Application\TransportPlatform.Application.csproj" />
     <ProjectReference Include="..\TransportPlatform.Domain\TransportPlatform.Domain.csproj" />
   </ItemGroup>
