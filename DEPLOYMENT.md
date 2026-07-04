@@ -45,7 +45,7 @@ docker build -f web/customer/Dockerfile -t tpx-web web/customer
 
 | Workflow | Trigger | What it does |
 | --- | --- | --- |
-| `ci.yml` | PR + push to main | Backend build + unit/integration tests (Testcontainers Postgres on the runner), frontend build + ESLint, Docker build smoke (no push), gitleaks secret scan |
+| `ci.yml` | PR + push to main | Backend build + unit/integration tests (Testcontainers Postgres on the runner), frontend build + ESLint, Docker build + **Trivy image CVE/secret scan** (fails the PR on a fixable CRITICAL/HIGH), gitleaks secret scan |
 | `deploy.yml` | push to main + manual | Builds and pushes `transport-api` / `transport-web` images to **GHCR**, tagged with the commit SHA + `latest` |
 | `codeql.yml` | PR + push + weekly | CodeQL SAST for C# and TypeScript |
 | `dependency-review.yml` | PR | Blocks PRs adding vulnerable / disallowed-license deps |
