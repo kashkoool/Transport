@@ -5,31 +5,33 @@ import { CreatePromoCodeRequest, VendorApiService } from '../../core/api/vendor-
 import { ToastService } from '../../core/toast/toast.service';
 import { DiscountType, PromoCodeDto } from '../../core/models';
 import { VendorNavComponent } from './vendor-nav';
+import { TranslatePipe } from '../../core/i18n/translate.pipe';
+import { TranslationService } from '../../core/i18n/translation.service';
 
 @Component({
   selector: 'app-vendor-promo',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [ReactiveFormsModule, DatePipe, DecimalPipe, VendorNavComponent],
+  imports: [ReactiveFormsModule, DatePipe, DecimalPipe, VendorNavComponent, TranslatePipe],
   template: `
     <app-vendor-nav />
-    <h1 class="mb-6 text-2xl font-bold text-slate-900">Promo codes</h1>
+    <h1 class="mb-6 text-2xl font-bold text-slate-900">{{ 'vendor.promo.title' | t }}</h1>
 
     <div class="grid gap-6 lg:grid-cols-3">
       <section class="lg:col-span-2">
         @if (loading()) {
-          <p class="text-slate-500">Loading…</p>
+          <p class="text-slate-500">{{ 'vendor.common.loading' | t }}</p>
         } @else if (codes().length === 0) {
-          <p class="rounded-lg bg-slate-100 p-4 text-slate-600">No promo codes yet.</p>
+          <p class="rounded-lg bg-slate-100 p-4 text-slate-600">{{ 'vendor.promo.empty' | t }}</p>
         } @else {
           <div class="overflow-x-auto rounded-xl border border-slate-200 bg-white">
             <table class="w-full text-sm">
               <thead class="bg-slate-50 text-left text-slate-500">
                 <tr>
-                  <th class="px-3 py-2 font-medium">Code</th>
-                  <th class="px-3 py-2 font-medium">Discount</th>
-                  <th class="px-3 py-2 font-medium">Used</th>
-                  <th class="px-3 py-2 font-medium">Expires</th>
-                  <th class="px-3 py-2 font-medium">Status</th>
+                  <th class="px-3 py-2 font-medium">{{ 'vendor.promo.th.code' | t }}</th>
+                  <th class="px-3 py-2 font-medium">{{ 'vendor.promo.th.discount' | t }}</th>
+                  <th class="px-3 py-2 font-medium">{{ 'vendor.promo.th.used' | t }}</th>
+                  <th class="px-3 py-2 font-medium">{{ 'vendor.promo.th.expires' | t }}</th>
+                  <th class="px-3 py-2 font-medium">{{ 'vendor.promo.th.status' | t }}</th>
                   <th class="px-3 py-2 font-medium"></th>
                 </tr>
               </thead>
@@ -38,7 +40,7 @@ import { VendorNavComponent } from './vendor-nav';
                   <tr>
                     <td class="px-3 py-2 font-mono font-medium text-slate-800">{{ c.code }}</td>
                     <td class="px-3 py-2">
-                      {{ c.discountType === 'Percent' ? (c.discountValue | number: '1.0-0') + '%' : (c.discountValue | number: '1.0-0') + ' off' }}
+                      {{ c.discountType === 'Percent' ? (c.discountValue | number: '1.0-0') + '%' : (c.discountValue | number: '1.0-0') + ' ' + ('vendor.promo.off' | t) }}
                     </td>
                     <td class="px-3 py-2">{{ c.redemptionCount }}{{ c.maxRedemptions ? ' / ' + c.maxRedemptions : '' }}</td>
                     <td class="px-3 py-2 text-slate-500">{{ c.expiresAtUtc ? (c.expiresAtUtc | date: 'MMM d, y') : '—' }}</td>
@@ -46,12 +48,12 @@ import { VendorNavComponent } from './vendor-nav';
                       <span class="rounded-full px-2 py-0.5 text-xs font-semibold"
                         [class.bg-emerald-100]="c.active" [class.text-emerald-700]="c.active"
                         [class.bg-slate-200]="!c.active" [class.text-slate-600]="!c.active">
-                        {{ c.active ? 'Active' : 'Inactive' }}
+                        {{ (c.active ? 'vendor.common.active' : 'vendor.common.inactive') | t }}
                       </span>
                     </td>
                     <td class="px-3 py-2 text-right">
                       @if (c.active) {
-                        <button type="button" [disabled]="busy() === c.id" (click)="deactivate(c)" class="text-sm font-medium text-rose-600 hover:text-rose-700">Deactivate</button>
+                        <button type="button" [disabled]="busy() === c.id" (click)="deactivate(c)" class="text-sm font-medium text-rose-600 hover:text-rose-700">{{ 'vendor.promo.deactivate' | t }}</button>
                       }
                     </td>
                   </tr>
@@ -59,40 +61,40 @@ import { VendorNavComponent } from './vendor-nav';
               </tbody>
             </table>
           </div>
-          <p class="mt-2 text-xs text-slate-400">{{ total() }} code(s)</p>
+          <p class="mt-2 text-xs text-slate-400">{{ 'vendor.promo.count' | t: { n: total() } }}</p>
         }
       </section>
 
       <section class="rounded-xl border border-slate-200 bg-white p-4">
-        <h2 class="mb-3 font-semibold text-slate-900">Create a code</h2>
+        <h2 class="mb-3 font-semibold text-slate-900">{{ 'vendor.promo.createCode' | t }}</h2>
         <form [formGroup]="form" (ngSubmit)="submit()" class="space-y-3">
           <div>
-            <label for="code" class="mb-1 block text-sm font-medium text-slate-700">Code</label>
+            <label for="code" class="mb-1 block text-sm font-medium text-slate-700">{{ 'vendor.promo.code' | t }}</label>
             <input id="code" type="text" formControlName="code" class="w-full rounded-md border border-slate-300 px-3 py-2 uppercase focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500" />
           </div>
           <div>
-            <label for="discountType" class="mb-1 block text-sm font-medium text-slate-700">Type</label>
+            <label for="discountType" class="mb-1 block text-sm font-medium text-slate-700">{{ 'vendor.promo.type' | t }}</label>
             <select id="discountType" formControlName="discountType" class="w-full rounded-md border border-slate-300 px-3 py-2 focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500">
-              <option value="Percent">Percentage</option>
-              <option value="Fixed">Fixed amount</option>
+              <option value="Percent">{{ 'vendor.promo.typePercent' | t }}</option>
+              <option value="Fixed">{{ 'vendor.promo.typeFixed' | t }}</option>
             </select>
           </div>
           <div>
             <label for="discountValue" class="mb-1 block text-sm font-medium text-slate-700">
-              {{ form.controls.discountType.value === 'Percent' ? 'Percent off (1–100)' : 'Amount off' }}
+              {{ (form.controls.discountType.value === 'Percent' ? 'vendor.promo.percentOff' : 'vendor.promo.amountOff') | t }}
             </label>
             <input id="discountValue" type="number" min="1" formControlName="discountValue" class="w-full rounded-md border border-slate-300 px-3 py-2 focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500" />
           </div>
           <div>
-            <label for="maxRedemptions" class="mb-1 block text-sm font-medium text-slate-700">Max uses (optional)</label>
+            <label for="maxRedemptions" class="mb-1 block text-sm font-medium text-slate-700">{{ 'vendor.promo.maxUses' | t }}</label>
             <input id="maxRedemptions" type="number" min="1" formControlName="maxRedemptions" class="w-full rounded-md border border-slate-300 px-3 py-2 focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500" />
           </div>
           <div>
-            <label for="expires" class="mb-1 block text-sm font-medium text-slate-700">Expires (optional)</label>
+            <label for="expires" class="mb-1 block text-sm font-medium text-slate-700">{{ 'vendor.promo.expires' | t }}</label>
             <input id="expires" type="date" formControlName="expires" class="w-full rounded-md border border-slate-300 px-3 py-2 focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500" />
           </div>
           <button type="submit" [disabled]="submitting()" class="w-full rounded-md bg-brand-600 px-4 py-2 font-medium text-white hover:bg-brand-700 disabled:opacity-50">
-            {{ submitting() ? 'Creating…' : 'Create code' }}
+            {{ (submitting() ? 'vendor.promo.creating' : 'vendor.promo.createCodeBtn') | t }}
           </button>
         </form>
       </section>
@@ -103,6 +105,7 @@ export class VendorPromoComponent implements OnInit {
   private readonly fb = inject(FormBuilder);
   private readonly api = inject(VendorApiService);
   private readonly toasts = inject(ToastService);
+  private readonly i18n = inject(TranslationService);
 
   protected readonly codes = signal<PromoCodeDto[]>([]);
   protected readonly total = signal(0);
@@ -151,7 +154,7 @@ export class VendorPromoComponent implements OnInit {
     this.api.createPromoCode(body).subscribe({
       next: () => {
         this.submitting.set(false);
-        this.toasts.success(`Promo code ${body.code} created.`);
+        this.toasts.success(this.i18n.t('vendor.promo.toast.created', { code: body.code }));
         this.form.reset({ code: '', discountType: 'Percent', discountValue: 10, maxRedemptions: null, expires: '' });
         this.load();
       },
@@ -162,7 +165,7 @@ export class VendorPromoComponent implements OnInit {
   protected deactivate(c: PromoCodeDto): void {
     this.busy.set(c.id);
     this.api.deactivatePromoCode(c.id).subscribe({
-      next: () => { this.busy.set(null); this.toasts.success(`${c.code} deactivated.`); this.load(); },
+      next: () => { this.busy.set(null); this.toasts.success(this.i18n.t('vendor.promo.toast.deactivated', { code: c.code })); this.load(); },
       error: () => this.busy.set(null),
     });
   }

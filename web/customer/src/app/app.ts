@@ -5,14 +5,17 @@ import { filter } from 'rxjs';
 import { NgIcon, provideIcons } from '@ng-icons/core';
 import { phosphorBus, phosphorSun, phosphorMoon } from '@ng-icons/phosphor-icons/regular';
 import { AuthService } from './core/auth/auth.service';
+import { SeoService } from './core/seo/seo.service';
 import { ThemeService } from './core/theme/theme.service';
+import { TranslationService } from './core/i18n/translation.service';
+import { TranslatePipe } from './core/i18n/translate.pipe';
 import { ToastComponent } from './core/toast/toast';
 import { NotificationBellComponent } from './core/notifications/notification-bell';
 
 @Component({
   selector: 'app-root',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [RouterOutlet, RouterLink, RouterLinkActive, ToastComponent, NotificationBellComponent, NgIcon],
+  imports: [RouterOutlet, RouterLink, RouterLinkActive, ToastComponent, NotificationBellComponent, NgIcon, TranslatePipe],
   providers: [provideIcons({ phosphorBus, phosphorSun, phosphorMoon })],
   template: `
     <div class="flex min-h-full flex-col">
@@ -39,11 +42,21 @@ import { NotificationBellComponent } from './core/notifications/notification-bel
               <a [routerLink]="'/vendor/desk'" routerLinkActive="navlink-active" class="navlink">Desk</a>
               <a [routerLink]="'/vendor/trips'" routerLinkActive="navlink-active" class="navlink">Trips</a>
             } @else {
-              <a [routerLink]="'/'" routerLinkActive="navlink-active" [routerLinkActiveOptions]="{ exact: true }" class="navlink">Search</a>
+              <a [routerLink]="'/'" routerLinkActive="navlink-active" [routerLinkActiveOptions]="{ exact: true }" class="navlink">{{ 'common.search' | t }}</a>
+              <a [routerLink]="'/routes'" routerLinkActive="navlink-active" class="navlink">Routes</a>
               @if (auth.isAuthenticated()) {
-                <a [routerLink]="'/my-bookings'" routerLinkActive="navlink-active" class="navlink">My trips</a>
+                <a [routerLink]="'/my-bookings'" routerLinkActive="navlink-active" class="navlink">{{ 'nav.myBookings' | t }}</a>
               }
             }
+
+            <button
+              type="button"
+              (click)="i18n.toggle()"
+              [attr.aria-label]="'Switch language'"
+              class="navlink px-2.5 font-semibold"
+            >
+              {{ 'common.language' | t }}
+            </button>
 
             <button
               type="button"
@@ -64,11 +77,11 @@ import { NotificationBellComponent } from './core/notifications/notification-bel
                 <span class="max-w-40 truncate text-xs font-medium text-slate-600 dark:text-slate-300">{{ auth.email() }}</span>
               </a>
               <button type="button" (click)="logout()" class="btn btn-ghost px-3 py-1.5">
-                Log out
+                {{ 'common.logout' | t }}
               </button>
             } @else {
-              <a [routerLink]="'/login'" class="navlink">Log in</a>
-              <a [routerLink]="'/register'" class="btn btn-primary px-4 py-1.5">Sign up</a>
+              <a [routerLink]="'/login'" class="navlink">{{ 'common.login' | t }}</a>
+              <a [routerLink]="'/register'" class="btn btn-primary px-4 py-1.5">{{ 'common.signup' | t }}</a>
             }
           </div>
         </nav>
@@ -95,6 +108,7 @@ import { NotificationBellComponent } from './core/notifications/notification-bel
             <p class="text-sm font-bold">Explore</p>
             <ul class="mt-3 space-y-2 text-sm text-white/60">
               <li><a [routerLink]="'/'" class="hover:text-white">Search trips</a></li>
+              <li><a [routerLink]="'/routes'" class="hover:text-white">All bus routes</a></li>
               <li><a [routerLink]="'/register'" class="hover:text-white">Create an account</a></li>
               <li><a [routerLink]="'/login'" class="hover:text-white">Log in</a></li>
             </ul>
@@ -135,7 +149,9 @@ import { NotificationBellComponent } from './core/notifications/notification-bel
 export class App {
   protected readonly auth = inject(AuthService);
   protected readonly theme = inject(ThemeService);
+  protected readonly i18n = inject(TranslationService);
   private readonly router = inject(Router);
+  private readonly seo = inject(SeoService);
 
   protected readonly isLanding = signal(this.atLanding());
   /** True once the user scrolls off the top — flips the see-through landing header to frosted glass. */
@@ -160,7 +176,19 @@ export class App {
         filter((e) => e instanceof NavigationEnd),
         takeUntilDestroyed(),
       )
-      .subscribe(() => this.isLanding.set(this.atLanding()));
+      .subscribe(() => {
+        this.isLanding.set(this.atLanding());
+        // Emit noindex for private/auth routes (data.noindex). Public SEO pages set their own
+        // indexable metadata in their components, so they are not flagged here.
+        if (this.routeHasNoindex()) this.seo.noindex();
+      });
+  }
+
+  /** Walk to the deepest activated route and read its `data.noindex` flag. */
+  private routeHasNoindex(): boolean {
+    let route = this.router.routerState.snapshot.root;
+    while (route.firstChild) route = route.firstChild;
+    return route.data?.['noindex'] === true;
   }
 
   @HostListener('window:scroll')

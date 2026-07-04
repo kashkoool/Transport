@@ -4,17 +4,18 @@ import { ActivatedRoute, RouterLink } from '@angular/router';
 import { toDataURL } from 'qrcode';
 import { ApiService } from '../../core/api/api.service';
 import { Ticket } from '../../core/models';
+import { TranslatePipe } from '../../core/i18n/translate.pipe';
 
 @Component({
   selector: 'app-ticket',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [DatePipe, DecimalPipe, RouterLink],
+  imports: [DatePipe, DecimalPipe, RouterLink, TranslatePipe],
   template: `
     <div class="mx-auto max-w-md">
       @if (ticket(); as t) {
         <div class="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
           <div class="flex items-center justify-between bg-brand-600 px-6 py-4 text-white">
-            <span class="font-semibold">Boarding ticket</span>
+            <span class="font-semibold">{{ 'ticket.boardingTicket' | t }}</span>
             <span
               class="rounded-full px-3 py-1 text-xs font-semibold"
               [class.bg-emerald-500]="t.status === 'Confirmed'"
@@ -31,17 +32,17 @@ import { Ticket } from '../../core/models';
             </div>
 
             <div class="rounded-lg bg-slate-50 p-3">
-              <p class="text-xs uppercase tracking-wide text-slate-400">Reference</p>
+              <p class="text-xs uppercase tracking-wide text-slate-400">{{ 'ticket.reference' | t }}</p>
               <p class="font-mono text-lg font-semibold text-slate-800">{{ t.reference }}</p>
             </div>
 
             <div>
-              <p class="mb-1 text-xs uppercase tracking-wide text-slate-400">Passengers</p>
+              <p class="mb-1 text-xs uppercase tracking-wide text-slate-400">{{ 'ticket.passengers' | t }}</p>
               <ul class="divide-y divide-slate-100">
                 @for (p of t.passengers; track p.seatNumber) {
                   <li class="flex justify-between py-1.5 text-sm">
                     <span class="text-slate-700">{{ p.firstName }} {{ p.lastName }}</span>
-                    <span class="font-medium text-slate-500">Seat {{ p.seatNumber }}</span>
+                    <span class="font-medium text-slate-500">{{ 'ticket.seat' | t: { seat: p.seatNumber } }}</span>
                   </li>
                 }
               </ul>
@@ -49,13 +50,13 @@ import { Ticket } from '../../core/models';
 
             @if (qr(); as qrUrl) {
               <div class="flex flex-col items-center gap-2 pt-2">
-                <img [src]="qrUrl" alt="Boarding QR code" class="h-44 w-44" />
-                <p class="text-xs text-slate-400">Show this at boarding</p>
+                <img [src]="qrUrl" [alt]="'ticket.qrAlt' | t" class="h-44 w-44" />
+                <p class="text-xs text-slate-400">{{ 'ticket.showAtBoarding' | t }}</p>
               </div>
             }
 
             <div class="flex items-center justify-between border-t border-slate-100 pt-4">
-              <span class="text-sm text-slate-500">Total paid</span>
+              <span class="text-sm text-slate-500">{{ 'ticket.totalPaid' | t }}</span>
               <span class="text-lg font-bold text-slate-900">
                 {{ t.totalAmount | number: '1.0-0' }} {{ t.currency }}
               </span>
@@ -64,10 +65,10 @@ import { Ticket } from '../../core/models';
         </div>
 
         <a routerLink="/my-bookings" class="mt-4 block text-center text-sm text-brand-600 hover:text-brand-700">
-          View all my bookings
+          {{ 'ticket.viewAll' | t }}
         </a>
       } @else if (!loading()) {
-        <p class="text-center text-slate-500">Ticket not found.</p>
+        <p class="text-center text-slate-500">{{ 'ticket.notFound' | t }}</p>
       }
     </div>
   `,

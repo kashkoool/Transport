@@ -1,5 +1,12 @@
-import { ChangeDetectionStrategy, Component, inject, OnInit, signal } from '@angular/core';
-import { DatePipe, DecimalPipe } from '@angular/common';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  inject,
+  OnInit,
+  PLATFORM_ID,
+  signal,
+} from '@angular/core';
+import { DatePipe, DecimalPipe, isPlatformBrowser } from '@angular/common';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router } from '@angular/router';
 import { NgIcon, provideIcons } from '@ng-icons/core';
@@ -12,10 +19,15 @@ import {
   phosphorFire,
   phosphorMapTrifold,
 } from '@ng-icons/phosphor-icons/regular';
+import { RouterLink } from '@angular/router';
 import { ApiService } from '../../core/api/api.service';
 import { AuthService } from '../../core/auth/auth.service';
 import { BookingFlow } from '../../core/booking-flow';
 import { PublicCompany, TripSummary } from '../../core/models';
+import { TranslatePipe } from '../../core/i18n/translate.pipe';
+import { SeoService } from '../../core/seo/seo.service';
+import { SeoApiService, SeoRoute } from '../../core/seo/seo-api.service';
+import { seedRouteSlugs } from '../../core/seo/seo-seed';
 
 interface Route {
   from: string;
@@ -25,7 +37,7 @@ interface Route {
 @Component({
   selector: 'app-search',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [ReactiveFormsModule, DatePipe, DecimalPipe, NgIcon],
+  imports: [ReactiveFormsModule, RouterLink, DatePipe, DecimalPipe, NgIcon, TranslatePipe],
   providers: [
     provideIcons({
       phosphorBus,
@@ -53,14 +65,14 @@ interface Route {
         <div class="mx-auto w-full max-w-6xl px-4 py-24 text-white">
           <div class="max-w-2xl text-center [text-shadow:0_2px_18px_rgb(0_0_0_/_0.85)] lg:text-left">
             <span class="badge bg-black/30 text-white ring-1 ring-white/20 backdrop-blur-sm">
-              <span class="tracking-[0.2em] text-flag">★★★</span> Every Syrian bus company, one search
+              <span class="tracking-[0.2em] text-flag">★★★</span> {{ 'hero.badge' | t }}
             </span>
             <h1 class="mt-5 text-4xl leading-[1.05] sm:text-6xl">
-              Your next trip across
-              <span class="text-brand-300">Syria starts here.</span>
+              {{ 'hero.title1' | t }}
+              <span class="text-brand-300">{{ 'hero.title2' | t }}</span>
             </h1>
             <p class="mx-auto mt-5 max-w-xl text-base text-white/75 sm:text-lg lg:mx-0">
-              Compare live departures, pick your exact seat, and pay securely, all in under a minute.
+              {{ 'hero.subtitle' | t }}
             </p>
           </div>
 
@@ -69,22 +81,22 @@ interface Route {
             <div class="rounded-3xl bg-white p-2 shadow-glow ring-1 ring-black/5 sm:rounded-full">
               <div class="grid gap-1 sm:grid-cols-[1fr_1fr_1fr_auto] sm:items-center">
                 <div class="rounded-2xl px-4 py-2 hover:bg-slate-50">
-                  <label for="origin" class="block text-[11px] font-bold uppercase tracking-wide text-slate-400">From</label>
+                  <label for="origin" class="block text-[11px] font-bold uppercase tracking-wide text-slate-400">{{ 'common.from' | t }}</label>
                   <input id="origin" formControlName="origin" placeholder="Damascus" class="w-full border-0 bg-transparent p-0 text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-0" />
                 </div>
                 <div class="rounded-2xl px-4 py-2 hover:bg-slate-50 sm:border-l sm:border-slate-100">
-                  <label for="destination" class="block text-[11px] font-bold uppercase tracking-wide text-slate-400">To</label>
+                  <label for="destination" class="block text-[11px] font-bold uppercase tracking-wide text-slate-400">{{ 'common.to' | t }}</label>
                   <input id="destination" formControlName="destination" placeholder="Latakia" class="w-full border-0 bg-transparent p-0 text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-0" />
                 </div>
                 <div class="rounded-2xl px-4 py-2 hover:bg-slate-50 sm:border-l sm:border-slate-100">
-                  <label for="date" class="block text-[11px] font-bold uppercase tracking-wide text-slate-400">Date</label>
+                  <label for="date" class="block text-[11px] font-bold uppercase tracking-wide text-slate-400">{{ 'common.date' | t }}</label>
                   <input id="date" type="date" formControlName="date" class="w-full border-0 bg-transparent p-0 text-slate-900 focus:outline-none focus:ring-0" />
                 </div>
                 <button type="submit" [disabled]="loading()" class="btn btn-primary m-1 h-12 px-7">
                   @if (loading()) {
                     <span class="h-4 w-4 animate-spin rounded-full border-2 border-white/40 border-t-white"></span>
                   } @else {
-                    <span>Search</span>
+                    <span>{{ 'common.search' | t }}</span>
                   }
                 </button>
               </div>
@@ -92,7 +104,7 @@ interface Route {
 
             <details class="mt-3 max-w-3xl">
               <summary class="cursor-pointer select-none text-center text-sm font-medium text-white/70 hover:text-white lg:text-left">
-                Advanced search
+                {{ 'hero.advanced' | t }}
               </summary>
               <div class="mt-3 grid gap-3 rounded-2xl bg-white p-3 shadow-soft sm:grid-cols-3">
                 <div>
@@ -117,10 +129,10 @@ interface Route {
           </form>
 
           <div class="mt-8 flex flex-wrap items-center justify-center gap-x-8 gap-y-2 text-sm text-white/80 [text-shadow:0_1px_10px_rgb(0_0_0_/_0.9)] lg:justify-start">
-            <span class="inline-flex items-center gap-1.5"><ng-icon name="phosphorBus" /> Every company</span>
-            <span class="inline-flex items-center gap-1.5"><ng-icon name="phosphorSeat" /> Live seat maps</span>
-            <span class="inline-flex items-center gap-1.5"><ng-icon name="phosphorLockKey" /> Secure payments</span>
-            <span class="inline-flex items-center gap-1.5"><ng-icon name="phosphorQrCode" /> Instant QR tickets</span>
+            <span class="inline-flex items-center gap-1.5"><ng-icon name="phosphorBus" /> {{ 'hero.trust.company' | t }}</span>
+            <span class="inline-flex items-center gap-1.5"><ng-icon name="phosphorSeat" /> {{ 'hero.trust.seats' | t }}</span>
+            <span class="inline-flex items-center gap-1.5"><ng-icon name="phosphorLockKey" /> {{ 'hero.trust.pay' | t }}</span>
+            <span class="inline-flex items-center gap-1.5"><ng-icon name="phosphorQrCode" /> {{ 'hero.trust.qr' | t }}</span>
           </div>
         </div>
       </div>
@@ -150,6 +162,28 @@ interface Route {
                   <p class="mt-8 text-xs font-semibold text-accent-300">View trips →</p>
                 </div>
               </button>
+            }
+          </div>
+        </section>
+
+        <!-- Popular routes — real <a> links so crawlers follow them to the /bus/{slug} pages -->
+        <section class="mt-16">
+          <div class="flex items-end justify-between gap-4">
+            <div>
+              <p class="eyebrow">Popular routes</p>
+              <h2 class="mt-1 text-2xl text-slate-900 dark:text-slate-100 sm:text-3xl">Book a bus route</h2>
+            </div>
+            <a routerLink="/routes" class="btn btn-ghost shrink-0">All routes →</a>
+          </div>
+          <div class="mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+            @for (r of seoRoutes(); track r.slug) {
+              <a
+                [routerLink]="['/bus', r.slug]"
+                class="card group flex items-center justify-between gap-2 p-4 transition hover:-translate-y-0.5 hover:shadow-glow"
+              >
+                <span class="font-semibold text-slate-900 dark:text-slate-100">{{ r.origin }} → {{ r.destination }}</span>
+                <span class="text-brand-500 transition group-hover:translate-x-0.5">→</span>
+              </a>
             }
           </div>
         </section>
@@ -275,11 +309,16 @@ export class SearchComponent implements OnInit {
   private readonly auth = inject(AuthService);
   private readonly flow = inject(BookingFlow);
   private readonly router = inject(Router);
+  private readonly seo = inject(SeoService);
+  private readonly seoApi = inject(SeoApiService);
+  private readonly isBrowser = isPlatformBrowser(inject(PLATFORM_ID));
 
   protected readonly loading = signal(false);
   protected readonly searched = signal(false);
   protected readonly results = signal<TripSummary[]>([]);
   protected readonly companies = signal<PublicCompany[]>([]);
+  /** Top routes for the crawlable "Popular routes" grid. */
+  protected readonly seoRoutes = signal<SeoRoute[]>([]);
 
   protected readonly popularRoutes: Route[] = [
     { from: 'Damascus', to: 'Latakia' },
@@ -314,8 +353,66 @@ export class SearchComponent implements OnInit {
   });
 
   ngOnInit(): void {
-    // Populate the company filter; failure is non-fatal (the dropdown just stays "Any company").
-    this.api.companies().subscribe({ next: (c) => this.companies.set(c), error: () => undefined });
+    // Render the popular-routes grid from seed data first so it's present in the prerendered HTML.
+    this.seoRoutes.set(this.fallbackRoutes());
+
+    // Browser-only network work (companies filter + live popular routes). These calls MUST NOT run
+    // during prerender — a relative /api URL can't resolve on the server and the failed request
+    // throws an uncaught error that aborts the render.
+    if (this.isBrowser) {
+      // Populate the company filter; failure is non-fatal (the dropdown just stays "Any company").
+      this.api.companies().subscribe({ next: (c) => this.companies.set(c), error: () => undefined });
+      // Top ~8 routes for the crawlable "Popular routes" grid.
+      this.seoApi.routes().subscribe({
+        next: (routes) => this.seoRoutes.set(routes.slice(0, 8)),
+        error: () => undefined, // keep the seed-rendered grid
+      });
+    }
+
+    // Home-page SEO metadata + structured data (baked into the prerendered HTML).
+    this.seo.set({
+      title: 'TPX Travel — Book Bus Tickets Across Syria Online',
+      description:
+        'Book intercity bus tickets across Syria with TPX Travel. Compare every operator, pick your seat on a live map, and pay securely for an instant QR ticket. Damascus, Aleppo, Homs & more.',
+      path: '/',
+      type: 'website',
+    });
+    this.seo.setJsonLd('organization', {
+      '@context': 'https://schema.org',
+      '@type': 'Organization',
+      name: 'TPX Travel',
+      url: this.seo.abs('/'),
+      logo: this.seo.abs('/og-default.png'),
+      description: 'Online bus ticket booking across Syria.',
+    });
+    this.seo.setJsonLd('website', {
+      '@context': 'https://schema.org',
+      '@type': 'WebSite',
+      name: 'TPX Travel',
+      url: this.seo.abs('/'),
+      potentialAction: {
+        '@type': 'SearchAction',
+        target: {
+          '@type': 'EntryPoint',
+          urlTemplate: `${this.seo.abs('/')}?origin={origin}&destination={destination}`,
+        },
+        'query-input': 'required name=origin',
+      },
+    });
+  }
+
+  private fallbackRoutes(): SeoRoute[] {
+    return seedRouteSlugs()
+      .slice(0, 8)
+      .map((slug) => {
+        const [origin, destination] = slug.split('-to-').map((s) =>
+          s
+            .split('-')
+            .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
+            .join(' '),
+        );
+        return { origin, destination, slug, tripCount: 0, minPrice: 0, currency: 'SYP' };
+      });
   }
 
   protected quickRoute(route: Route): void {

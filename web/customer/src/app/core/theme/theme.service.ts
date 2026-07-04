@@ -1,4 +1,5 @@
-import { Injectable, signal } from '@angular/core';
+import { DOCUMENT, inject, Injectable, PLATFORM_ID, signal } from '@angular/core';
+import { isPlatformBrowser } from '@angular/common';
 
 export type Theme = 'light' | 'dark';
 
@@ -10,6 +11,8 @@ export type Theme = 'light' | 'dark';
 @Injectable({ providedIn: 'root' })
 export class ThemeService {
   private static readonly STORAGE_KEY = 'tpx-theme';
+  private readonly doc = inject(DOCUMENT);
+  private readonly isBrowser = isPlatformBrowser(inject(PLATFORM_ID));
   readonly theme = signal<Theme>(this.resolveInitial());
 
   constructor() {
@@ -31,6 +34,8 @@ export class ThemeService {
   }
 
   private resolveInitial(): Theme {
+    // Prerender (Node): no storage / matchMedia — ship the light default in the static HTML.
+    if (!this.isBrowser) return 'light';
     let saved: string | null = null;
     try {
       saved = localStorage.getItem(ThemeService.STORAGE_KEY);
@@ -42,6 +47,7 @@ export class ThemeService {
   }
 
   private apply(theme: Theme): void {
-    document.documentElement.classList.toggle('dark', theme === 'dark');
+    // Use the injected DOCUMENT (shimmed on the server) so this never touches a bare global.
+    this.doc.documentElement.classList.toggle('dark', theme === 'dark');
   }
 }

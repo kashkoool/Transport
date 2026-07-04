@@ -1,6 +1,8 @@
 import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { AuthService } from '../../core/auth/auth.service';
+import { safeReturnPath } from '../../core/auth/safe-return';
+import { TranslatePipe } from '../../core/i18n/translate.pipe';
 
 /**
  * Landing page after an external (Google) sign-in. The backend has already set the HttpOnly
@@ -9,12 +11,13 @@ import { AuthService } from '../../core/auth/auth.service';
 @Component({
   selector: 'app-auth-callback',
   changeDetection: ChangeDetectionStrategy.OnPush,
+  imports: [TranslatePipe],
   template: `
     <div class="mx-auto max-w-sm text-center">
       @if (failed()) {
-        <p class="text-sm text-red-700">Sign-in failed. Redirecting…</p>
+        <p class="text-sm text-red-700">{{ 'authCallback.failed' | t }}</p>
       } @else {
-        <p class="text-sm text-slate-600">Signing you in…</p>
+        <p class="text-sm text-slate-600">{{ 'authCallback.signingIn' | t }}</p>
       }
     </div>
   `,
@@ -35,8 +38,7 @@ export class AuthCallbackComponent {
       }
       // Only app-relative paths (mirror the backend SafeReturnPath: reject protocol-relative "//").
       const returnUrl = this.route.snapshot.queryParamMap.get('returnUrl');
-      const safe = !!returnUrl && returnUrl.startsWith('/') && !returnUrl.startsWith('//');
-      this.router.navigateByUrl(safe ? returnUrl! : this.auth.homeRoute());
+      this.router.navigateByUrl(safeReturnPath(returnUrl, this.auth.homeRoute()));
     });
   }
 }

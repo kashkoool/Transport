@@ -12,8 +12,10 @@
  * component classes below keep every screen consistent.
  */
 @theme {
-  --font-sans: 'Inter', ui-sans-serif, system-ui, sans-serif;
-  --font-display: 'Space Grotesk', 'Inter', ui-sans-serif, system-ui, sans-serif;
+  /* Cairo (body) + Changa (display) carry Latin AND Arabic, so the type system holds up in both
+     languages; Inter/Space Grotesk remain Latin fallbacks. */
+  --font-sans: 'Cairo', 'Inter', ui-sans-serif, system-ui, sans-serif;
+  --font-display: 'Changa', 'Space Grotesk', 'Inter', ui-sans-serif, system-ui, sans-serif;
 
   /* Ink — near-black base for immersive surfaces */
   --color-ink: #0b1020;
@@ -171,5 +173,20 @@
   }
   to {
     transform: translateX(-50%);
+  }
+}
+
+/* ── Arabic / RTL adjustments ─────────────────────────────────────────────────────────────────
+   `dir="rtl"` on <html> (set by TranslationService) already flips text flow, default alignment and
+   logical layout. These tweaks fix the few places that pin a physical side so the Arabic UI reads
+   naturally from the start (right) edge. */
+[dir='rtl'] body {
+  /* Cairo/Changa look best with slightly looser tracking in Arabic. */
+  letter-spacing: 0;
+}
+@media (min-width: 1024px) {
+  /* Hero copy: hug the start edge (right in Arabic) instead of the physical left. */
+  [dir='rtl'] .lg\:text-left {
+    text-align: right;
   }
 }

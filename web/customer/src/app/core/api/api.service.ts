@@ -64,12 +64,13 @@ export class ApiService {
     tripId: string,
     passengers: PassengerInput[],
     promoCode?: string | null,
+    contactPhone?: string | null,
   ): Observable<BookingResult> {
     // A fresh idempotency key per attempt makes a retried POST safe — the backend dedupes on it.
     const headers = { 'Idempotency-Key': crypto.randomUUID() };
     return this.http.post<BookingResult>(
       `${this.base}/bookings`,
-      { tripId, passengers, promoCode: promoCode || null },
+      { tripId, passengers, promoCode: promoCode || null, contactPhone: contactPhone || null },
       { headers },
     );
   }

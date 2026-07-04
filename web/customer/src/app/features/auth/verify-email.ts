@@ -2,38 +2,39 @@ import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/cor
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { AuthService } from '../../core/auth/auth.service';
 import { ToastService } from '../../core/toast/toast.service';
+import { TranslatePipe } from '../../core/i18n/translate.pipe';
 
 type VerifyState = 'verifying' | 'success' | 'failure' | 'invalid';
 
 @Component({
   selector: 'app-verify-email',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [RouterLink],
+  imports: [RouterLink, TranslatePipe],
   template: `
     <div class="mx-auto max-w-sm text-center">
-      <h1 class="mb-6 text-2xl font-bold text-slate-900">Email verification</h1>
+      <h1 class="mb-6 text-2xl font-bold text-slate-900 dark:text-slate-100">{{ 'auth.verify.verifying' | t }}</h1>
       @switch (state()) {
         @case ('verifying') {
-          <p class="text-sm text-slate-600">Verifying your email…</p>
+          <p class="text-sm text-slate-600 dark:text-slate-400">{{ 'auth.verify.verifying' | t }}</p>
         }
         @case ('success') {
           <div class="rounded-md bg-green-50 p-4 text-sm text-green-800">
-            Your email is verified. You're all set.
+            {{ 'auth.verify.success' | t }}
           </div>
           <a
             routerLink="/login"
             class="mt-4 inline-block rounded-md bg-brand-600 px-4 py-2 font-medium text-white hover:bg-brand-700"
-            >Continue to sign in</a
+            >{{ 'auth.verify.continue' | t }}</a
           >
         }
         @case ('invalid') {
           <div class="rounded-md bg-amber-50 p-4 text-sm text-amber-800">
-            This verification link is incomplete.
+            {{ 'auth.verify.failed' | t }}
           </div>
         }
         @case ('failure') {
           <div class="rounded-md bg-red-50 p-4 text-sm text-red-800">
-            This verification link is invalid or has expired.
+            {{ 'auth.verify.failed' | t }}
           </div>
           <button
             type="button"
@@ -41,7 +42,7 @@ type VerifyState = 'verifying' | 'success' | 'failure' | 'invalid';
             [disabled]="resending()"
             class="mt-4 rounded-md border border-brand-600 px-4 py-2 font-medium text-brand-600 hover:bg-brand-50 disabled:opacity-50"
           >
-            {{ resending() ? 'Sending…' : 'Send a new link' }}
+            {{ (resending() ? 'auth.verify.resending' : 'auth.verify.resend') | t }}
           </button>
         }
       }

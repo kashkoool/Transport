@@ -4,21 +4,23 @@ import { RouterLink } from '@angular/router';
 import { ApiService } from '../../core/api/api.service';
 import { ToastService } from '../../core/toast/toast.service';
 import { BookingSummary } from '../../core/models';
+import { TranslatePipe } from '../../core/i18n/translate.pipe';
+import { TranslationService } from '../../core/i18n/translation.service';
 
 @Component({
   selector: 'app-my-bookings',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [DatePipe, DecimalPipe, RouterLink],
+  imports: [DatePipe, DecimalPipe, RouterLink, TranslatePipe],
   template: `
-    <h1 class="mb-6 text-2xl font-bold text-slate-900">My bookings</h1>
+    <h1 class="mb-6 text-2xl font-bold text-slate-900">{{ 'myBookings.title' | t }}</h1>
 
     @if (loading()) {
-      <p class="text-slate-500">Loading…</p>
+      <p class="text-slate-500">{{ 'common.loading' | t }}</p>
     } @else if (bookings().length === 0) {
       <div class="rounded-xl bg-slate-100 p-6 text-center">
-        <p class="text-slate-600">You have no bookings yet.</p>
+        <p class="text-slate-600">{{ 'myBookings.empty' | t }}</p>
         <a routerLink="/search" class="mt-2 inline-block font-medium text-brand-600 hover:text-brand-700">
-          Find a trip →
+          {{ 'myBookings.findTrip' | t }}
         </a>
       </div>
     } @else {
@@ -51,24 +53,24 @@ import { BookingSummary } from '../../core/models';
 
             <div class="mt-3 flex flex-wrap items-center gap-2 border-t border-slate-100 pt-3">
               <a [routerLink]="['/ticket', b.bookingId]" class="text-sm font-medium text-brand-600 hover:text-brand-700">
-                View ticket →
+                {{ 'myBookings.viewTicket' | t }}
               </a>
 
               @if (b.status !== 'Cancelled') {
                 @if (confirmingCancel() === b.bookingId) {
-                  <span class="text-sm text-slate-600">Cancel this booking?</span>
+                  <span class="text-sm text-slate-600">{{ 'myBookings.cancelConfirm' | t }}</span>
                   <button type="button" [disabled]="busy() === b.bookingId" (click)="cancel(b.bookingId)"
                     class="rounded-md bg-rose-600 px-3 py-1 text-sm font-medium text-white hover:bg-rose-700 disabled:opacity-50">
-                    {{ busy() === b.bookingId ? 'Cancelling…' : 'Yes, cancel' }}
+                    {{ (busy() === b.bookingId ? 'myBookings.cancelling' : 'myBookings.yesCancel') | t }}
                   </button>
-                  <button type="button" (click)="confirmingCancel.set(null)" class="text-sm text-slate-500 hover:text-slate-700">Keep</button>
+                  <button type="button" (click)="confirmingCancel.set(null)" class="text-sm text-slate-500 hover:text-slate-700">{{ 'myBookings.keep' | t }}</button>
                 } @else {
                   <button type="button" (click)="confirmingCancel.set(b.bookingId)" class="text-sm font-medium text-rose-600 hover:text-rose-700">
-                    Cancel
+                    {{ 'myBookings.cancel' | t }}
                   </button>
                 }
                 <button type="button" (click)="toggleReview(b.bookingId)" class="text-sm font-medium text-slate-600 hover:text-slate-800">
-                  Leave a review
+                  {{ 'myBookings.leaveReview' | t }}
                 </button>
               }
             </div>
@@ -88,15 +90,15 @@ import { BookingSummary } from '../../core/models';
                   (input)="reviewComment.set($any($event.target).value)"
                   rows="2"
                   maxlength="1000"
-                  placeholder="How was your trip? (optional)"
+                  [placeholder]="'myBookings.reviewPlaceholder' | t"
                   class="w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
                 ></textarea>
                 <div class="mt-2 flex gap-2">
                   <button type="button" [disabled]="busy() === b.bookingId" (click)="submitReview(b.bookingId)"
                     class="rounded-md bg-brand-600 px-3 py-1 text-sm font-medium text-white hover:bg-brand-700 disabled:opacity-50">
-                    {{ busy() === b.bookingId ? 'Submitting…' : 'Submit review' }}
+                    {{ (busy() === b.bookingId ? 'myBookings.submitting' : 'myBookings.submitReview') | t }}
                   </button>
-                  <button type="button" (click)="reviewing.set(null)" class="text-sm text-slate-500 hover:text-slate-700">Cancel</button>
+                  <button type="button" (click)="reviewing.set(null)" class="text-sm text-slate-500 hover:text-slate-700">{{ 'myBookings.cancel' | t }}</button>
                 </div>
               </div>
             }
@@ -109,6 +111,7 @@ import { BookingSummary } from '../../core/models';
 export class MyBookingsComponent implements OnInit {
   private readonly api = inject(ApiService);
   private readonly toasts = inject(ToastService);
+  private readonly i18n = inject(TranslationService);
 
   protected readonly stars = [1, 2, 3, 4, 5];
   protected readonly bookings = signal<BookingSummary[]>([]);
@@ -129,7 +132,7 @@ export class MyBookingsComponent implements OnInit {
       next: (res) => {
         this.busy.set(null);
         this.confirmingCancel.set(null);
-        this.toasts.success(res.refundInitiated ? 'Booking cancelled. A refund is on its way.' : 'Booking cancelled.');
+        this.toasts.success(this.i18n.t(res.refundInitiated ? 'myBookings.cancelledRefund' : 'myBookings.cancelled'));
         this.load();
       },
       error: () => {
@@ -151,7 +154,7 @@ export class MyBookingsComponent implements OnInit {
       next: () => {
         this.busy.set(null);
         this.reviewing.set(null);
-        this.toasts.success('Thanks for your review!');
+        this.toasts.success(this.i18n.t('myBookings.reviewThanks'));
       },
       error: () => this.busy.set(null),
     });

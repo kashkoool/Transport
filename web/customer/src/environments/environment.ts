@@ -8,4 +8,7 @@
 export const environment = {
   production: true,
   apiBaseUrl: '/api',
+  // Canonical public origin used for <link rel=canonical>, og:url and absolute OG image URLs.
+  // Set this to the real production host at deploy time (e.g. 'https://tpxtravel.sy').
+  siteBaseUrl: 'http://localhost:8080',
 };
