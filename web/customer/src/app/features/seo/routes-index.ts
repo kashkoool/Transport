@@ -13,6 +13,7 @@ import { phosphorBus, phosphorArrowRight } from '@ng-icons/phosphor-icons/regula
 import { SeoApiService, SeoRoute } from '../../core/seo/seo-api.service';
 import { SeoService } from '../../core/seo/seo.service';
 import { seedRouteSlugs } from '../../core/seo/seo-seed';
+import { TranslatePipe } from '../../core/i18n/translate.pipe';
 
 /**
  * /routes — the routes hub. Lists every bookable origin→destination pair as a real <a> link to its
@@ -22,22 +23,21 @@ import { seedRouteSlugs } from '../../core/seo/seo-seed';
 @Component({
   selector: 'app-routes-index',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [RouterLink, DecimalPipe, NgIcon],
+  imports: [RouterLink, DecimalPipe, NgIcon, TranslatePipe],
   providers: [provideIcons({ phosphorBus, phosphorArrowRight })],
   template: `
     <section class="py-6">
       <nav aria-label="Breadcrumb" class="text-sm text-slate-500 dark:text-slate-400">
-        <a routerLink="/" class="hover:text-brand-600">Home</a>
+        <a routerLink="/" class="hover:text-brand-600">{{ 'seo.breadcrumb.home' | t }}</a>
         <span class="mx-1.5">/</span>
-        <span class="text-slate-700 dark:text-slate-200">Routes</span>
+        <span class="text-slate-700 dark:text-slate-200">{{ 'seo.breadcrumb.routes' | t }}</span>
       </nav>
 
       <h1 class="mt-3 text-3xl font-extrabold text-slate-900 dark:text-slate-100 sm:text-4xl">
-        Bus routes across Syria
+        {{ 'seo.routes.title' | t }}
       </h1>
       <p class="mt-3 max-w-2xl text-slate-600 dark:text-slate-300">
-        Browse every intercity bus route on TPX Travel. Compare operators, see fares from the
-        cheapest available seat, and book your ticket online in under a minute.
+        {{ 'seo.routes.intro' | t }}
       </p>
 
       @if (loading()) {
@@ -50,7 +50,7 @@ import { seedRouteSlugs } from '../../core/seo/seo-seed';
         @for (group of grouped(); track group.origin) {
           <section class="mt-8">
             <h2 class="text-xl font-bold text-slate-900 dark:text-slate-100">
-              From {{ group.origin }}
+              {{ 'seo.routes.fromOrigin' | t: { origin: group.origin } }}
             </h2>
             <div class="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
               @for (r of group.routes; track r.slug) {
@@ -68,7 +68,7 @@ import { seedRouteSlugs } from '../../core/seo/seo-seed';
                       </span>
                       @if (r.minPrice > 0) {
                         <span class="block text-xs text-slate-500 dark:text-slate-400">
-                          from {{ r.minPrice | number: '1.0-0' }} {{ r.currency }}
+                          {{ 'seo.routes.priceFrom' | t: { price: (r.minPrice | number: '1.0-0'), currency: r.currency } }}
                         </span>
                       }
                     </span>

@@ -13,6 +13,7 @@ import { phosphorBus, phosphorArrowRight, phosphorMapTrifold } from '@ng-icons/p
 import { SeoApiService, SeoRoute } from '../../core/seo/seo-api.service';
 import { SeoService } from '../../core/seo/seo.service';
 import { citySlug, SEED_CITIES, routeSlug } from '../../core/seo/seo-seed';
+import { TranslatePipe } from '../../core/i18n/translate.pipe';
 
 /**
  * /city/:city — a city hub. Lists every route that touches this city (as origin or destination) as
@@ -21,32 +22,31 @@ import { citySlug, SEED_CITIES, routeSlug } from '../../core/seo/seo-seed';
 @Component({
   selector: 'app-city-page',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [RouterLink, DecimalPipe, NgIcon],
+  imports: [RouterLink, DecimalPipe, NgIcon, TranslatePipe],
   providers: [provideIcons({ phosphorBus, phosphorArrowRight, phosphorMapTrifold })],
   template: `
     @if (notFound()) {
       <section class="py-16 text-center">
         <ng-icon name="phosphorMapTrifold" class="text-5xl text-slate-300 dark:text-slate-600" />
-        <h1 class="mt-4 text-2xl font-bold text-slate-900 dark:text-slate-100">City not found</h1>
-        <p class="mt-2 text-slate-500 dark:text-slate-400">Browse all available routes instead.</p>
-        <a routerLink="/routes" class="btn btn-primary mt-6">See all routes</a>
+        <h1 class="mt-4 text-2xl font-bold text-slate-900 dark:text-slate-100">{{ 'seo.city.notFound.title' | t }}</h1>
+        <p class="mt-2 text-slate-500 dark:text-slate-400">{{ 'seo.city.notFound.body' | t }}</p>
+        <a routerLink="/routes" class="btn btn-primary mt-6">{{ 'seo.city.notFound.cta' | t }}</a>
       </section>
     } @else {
       <section class="py-6">
         <nav aria-label="Breadcrumb" class="text-sm text-slate-500 dark:text-slate-400">
-          <a routerLink="/" class="hover:text-brand-600">Home</a>
+          <a routerLink="/" class="hover:text-brand-600">{{ 'seo.breadcrumb.home' | t }}</a>
           <span class="mx-1.5">/</span>
-          <a routerLink="/routes" class="hover:text-brand-600">Routes</a>
+          <a routerLink="/routes" class="hover:text-brand-600">{{ 'seo.breadcrumb.routes' | t }}</a>
           <span class="mx-1.5">/</span>
           <span class="text-slate-700 dark:text-slate-200">{{ cityName() }}</span>
         </nav>
 
         <h1 class="mt-3 text-3xl font-extrabold text-slate-900 dark:text-slate-100 sm:text-4xl">
-          Bus routes from {{ cityName() }}
+          {{ 'seo.city.h1' | t: { city: cityName() } }}
         </h1>
         <p class="mt-3 max-w-2xl text-slate-600 dark:text-slate-300">
-          Find and book intercity buses departing {{ cityName() }}. Compare operators and fares, pick
-          your seat, and get an instant QR ticket with TPX Travel.
+          {{ 'seo.city.intro' | t: { city: cityName() } }}
         </p>
 
         @if (loading()) {
@@ -56,7 +56,7 @@ import { citySlug, SEED_CITIES, routeSlug } from '../../core/seo/seo-seed';
             }
           </div>
         } @else if (routes().length === 0) {
-          <p class="mt-8 text-slate-500 dark:text-slate-400">No routes from this city yet.</p>
+          <p class="mt-8 text-slate-500 dark:text-slate-400">{{ 'seo.city.empty' | t }}</p>
         } @else {
           <div class="mt-8 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
             @for (r of routes(); track r.slug) {
@@ -71,7 +71,7 @@ import { citySlug, SEED_CITIES, routeSlug } from '../../core/seo/seo-seed';
                   <span>
                     <span class="block font-semibold text-slate-900 dark:text-slate-100">{{ r.origin }} → {{ r.destination }}</span>
                     @if (r.minPrice > 0) {
-                      <span class="block text-xs text-slate-500 dark:text-slate-400">from {{ r.minPrice | number: '1.0-0' }} {{ r.currency }}</span>
+                      <span class="block text-xs text-slate-500 dark:text-slate-400">{{ 'seo.city.priceFrom' | t: { price: (r.minPrice | number: '1.0-0'), currency: r.currency } }}</span>
                     }
                   </span>
                 </span>

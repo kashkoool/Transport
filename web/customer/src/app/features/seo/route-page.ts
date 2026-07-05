@@ -19,6 +19,8 @@ import {
 } from '@ng-icons/phosphor-icons/regular';
 import { SeoApiService, SeoRouteDetail } from '../../core/seo/seo-api.service';
 import { SeoService } from '../../core/seo/seo.service';
+import { TranslatePipe } from '../../core/i18n/translate.pipe';
+import { TranslationService } from '../../core/i18n/translation.service';
 
 /**
  * /bus/:route — the primary SEO landing (money page). Targets the long-tail query
@@ -28,7 +30,7 @@ import { SeoService } from '../../core/seo/seo.service';
 @Component({
   selector: 'app-route-page',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [RouterLink, DatePipe, DecimalPipe, NgIcon],
+  imports: [RouterLink, DatePipe, DecimalPipe, NgIcon, TranslatePipe],
   providers: [
     provideIcons({ phosphorBus, phosphorClock, phosphorBuildings, phosphorTag, phosphorMapTrifold }),
   ],
@@ -36,54 +38,62 @@ import { SeoService } from '../../core/seo/seo.service';
     @if (notFound()) {
       <section class="py-16 text-center">
         <ng-icon name="phosphorMapTrifold" class="text-5xl text-slate-300 dark:text-slate-600" />
-        <h1 class="mt-4 text-2xl font-bold text-slate-900 dark:text-slate-100">Route not found</h1>
+        <h1 class="mt-4 text-2xl font-bold text-slate-900 dark:text-slate-100">{{ 'seo.route.notFound.title' | t }}</h1>
         <p class="mt-2 text-slate-500 dark:text-slate-400">
-          We couldn't find that route. Browse all available routes instead.
+          {{ 'seo.route.notFound.body' | t }}
         </p>
-        <a routerLink="/routes" class="btn btn-primary mt-6">See all routes</a>
+        <a routerLink="/routes" class="btn btn-primary mt-6">{{ 'seo.route.notFound.cta' | t }}</a>
       </section>
     } @else if (detail(); as d) {
       <article class="py-6">
         <nav aria-label="Breadcrumb" class="text-sm text-slate-500 dark:text-slate-400">
-          <a routerLink="/" class="hover:text-brand-600">Home</a>
+          <a routerLink="/" class="hover:text-brand-600">{{ 'seo.breadcrumb.home' | t }}</a>
           <span class="mx-1.5">/</span>
-          <a routerLink="/routes" class="hover:text-brand-600">Routes</a>
+          <a routerLink="/routes" class="hover:text-brand-600">{{ 'seo.breadcrumb.routes' | t }}</a>
           <span class="mx-1.5">/</span>
           <span class="text-slate-700 dark:text-slate-200">{{ d.origin }} → {{ d.destination }}</span>
         </nav>
 
         <h1 class="mt-3 text-3xl font-extrabold text-slate-900 dark:text-slate-100 sm:text-4xl">
-          Bus from {{ d.origin }} to {{ d.destination }}
+          {{ 'seo.route.h1' | t: { origin: d.origin, destination: d.destination } }}
         </h1>
 
         <div class="mt-4 flex flex-wrap items-center gap-3 text-sm">
           @if (d.minPrice > 0) {
-            <span class="badge badge-brand"><ng-icon name="phosphorTag" /> From {{ d.minPrice | number: '1.0-0' }} {{ d.currency }}</span>
+            <span class="badge badge-brand"><ng-icon name="phosphorTag" /> {{ 'seo.route.priceFrom' | t: { price: (d.minPrice | number: '1.0-0'), currency: d.currency } }}</span>
           }
           @if (d.avgDurationMinutes) {
-            <span class="badge badge-muted"><ng-icon name="phosphorClock" /> ~{{ durationLabel(d.avgDurationMinutes) }}</span>
+            <span class="badge badge-muted"><ng-icon name="phosphorClock" /> {{ 'seo.route.durationApprox' | t: { duration: durationLabel(d.avgDurationMinutes) } }}</span>
           }
           @if (d.companies.length) {
-            <span class="badge badge-muted"><ng-icon name="phosphorBuildings" /> {{ d.companies.length }} operator{{ d.companies.length > 1 ? 's' : '' }}</span>
+            <span class="badge badge-muted"><ng-icon name="phosphorBuildings" /> {{ (d.companies.length > 1 ? 'seo.route.operatorsCountPlural' : 'seo.route.operatorsCount') | t: { count: d.companies.length } }}</span>
           }
         </div>
 
         <p class="mt-5 max-w-2xl text-slate-600 dark:text-slate-300">
-          Book your bus ticket from {{ d.origin }} to {{ d.destination }} online with TPX Travel.
-          Compare every operator on this route, choose your exact seat on a live seat map, and pay
-          securely to get an instant QR ticket. Fares start
-          {{ d.minPrice > 0 ? 'from ' + (d.minPrice | number: '1.0-0') + ' ' + d.currency : 'at competitive rates' }}.
+          {{
+            'seo.route.intro'
+              | t
+                : {
+                    origin: d.origin,
+                    destination: d.destination,
+                    price:
+                      d.minPrice > 0
+                        ? ('seo.route.intro.priceFrom' | t: { price: (d.minPrice | number: '1.0-0'), currency: d.currency })
+                        : ('seo.route.intro.priceCompetitive' | t)
+                  }
+          }}
         </p>
 
         <!-- Prominent CTA into the real search -->
         <a [routerLink]="['/']" [queryParams]="searchParams()" class="btn btn-primary mt-6 h-12 px-7 text-base">
-          Search {{ d.origin }} → {{ d.destination }} buses
+          {{ 'seo.route.searchCta' | t: { origin: d.origin, destination: d.destination } }}
         </a>
 
         <!-- Next departures -->
         @if (d.next.length) {
           <section class="mt-12">
-            <h2 class="text-2xl font-bold text-slate-900 dark:text-slate-100">Next departures</h2>
+            <h2 class="text-2xl font-bold text-slate-900 dark:text-slate-100">{{ 'seo.route.nextDepartures' | t }}</h2>
             <div class="mt-4 space-y-3">
               @for (dep of d.next; track dep.departureUtc) {
                 <div class="card flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between">
@@ -91,7 +101,7 @@ import { SeoService } from '../../core/seo/seo.service';
                     <span class="grid h-10 w-10 shrink-0 place-items-center rounded-2xl bg-linear-to-br from-brand-500 to-brand-700 text-white"><ng-icon name="phosphorBus" /></span>
                     <div>
                       <p class="font-semibold text-slate-900 dark:text-slate-100">
-                        {{ dep.departureUtc | date: 'EEE, MMM d, HH:mm' }} · arrives {{ dep.arrivalUtc | date: 'HH:mm' }}
+                        {{ dep.departureUtc | date: 'EEE, MMM d, HH:mm' }} · {{ 'seo.route.arrives' | t: { time: (dep.arrivalUtc | date: 'HH:mm') } }}
                       </p>
                       <p class="text-sm text-slate-500 dark:text-slate-400">{{ dep.companyName }}</p>
                     </div>
@@ -108,7 +118,7 @@ import { SeoService } from '../../core/seo/seo.service';
         <!-- Operators -->
         @if (d.companies.length) {
           <section class="mt-12">
-            <h2 class="text-2xl font-bold text-slate-900 dark:text-slate-100">Bus operators on this route</h2>
+            <h2 class="text-2xl font-bold text-slate-900 dark:text-slate-100">{{ 'seo.route.operators' | t }}</h2>
             <div class="mt-4 flex flex-wrap gap-2">
               @for (c of d.companies; track c) {
                 <span class="badge badge-muted">{{ c }}</span>
@@ -119,7 +129,7 @@ import { SeoService } from '../../core/seo/seo.service';
 
         <!-- FAQ -->
         <section class="mt-12">
-          <h2 class="text-2xl font-bold text-slate-900 dark:text-slate-100">Frequently asked questions</h2>
+          <h2 class="text-2xl font-bold text-slate-900 dark:text-slate-100">{{ 'seo.route.faq' | t }}</h2>
           <div class="mt-4 space-y-3">
             @for (f of faq(); track f.q) {
               <details class="card p-4">
@@ -133,9 +143,9 @@ import { SeoService } from '../../core/seo/seo.service';
         <!-- Closing CTA -->
         <section class="mt-12">
           <div class="rounded-3xl bg-linear-to-br from-brand-700 to-brand-500 px-6 py-10 text-center text-white">
-            <h2 class="text-2xl font-bold">Ready to travel {{ d.origin }} → {{ d.destination }}?</h2>
-            <p class="mx-auto mt-2 max-w-md text-white/80">Pick your date and seat now — you'll have a QR ticket in under a minute.</p>
-            <a [routerLink]="['/']" [queryParams]="searchParams()" class="btn btn-accent mt-6">Find your trip</a>
+            <h2 class="text-2xl font-bold">{{ 'seo.route.closingTitle' | t: { origin: d.origin, destination: d.destination } }}</h2>
+            <p class="mx-auto mt-2 max-w-md text-white/80">{{ 'seo.route.closingBody' | t }}</p>
+            <a [routerLink]="['/']" [queryParams]="searchParams()" class="btn btn-accent mt-6">{{ 'seo.route.closingCta' | t }}</a>
           </div>
         </section>
       </article>
@@ -151,6 +161,7 @@ export class RoutePageComponent implements OnInit {
   private readonly route = inject(ActivatedRoute);
   private readonly seoApi = inject(SeoApiService);
   private readonly seo = inject(SeoService);
+  private readonly i18n = inject(TranslationService);
   private readonly isBrowser = isPlatformBrowser(inject(PLATFORM_ID));
 
   protected readonly detail = signal<SeoRouteDetail | null>(null);
@@ -215,7 +226,41 @@ export class RoutePageComponent implements OnInit {
     return h > 0 ? `${h}h${m ? ' ' + m + 'm' : ''}` : `${m}m`;
   }
 
+  /**
+   * FAQ shown in the template — translated to the active language via the i18n service. The JSON-LD
+   * FAQ (for crawlers) uses faqEn() instead so structured data stays English while prerendered.
+   */
   protected faq(): { q: string; a: string }[] {
+    const t = (key: string, params?: Record<string, string | number | null | undefined>) =>
+      this.i18n.t(key, params);
+    const d = this.detail();
+    const o = d?.origin ?? t('seo.route.faq.origin');
+    const dest = d?.destination ?? t('seo.route.faq.destination');
+    const price =
+      d && d.minPrice > 0
+        ? t('seo.route.faq.price.from', { price: d.minPrice, currency: d.currency })
+        : t('seo.route.faq.price.competitive');
+    return [
+      {
+        q: t('seo.route.faq.priceQ', { origin: o, destination: dest }),
+        a: t('seo.route.faq.priceA', { origin: o, destination: dest, price }),
+      },
+      {
+        q: t('seo.route.faq.durationQ', { origin: o, destination: dest }),
+        a:
+          d && d.avgDurationMinutes
+            ? t('seo.route.faq.durationA', { duration: this.durationLabel(d.avgDurationMinutes) })
+            : t('seo.route.faq.durationAUnknown'),
+      },
+      {
+        q: t('seo.route.faq.seatQ'),
+        a: t('seo.route.faq.seatA'),
+      },
+    ];
+  }
+
+  /** English-only FAQ for the JSON-LD structured data (kept English while prerendered for crawlers). */
+  private faqEn(): { q: string; a: string }[] {
     const d = this.detail();
     const o = d?.origin ?? 'the origin';
     const dest = d?.destination ?? 'the destination';
@@ -294,7 +339,7 @@ export class RoutePageComponent implements OnInit {
     this.seo.setJsonLd('faq', {
       '@context': 'https://schema.org',
       '@type': 'FAQPage',
-      mainEntity: this.faq().map((f) => ({
+      mainEntity: this.faqEn().map((f) => ({
         '@type': 'Question',
         name: f.q,
         acceptedAnswer: { '@type': 'Answer', text: f.a },

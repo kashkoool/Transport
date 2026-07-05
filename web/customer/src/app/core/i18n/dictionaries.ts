@@ -4,6 +4,7 @@
 import { customerDict } from './dict/customer';
 import { vendorDict } from './dict/vendor';
 import { adminDict } from './dict/admin';
+import { seoDict } from './dict/seo';
 
 export type Lang = 'en' | 'ar';
 
@@ -154,6 +155,6 @@ const base: Record<Lang, Record<string, string>> = {
 // Merge base + per-area partials. Keys are namespaced by area, so no collisions are expected; a
 // later spread would win if one ever occurred.
 export const dictionaries: Record<Lang, Record<string, string>> = {
-  en: { ...base.en, ...customerDict.en, ...vendorDict.en, ...adminDict.en },
-  ar: { ...base.ar, ...customerDict.ar, ...vendorDict.ar, ...adminDict.ar },
+  en: { ...base.en, ...customerDict.en, ...vendorDict.en, ...adminDict.en, ...seoDict.en },
+  ar: { ...base.ar, ...customerDict.ar, ...vendorDict.ar, ...adminDict.ar, ...seoDict.ar },
 };
