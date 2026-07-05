@@ -8,6 +8,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.IdentityModel.Tokens;
+using Npgsql;
 using TransportPlatform.Application.Abstractions;
 using TransportPlatform.Application.Common;
 using TransportPlatform.Domain.Identity;
@@ -36,6 +37,14 @@ public static class DependencyInjection
         {
             var cs = config.GetConnectionString("Postgres")
                      ?? throw new InvalidOperationException("ConnectionStrings:Postgres is not configured.");
+            // Bound the per-instance pool so (MaxPoolSize x app instances) stays well under Postgres
+            // max_connections (default 100), leaving headroom for migrations + admin tools. Tunable per
+            // environment via Database:MaxPoolSize; a connection pooler (PgBouncer) is the next step
+            // past this ceiling once instance count climbs.
+            cs = new NpgsqlConnectionStringBuilder(cs)
+            {
+                MaxPoolSize = config.GetValue("Database:MaxPoolSize", 20),
+            }.ConnectionString;
             opts.UseNpgsql(cs, npgsql =>
             {
                 npgsql.EnableRetryOnFailure(maxRetryCount: 3);

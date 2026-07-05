@@ -43,39 +43,12 @@ public sealed class OutboxPublisher(IServiceProvider services, ILogger<OutboxPub
             {
                 using var scope = services.CreateScope();
                 var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
-                var clock = scope.ServiceProvider.GetRequiredService<IClock>();
-                var dispatcher = scope.ServiceProvider.GetRequiredService<IIntegrationEventDispatcher>();
 
-                var pending = await db.OutboxMessages
-                    .Where(m => m.ProcessedAtUtc == null)
-                    .OrderBy(m => m.OccurredAtUtc)
-                    .Take(BatchSize)
-                    .ToListAsync(stoppingToken);
-
-                foreach (var message in pending)
-                {
-                    try
-                    {
-                        await dispatcher.DispatchAsync(message.Type, message.Payload, stoppingToken);
-                        message.MarkProcessed(clock.UtcNow);
-                    }
-                    catch (Exception ex) when (ex is not OperationCanceledException)
-                    {
-                        message.RecordFailure(ex.GetType().Name);
-                        if (message.Attempts >= MaxAttempts)
-                        {
-                            LogGaveUp(logger, message.Type, message.Id, ex);
-                            message.MarkProcessed(clock.UtcNow); // stop retrying a poison message
-                        }
-                        else
-                        {
-                            LogMessageFailed(logger, message.Type, message.Id, ex);
-                        }
-                    }
-                }
-
-                if (pending.Count > 0)
-                    await db.SaveChangesAsync(stoppingToken);
+                // Only ONE instance drains per tick (Postgres advisory lock), so a domain-event side
+                // effect like a confirmation email is dispatched exactly once even when the API runs
+                // as multiple instances behind a load balancer.
+                await PgLeaderLock.TryRunAsLeaderAsync(db, PgLeaderLock.Outbox,
+                    () => DrainAsync(scope.ServiceProvider, db, stoppingToken), stoppingToken);
             }
             catch (Exception ex) when (ex is not OperationCanceledException)
             {
@@ -83,5 +56,42 @@ public sealed class OutboxPublisher(IServiceProvider services, ILogger<OutboxPub
             }
         }
         while (await timer.WaitForNextTickAsync(stoppingToken));
+    }
+
+    private async Task DrainAsync(IServiceProvider sp, ApplicationDbContext db, CancellationToken stoppingToken)
+    {
+        var clock = sp.GetRequiredService<IClock>();
+        var dispatcher = sp.GetRequiredService<IIntegrationEventDispatcher>();
+
+        var pending = await db.OutboxMessages
+            .Where(m => m.ProcessedAtUtc == null)
+            .OrderBy(m => m.OccurredAtUtc)
+            .Take(BatchSize)
+            .ToListAsync(stoppingToken);
+
+        foreach (var message in pending)
+        {
+            try
+            {
+                await dispatcher.DispatchAsync(message.Type, message.Payload, stoppingToken);
+                message.MarkProcessed(clock.UtcNow);
+            }
+            catch (Exception ex) when (ex is not OperationCanceledException)
+            {
+                message.RecordFailure(ex.GetType().Name);
+                if (message.Attempts >= MaxAttempts)
+                {
+                    LogGaveUp(logger, message.Type, message.Id, ex);
+                    message.MarkProcessed(clock.UtcNow); // stop retrying a poison message
+                }
+                else
+                {
+                    LogMessageFailed(logger, message.Type, message.Id, ex);
+                }
+            }
+        }
+
+        if (pending.Count > 0)
+            await db.SaveChangesAsync(stoppingToken);
     }
 }

@@ -1,4 +1,5 @@
 using TransportPlatform.Application.Payments;
+using TransportPlatform.Infrastructure.Persistence;
 
 namespace TransportPlatform.Api.Workers;
 
@@ -29,10 +30,18 @@ public sealed class RefundReconciliationWorker(IServiceProvider services, ILogge
             try
             {
                 using var scope = services.CreateScope();
-                var handler = scope.ServiceProvider.GetRequiredService<ProcessPendingRefundsHandler>();
-                var processed = await handler.HandleAsync(BatchSize, stoppingToken);
-                if (processed > 0)
-                    LogRetried(logger, processed, null);
+                var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+
+                // Leader-only per tick: the gateway refund is already idempotent on the refund key,
+                // but this stops two instances making the same external refund call (wasteful, and it
+                // can trip the gateway's own rate limits).
+                await PgLeaderLock.TryRunAsLeaderAsync(db, PgLeaderLock.RefundReconciliation, async () =>
+                {
+                    var handler = scope.ServiceProvider.GetRequiredService<ProcessPendingRefundsHandler>();
+                    var processed = await handler.HandleAsync(BatchSize, stoppingToken);
+                    if (processed > 0)
+                        LogRetried(logger, processed, null);
+                }, stoppingToken);
             }
             catch (Exception ex) when (ex is not OperationCanceledException)
             {
