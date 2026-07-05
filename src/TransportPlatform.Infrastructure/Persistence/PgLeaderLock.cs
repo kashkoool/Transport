@@ -39,7 +39,7 @@ public static class PgLeaderLock
 
         try
         {
-            if (!await ScalarBoolAsync(conn, "SELECT pg_try_advisory_lock(@k)", key, ct))
+            if (!await AdvisoryLockAsync(conn, acquire: true, key, ct))
                 return false; // another instance is the leader for this tick
 
             try
@@ -49,7 +49,7 @@ public static class PgLeaderLock
             }
             finally
             {
-                await ScalarBoolAsync(conn, "SELECT pg_advisory_unlock(@k)", key, ct);
+                await AdvisoryLockAsync(conn, acquire: false, key, ct);
             }
         }
         finally
@@ -59,10 +59,12 @@ public static class PgLeaderLock
         }
     }
 
-    private static async Task<bool> ScalarBoolAsync(DbConnection conn, string sql, long key, CancellationToken ct)
+    // CommandText is assigned only constant string literals (never a variable/interpolation), and the
+    // lock key travels as a bound @k parameter — so there is no SQL-injection surface here.
+    private static async Task<bool> AdvisoryLockAsync(DbConnection conn, bool acquire, long key, CancellationToken ct)
     {
         await using var cmd = conn.CreateCommand();
-        cmd.CommandText = sql;
+        cmd.CommandText = acquire ? "SELECT pg_try_advisory_lock(@k)" : "SELECT pg_advisory_unlock(@k)";
         var p = cmd.CreateParameter();
         p.ParameterName = "k";
         p.Value = key;
