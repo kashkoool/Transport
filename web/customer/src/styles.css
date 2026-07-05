@@ -55,8 +55,7 @@
   body {
     /* overflow-x-clip (not hidden): full-bleed 100vw sections would otherwise show a horizontal
        scrollbar. `clip` hides the overflow WITHOUT turning the body into a scroll container —
-       `hidden` computes overflow-y:auto, which steals the scroller from the window and breaks
-       GSAP ScrollTrigger pinning. */
+       `hidden` computes overflow-y:auto, which steals the scroller from the window. */
     @apply overflow-x-clip bg-slate-50 text-slate-900 dark:bg-ink dark:text-slate-100;
     font-family: var(--font-sans);
     transition: background-color 0.3s ease, color 0.3s ease;
