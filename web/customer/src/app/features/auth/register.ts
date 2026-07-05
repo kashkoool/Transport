@@ -3,6 +3,7 @@ import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
 import { AuthService } from '../../core/auth/auth.service';
 import { TranslatePipe } from '../../core/i18n/translate.pipe';
+import { TranslationService } from '../../core/i18n/translation.service';
 
 @Component({
   selector: 'app-register',
@@ -60,6 +61,7 @@ export class RegisterComponent {
   private readonly fb = inject(FormBuilder);
   private readonly auth = inject(AuthService);
   private readonly router = inject(Router);
+  private readonly i18n = inject(TranslationService);
 
   protected readonly submitting = signal(false);
   protected readonly form = this.fb.nonNullable.group({
@@ -81,7 +83,8 @@ export class RegisterComponent {
     }
     this.submitting.set(true);
     const { email, password, fullName } = this.form.getRawValue();
-    this.auth.register(email, password, fullName).subscribe({
+    // Send the current UI language so the verification email matches what the user is reading.
+    this.auth.register(email, password, fullName, this.i18n.lang()).subscribe({
       next: () => this.router.navigateByUrl('/search'),
       error: () => this.submitting.set(false),
     });

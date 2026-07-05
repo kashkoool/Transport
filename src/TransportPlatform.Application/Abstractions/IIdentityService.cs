@@ -8,8 +8,12 @@ namespace TransportPlatform.Application.Abstractions;
 /// </summary>
 public interface IIdentityService
 {
-    /// <summary>Create a new Customer account. Throws ConflictException if the email is taken.</summary>
-    Task<AuthenticatedUser> RegisterCustomerAsync(string email, string password, string fullName, CancellationToken ct = default);
+    /// <summary>
+    /// Create a new Customer account. Throws ConflictException if the email is taken.
+    /// <paramref name="language"/> is the recipient's preferred email language (<c>"en"</c>/<c>"ar"</c>);
+    /// null is stored as-is (unknown → English at send time).
+    /// </summary>
+    Task<AuthenticatedUser> RegisterCustomerAsync(string email, string password, string fullName, string? language, CancellationToken ct = default);
 
     /// <summary>
     /// Verify an email/password pair. Returns the user (with roles) on success, null on a
@@ -60,6 +64,12 @@ public interface IIdentityService
 
     /// <summary>Resolve a user's id by email (for addressing notifications). Null if unknown.</summary>
     Task<Guid?> FindUserIdByEmailAsync(string email, CancellationToken ct = default);
+
+    /// <summary>
+    /// The user's preferred email language (<c>"en"</c>/<c>"ar"</c>) by email, for localizing
+    /// transactional mail. Null if the user is unknown or has no stored preference (→ English).
+    /// </summary>
+    Task<string?> GetUserLanguageByEmailAsync(string email, CancellationToken ct = default);
 
     /// <summary>The user ids of a company's manager(s) — recipients of admin → company messages.</summary>
     Task<IReadOnlyList<Guid>> ListCompanyManagerIdsAsync(Guid companyId, CancellationToken ct = default);

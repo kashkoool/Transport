@@ -18,6 +18,9 @@ public sealed class ResendVerificationHandler(IIdentityService identity, IAuthEm
         var email = command.Email.Trim();
         var created = await identity.CreateEmailVerificationTokenAsync(email, ct);
         if (created is { } verification)
-            await authEmail.SendEmailVerificationAsync(email, verification.Token, ct);
+        {
+            var lang = await identity.GetUserLanguageByEmailAsync(email, ct);
+            await authEmail.SendEmailVerificationAsync(email, verification.Token, lang, ct);
+        }
     }
 }

@@ -36,8 +36,10 @@ public sealed class OutboxEventDispatcher(
         if (eventType == BookingConfirmedType)
         {
             var evt = Deserialize<BookingConfirmedDomainEvent>(payload);
+            // Localize to the customer's stored preference; unknown/counter bookings → English.
+            var lang = await identity.GetUserLanguageByEmailAsync(evt.CustomerEmail, cancellationToken);
             var message = EmailTemplates.BookingConfirmed(
-                evt.CustomerEmail, evt.BookingReference, _email.BuildTicketUrl(evt.BookingId));
+                evt.CustomerEmail, evt.BookingReference, _email.BuildTicketUrl(evt.BookingId), lang);
             await email.SendAsync(message, cancellationToken);
             await NotifyCustomerAsync(evt.CustomerEmail, "Booking confirmed",
                 $"Your booking {evt.BookingReference} is confirmed.", "success", cancellationToken);
