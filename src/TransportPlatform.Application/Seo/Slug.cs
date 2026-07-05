@@ -35,14 +35,7 @@ public static class Slug
         if (string.IsNullOrEmpty(slug) || slug.Length > MaxLength)
             return false;
 
-        foreach (var ch in slug)
-        {
-            var ok = ch is (>= 'a' and <= 'z') or (>= '0' and <= '9') or '-';
-            if (!ok)
-                return false;
-        }
-
-        return true;
+        return slug.All(ch => ch is (>= 'a' and <= 'z') or (>= '0' and <= '9') or '-');
     }
 
     /// <summary>

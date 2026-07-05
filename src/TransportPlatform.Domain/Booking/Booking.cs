@@ -110,6 +110,8 @@ public sealed class Booking : AggregateRoot
         Raise(new BookingConfirmedDomainEvent(Id, TripId, Reference, CustomerEmail));
     }
 
+    /// <summary>Cancel a not-yet-confirmed booking (releases it); idempotent if already cancelled.
+    /// Confirmed bookings must go through <see cref="CancelConfirmed"/>.</summary>
     /// <param name="reason">Optional free-text reason recorded on the booking (e.g. "Customer cancellation").</param>
     public void Cancel(string? reason = null)
     {
