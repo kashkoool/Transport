@@ -1,0 +1,13 @@
+{
+  "name": "tpx-e2e",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Playwright end-to-end golden-flow tests, isolated from the SPA's own deps.",
+  "scripts": {
+    "test": "playwright test",
+    "report": "playwright show-report"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.49.0"
+  }
+}

@@ -11,6 +11,7 @@ internal sealed class BookingConfiguration : IEntityTypeConfiguration<Booking>
     {
         builder.ToTable("booking");
         builder.HasKey(b => b.Id);
+
         builder.Property(b => b.CustomerEmail).HasMaxLength(256).IsRequired();
         builder.Property(b => b.Reference).HasMaxLength(40).IsRequired();
         builder.Property(b => b.Status).HasConversion<string>().HasMaxLength(20).IsRequired();
@@ -18,6 +19,8 @@ internal sealed class BookingConfiguration : IEntityTypeConfiguration<Booking>
         builder.Property(b => b.Currency).HasMaxLength(3).IsRequired();
         builder.Property(b => b.DiscountAmount).HasColumnType("numeric(12,2)").IsRequired();
         builder.Property(b => b.PromoCode).HasMaxLength(40);
+        builder.Property(b => b.ContactPhone).HasMaxLength(30);
+        builder.Property(b => b.CancellationReason).HasMaxLength(200);
         builder.Property(b => b.IdempotencyKey).HasMaxLength(100).IsRequired();
 
         builder.HasIndex(b => b.Reference).IsUnique();

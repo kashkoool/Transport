@@ -37,4 +37,12 @@ public sealed class Passenger : Entity
         DocumentType = string.IsNullOrWhiteSpace(docType) ? null : docType;
         DocumentNumber = string.IsNullOrWhiteSpace(docNumber) ? null : docNumber;
     }
+
+    /// <summary>Move this passenger to a different seat (driven by the Booking aggregate root).</summary>
+    internal void MoveToSeat(int seatNumber)
+    {
+        if (seatNumber < 1)
+            throw new DomainException("passenger.seat_invalid", "Seat number must be positive.");
+        SeatNumber = seatNumber;
+    }
 }

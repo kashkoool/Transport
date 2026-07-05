@@ -12,28 +12,31 @@ concurrency:
   group: deploy-${{ github.ref }}
   cancel-in-progress: false # queue deploys; don't cancel one mid-flight
 
+# Least-privilege default; the image job elevates to `packages: write` for the GHCR push.
 permissions:
   contents: read
-  packages: write
 
 jobs:
   images:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write # push images to GHCR
     env:
       # GHCR requires all-lowercase names; the owner is lowercase and the suffixes are literal.
       API_IMAGE: ghcr.io/${{ github.repository_owner }}/transport-api
       WEB_IMAGE: ghcr.io/${{ github.repository_owner }}/transport-web
     steps:
-      - uses: actions/checkout@v5
-      - uses: docker/setup-buildx-action@v4
-      - uses: docker/login-action@v3
+      - uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5
+      - uses: docker/setup-buildx-action@bb05f3f5519dd87d3ba754cc423b652a5edd6d2c # v4
+      - uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9 # v3
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Build + push API image
-        uses: docker/build-push-action@v7
+        uses: docker/build-push-action@53b7df96c91f9c12dcc8a07bcb9ccacbed38856a # v7
         with:
           context: .
           file: src/TransportPlatform.Api/Dockerfile
@@ -47,7 +50,7 @@ jobs:
           cache-to: type=gha,mode=max
 
       - name: Build + push web image
-        uses: docker/build-push-action@v7
+        uses: docker/build-push-action@53b7df96c91f9c12dcc8a07bcb9ccacbed38856a # v7
         with:
           context: web/customer
           file: web/customer/Dockerfile

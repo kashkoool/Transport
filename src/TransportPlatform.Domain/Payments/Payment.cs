@@ -43,11 +43,30 @@ public sealed class Payment : AggregateRoot
     {
         if (Status == PaymentStatus.Completed)
             return; // idempotent for duplicate webhooks
+        // A refunded or failed payment must never be dragged back to Completed by a late/replayed
+        // event — that would confirm a booking whose money is gone.
+        if (Status is PaymentStatus.Refunded or PaymentStatus.Failed)
+            throw new DomainException("payment.invalid_transition", $"A {Status} payment cannot be completed.");
         GatewayTxnRef = gatewayTxnRef;
         Status = PaymentStatus.Completed;
     }
 
-    public void MarkFailed() => Status = PaymentStatus.Failed;
+    public void MarkFailed()
+    {
+        if (Status == PaymentStatus.Failed)
+            return; // idempotent
+        // Only a still-pending payment can fail; a captured (Completed) or Refunded one cannot.
+        if (Status != PaymentStatus.Pending)
+            throw new DomainException("payment.invalid_transition", $"A {Status} payment cannot be marked failed.");
+        Status = PaymentStatus.Failed;
+    }
 
-    public void MarkRefunded() => Status = PaymentStatus.Refunded;
+    public void MarkRefunded()
+    {
+        if (Status == PaymentStatus.Refunded)
+            return; // idempotent
+        if (Status != PaymentStatus.Completed)
+            throw new DomainException("payment.invalid_transition", "Only a completed payment can be refunded.");
+        Status = PaymentStatus.Refunded;
+    }
 }

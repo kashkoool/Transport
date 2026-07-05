@@ -3,43 +3,44 @@ import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { AuthService } from '../../core/auth/auth.service';
 import { ToastService } from '../../core/toast/toast.service';
+import { TranslatePipe } from '../../core/i18n/translate.pipe';
 
 @Component({
   selector: 'app-reset-password',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [ReactiveFormsModule, RouterLink],
+  imports: [ReactiveFormsModule, RouterLink, TranslatePipe],
   template: `
     <div class="mx-auto max-w-sm">
-      <h1 class="mb-6 text-2xl font-bold text-slate-900">Choose a new password</h1>
+      <h1 class="mb-6 text-2xl font-bold text-slate-900 dark:text-slate-100">{{ 'auth.reset.title' | t }}</h1>
       @if (!hasLink()) {
         <div class="rounded-md bg-amber-50 p-4 text-sm text-amber-800">
-          This reset link is incomplete. Request a new one from the
-          <a routerLink="/forgot-password" class="font-medium underline">forgot-password</a> page.
+          {{ 'auth.reset.incomplete' | t }}
+          <a routerLink="/forgot-password" class="font-medium underline">{{ 'auth.forgot.title' | t }}</a>
         </div>
       } @else {
         <form [formGroup]="form" (ngSubmit)="submit()" class="space-y-4">
           <div>
-            <label for="password" class="mb-1 block text-sm font-medium text-slate-700">New password</label>
+            <label for="password" class="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-300">{{ 'auth.reset.newPassword' | t }}</label>
             <input
               id="password"
               type="password"
               formControlName="password"
               autocomplete="new-password"
-              class="w-full rounded-md border border-slate-300 px-3 py-2 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+              class="w-full rounded-md border border-slate-300 px-3 py-2 focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
             />
-            <p class="mt-1 text-xs text-slate-500">At least 10 characters including a symbol.</p>
+            <p class="mt-1 text-xs text-slate-500 dark:text-slate-400">{{ 'auth.passwordHint' | t }}</p>
           </div>
           <button
             type="submit"
             [disabled]="submitting()"
-            class="w-full rounded-md bg-indigo-600 px-4 py-2 font-medium text-white hover:bg-indigo-700 disabled:opacity-50"
+            class="w-full rounded-md bg-brand-600 px-4 py-2 font-medium text-white hover:bg-brand-700 disabled:opacity-50"
           >
-            {{ submitting() ? 'Saving…' : 'Reset password' }}
+            {{ (submitting() ? 'auth.reset.saving' : 'auth.reset.save') | t }}
           </button>
         </form>
       }
-      <p class="mt-4 text-center text-sm text-slate-600">
-        <a routerLink="/login" class="font-medium text-indigo-600 hover:text-indigo-700">Back to sign in</a>
+      <p class="mt-4 text-center text-sm text-slate-600 dark:text-slate-400">
+        <a routerLink="/login" class="font-medium text-brand-600 hover:text-brand-700">{{ 'auth.backToSignin' | t }}</a>
       </p>
     </div>
   `,

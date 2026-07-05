@@ -22,14 +22,14 @@ public sealed class IdentityService(
         TimingHasher.HashPassword(TimingProbe, "n0t-a-real-passw0rd-timing-only");
 
     public async Task<AuthenticatedUser> RegisterCustomerAsync(
-        string email, string password, string fullName, CancellationToken ct = default)
+        string email, string password, string fullName, string? language, CancellationToken ct = default)
     {
         ct.ThrowIfCancellationRequested();
 
         if (await users.FindByEmailAsync(email) is not null)
             throw new ConflictException("auth.email_taken", "An account with this email already exists.");
 
-        var user = new ApplicationUser { UserName = email, Email = email, FullName = fullName };
+        var user = new ApplicationUser { UserName = email, Email = email, FullName = fullName, Language = language };
         var result = await users.CreateAsync(user, password);
         if (!result.Succeeded)
             throw new ConflictException("auth.registration_failed",
@@ -301,6 +301,13 @@ public sealed class IdentityService(
         ct.ThrowIfCancellationRequested();
         var user = string.IsNullOrWhiteSpace(email) ? null : await users.FindByEmailAsync(email);
         return user?.Id;
+    }
+
+    public async Task<string?> GetUserLanguageByEmailAsync(string email, CancellationToken ct = default)
+    {
+        ct.ThrowIfCancellationRequested();
+        var user = string.IsNullOrWhiteSpace(email) ? null : await users.FindByEmailAsync(email);
+        return user?.Language;
     }
 
     public async Task<IReadOnlyList<Guid>> ListCompanyManagerIdsAsync(Guid companyId, CancellationToken ct = default)

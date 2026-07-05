@@ -26,8 +26,8 @@ public sealed class VendorTenancyTests(ApiFactory factory) : IClassFixture<ApiFa
         var (companyA, tokenA) = await SeedCompanyWithManagerAsync();
         var (_, tokenB) = await SeedCompanyWithManagerAsync();
 
-        var clientA = factory.CreateClient();
-        var clientB = factory.CreateClient();
+        using var clientA = factory.CreateClient();
+        using var clientB = factory.CreateClient();
 
         // Vendor A adds a bus to their fleet.
         var addBus = await PostAsync(clientA, tokenA, "/api/vendor/buses",
@@ -81,7 +81,7 @@ public sealed class VendorTenancyTests(ApiFactory factory) : IClassFixture<ApiFa
     [Fact]
     public async Task Customer_token_cannot_reach_vendor_endpoints()
     {
-        var client = factory.CreateClient();
+        using var client = factory.CreateClient();
         var email = $"c{Guid.NewGuid():N}@example.com";
         var reg = await client.PostAsJsonAsync("/api/auth/register",
             new { email, password = "Str0ng!Passw0rd", fullName = "Cust Omer" });
@@ -120,7 +120,7 @@ public sealed class VendorTenancyTests(ApiFactory factory) : IClassFixture<ApiFa
             await identity.RegisterVendorManagerAsync(managerEmail, "Str0ng!Passw0rd", "Mgr", companyId);
         }
 
-        var client = factory.CreateClient();
+        using var client = factory.CreateClient();
         var login = await client.PostAsJsonAsync("/api/auth/login",
             new { email = managerEmail, password = "Str0ng!Passw0rd" });
         login.StatusCode.Should().Be(HttpStatusCode.OK);
@@ -129,18 +129,18 @@ public sealed class VendorTenancyTests(ApiFactory factory) : IClassFixture<ApiFa
         return (companyId, auth!.AccessToken);
     }
 
-    private static Task<HttpResponseMessage> PostAsync(HttpClient client, string token, string url, object body)
+    private static async Task<HttpResponseMessage> PostAsync(HttpClient client, string token, string url, object body)
     {
-        var req = new HttpRequestMessage(HttpMethod.Post, url) { Content = JsonContent.Create(body) };
+        using var req = new HttpRequestMessage(HttpMethod.Post, url) { Content = JsonContent.Create(body) };
         req.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
-        return client.SendAsync(req);
+        return await client.SendAsync(req);
     }
 
-    private static Task<HttpResponseMessage> GetAsync(HttpClient client, string token, string url)
+    private static async Task<HttpResponseMessage> GetAsync(HttpClient client, string token, string url)
     {
-        var req = new HttpRequestMessage(HttpMethod.Get, url);
+        using var req = new HttpRequestMessage(HttpMethod.Get, url);
         req.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
-        return client.SendAsync(req);
+        return await client.SendAsync(req);
     }
 
     private sealed record AuthDto(string AccessToken, string RefreshToken, string Email);

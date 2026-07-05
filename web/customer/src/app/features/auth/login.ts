@@ -2,63 +2,57 @@ import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/cor
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { AuthService } from '../../core/auth/auth.service';
+import { safeReturnPath } from '../../core/auth/safe-return';
 import { ToastService } from '../../core/toast/toast.service';
+import { TranslatePipe } from '../../core/i18n/translate.pipe';
 
 @Component({
   selector: 'app-login',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [ReactiveFormsModule, RouterLink],
+  imports: [ReactiveFormsModule, RouterLink, TranslatePipe],
   template: `
-    <div class="mx-auto max-w-sm">
-      <h1 class="mb-6 text-2xl font-bold text-slate-900">Welcome back</h1>
-      <form [formGroup]="form" (ngSubmit)="submit()" class="space-y-4">
-        <div>
-          <label for="email" class="mb-1 block text-sm font-medium text-slate-700">Email</label>
-          <input
-            id="email"
-            type="email"
-            formControlName="email"
-            autocomplete="email"
-            class="w-full rounded-md border border-slate-300 px-3 py-2 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
-          />
+    <div class="mx-auto flex min-h-[70vh] max-w-md items-center">
+      <div class="card w-full overflow-hidden">
+        <!-- Branded header strip -->
+        <div class="relative overflow-hidden bg-linear-to-br from-brand-700 to-brand-500 px-7 py-7 text-white">
+          <div class="pointer-events-none absolute -right-8 -top-8 h-32 w-32 rounded-full bg-white/10 blur-2xl"></div>
+          <p class="text-sm tracking-[0.3em] text-flag">★★★</p>
+          <h1 class="mt-1.5 text-2xl font-bold">{{ 'auth.login.title' | t }}</h1>
+          <p class="mt-1 text-sm text-white/80">{{ 'auth.login.subtitle' | t }}</p>
         </div>
-        <div>
-          <label for="password" class="mb-1 block text-sm font-medium text-slate-700">Password</label>
-          <input
-            id="password"
-            type="password"
-            formControlName="password"
-            autocomplete="current-password"
-            class="w-full rounded-md border border-slate-300 px-3 py-2 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
-          />
+
+        <div class="p-7">
+          <form [formGroup]="form" (ngSubmit)="submit()" class="space-y-4">
+            <div>
+              <label for="email" class="label">{{ 'auth.email' | t }}</label>
+              <input id="email" type="email" formControlName="email" autocomplete="email" class="input" />
+            </div>
+            <div>
+              <label for="password" class="label">{{ 'auth.password' | t }}</label>
+              <input id="password" type="password" formControlName="password" autocomplete="current-password" class="input" />
+            </div>
+            <button type="submit" [disabled]="submitting()" class="btn btn-primary w-full">
+              {{ (submitting() ? 'auth.signingIn' : 'auth.signin') | t }}
+            </button>
+          </form>
+
+          <div class="my-5 flex items-center gap-3 text-xs font-medium text-slate-400 dark:text-slate-500">
+            <span class="h-px flex-1 bg-slate-200 dark:bg-white/10"></span>{{ 'common.or' | t }}<span class="h-px flex-1 bg-slate-200 dark:bg-white/10"></span>
+          </div>
+
+          <button type="button" (click)="googleSignIn()" class="btn btn-ghost w-full">
+            <span class="font-bold text-brand-600 dark:text-brand-400">G</span> {{ 'auth.google' | t }}
+          </button>
+
+          <p class="mt-5 text-center text-sm">
+            <a routerLink="/forgot-password" class="font-semibold text-brand-600 hover:text-brand-700 dark:text-brand-400">{{ 'auth.forgot' | t }}</a>
+          </p>
+          <p class="mt-2 text-center text-sm text-slate-600 dark:text-slate-400">
+            {{ 'auth.newHere' | t }}
+            <a routerLink="/register" class="font-semibold text-brand-600 hover:text-brand-700 dark:text-brand-400">{{ 'auth.createAccount' | t }}</a>
+          </p>
         </div>
-        <button
-          type="submit"
-          [disabled]="submitting()"
-          class="w-full rounded-md bg-indigo-600 px-4 py-2 font-medium text-white hover:bg-indigo-700 disabled:opacity-50"
-        >
-          {{ submitting() ? 'Signing in…' : 'Sign in' }}
-        </button>
-      </form>
-      <div class="my-4 flex items-center gap-3 text-xs text-slate-400">
-        <span class="h-px flex-1 bg-slate-200"></span>OR<span class="h-px flex-1 bg-slate-200"></span>
       </div>
-      <button
-        type="button"
-        (click)="googleSignIn()"
-        class="flex w-full items-center justify-center gap-2 rounded-md border border-slate-300 px-4 py-2 font-medium text-slate-700 hover:bg-slate-50"
-      >
-        <span class="font-bold text-indigo-600">G</span> Continue with Google
-      </button>
-      <p class="mt-3 text-center text-sm">
-        <a routerLink="/forgot-password" class="font-medium text-indigo-600 hover:text-indigo-700"
-          >Forgot password?</a
-        >
-      </p>
-      <p class="mt-2 text-center text-sm text-slate-600">
-        New here?
-        <a routerLink="/register" class="font-medium text-indigo-600 hover:text-indigo-700">Create an account</a>
-      </p>
     </div>
   `,
 })
@@ -101,8 +95,9 @@ export class LoginComponent {
       next: () => {
         // Honor an explicit returnUrl (e.g. bounced from a guarded page), else send the user to
         // the home for their role (admin → companies, vendor → trips, customer → search).
+        // Validate the returnUrl to block open-redirect to another host.
         const returnUrl = this.route.snapshot.queryParamMap.get('returnUrl');
-        this.router.navigateByUrl(returnUrl ?? this.auth.homeRoute());
+        this.router.navigateByUrl(safeReturnPath(returnUrl, this.auth.homeRoute()));
       },
       error: () => this.submitting.set(false),
     });

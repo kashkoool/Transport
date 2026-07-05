@@ -4,23 +4,25 @@ import { VendorApiService } from '../../core/api/vendor-api.service';
 import { ToastService } from '../../core/toast/toast.service';
 import { Company } from '../../core/models';
 import { VendorNavComponent } from './vendor-nav';
+import { TranslatePipe } from '../../core/i18n/translate.pipe';
+import { TranslationService } from '../../core/i18n/translation.service';
 
 @Component({
   selector: 'app-vendor-company',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [ReactiveFormsModule, VendorNavComponent],
+  imports: [ReactiveFormsModule, VendorNavComponent, TranslatePipe],
   template: `
     <app-vendor-nav />
-    <h1 class="mb-6 text-2xl font-bold text-slate-900">Company profile</h1>
+    <h1 class="mb-6 text-2xl font-bold text-slate-900">{{ 'vendor.company.title' | t }}</h1>
 
     @if (loading()) {
-      <p class="text-slate-500">Loading…</p>
+      <p class="text-slate-500">{{ 'vendor.common.loading' | t }}</p>
     } @else if (company(); as c) {
       <div class="max-w-lg rounded-xl border border-slate-200 bg-white p-5">
         <dl class="mb-4 space-y-1 text-sm">
-          <div class="flex justify-between"><dt class="text-slate-500">Email</dt><dd class="font-medium text-slate-800">{{ c.email }}</dd></div>
+          <div class="flex justify-between"><dt class="text-slate-500">{{ 'vendor.company.email' | t }}</dt><dd class="font-medium text-slate-800">{{ c.email }}</dd></div>
           <div class="flex justify-between">
-            <dt class="text-slate-500">Status</dt>
+            <dt class="text-slate-500">{{ 'vendor.company.status' | t }}</dt>
             <dd>
               <span class="rounded-full px-2 py-0.5 text-xs font-semibold"
                 [class.bg-emerald-100]="c.status === 'Active'" [class.text-emerald-700]="c.status === 'Active'"
@@ -33,15 +35,15 @@ import { VendorNavComponent } from './vendor-nav';
 
         <form [formGroup]="form" (ngSubmit)="submit()" class="space-y-3 border-t border-slate-100 pt-4">
           <div>
-            <label for="name" class="mb-1 block text-sm font-medium text-slate-700">Company name</label>
-            <input id="name" type="text" formControlName="name" class="w-full rounded-md border border-slate-300 px-3 py-2 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500" />
+            <label for="name" class="mb-1 block text-sm font-medium text-slate-700">{{ 'vendor.company.name' | t }}</label>
+            <input id="name" type="text" formControlName="name" class="w-full rounded-md border border-slate-300 px-3 py-2 focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500" />
           </div>
           <div>
-            <label for="phone" class="mb-1 block text-sm font-medium text-slate-700">Phone (optional)</label>
-            <input id="phone" type="tel" formControlName="phone" class="w-full rounded-md border border-slate-300 px-3 py-2 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500" />
+            <label for="phone" class="mb-1 block text-sm font-medium text-slate-700">{{ 'vendor.company.phone' | t }}</label>
+            <input id="phone" type="tel" formControlName="phone" class="w-full rounded-md border border-slate-300 px-3 py-2 focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500" />
           </div>
-          <button type="submit" [disabled]="submitting()" class="rounded-md bg-indigo-600 px-5 py-2 font-medium text-white hover:bg-indigo-700 disabled:opacity-50">
-            {{ submitting() ? 'Saving…' : 'Save changes' }}
+          <button type="submit" [disabled]="submitting()" class="rounded-md bg-brand-600 px-5 py-2 font-medium text-white hover:bg-brand-700 disabled:opacity-50">
+            {{ (submitting() ? 'vendor.common.saving' : 'vendor.common.saveChanges') | t }}
           </button>
         </form>
       </div>
@@ -52,6 +54,7 @@ export class VendorCompanyComponent implements OnInit {
   private readonly fb = inject(FormBuilder);
   private readonly api = inject(VendorApiService);
   private readonly toasts = inject(ToastService);
+  private readonly i18n = inject(TranslationService);
 
   protected readonly company = signal<Company | null>(null);
   protected readonly loading = signal(true);
@@ -84,7 +87,7 @@ export class VendorCompanyComponent implements OnInit {
       next: (c) => {
         this.submitting.set(false);
         this.company.set(c);
-        this.toasts.success('Company profile updated.');
+        this.toasts.success(this.i18n.t('vendor.company.toast.updated'));
       },
       error: () => this.submitting.set(false),
     });

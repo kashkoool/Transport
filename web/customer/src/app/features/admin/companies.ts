@@ -4,31 +4,39 @@ import { AdminApiService, CreateCompanyRequest, CreateManagerRequest } from '../
 import { ToastService } from '../../core/toast/toast.service';
 import { Company, CompanyStatus } from '../../core/models';
 import { AdminNavComponent } from './admin-nav';
+import { TranslatePipe } from '../../core/i18n/translate.pipe';
+import { TranslationService } from '../../core/i18n/translation.service';
 
 const STATUSES: CompanyStatus[] = ['Pending', 'Active', 'Suspended'];
+
+const STATUS_KEY: Record<CompanyStatus, string> = {
+  Pending: 'admin.status.pending',
+  Active: 'admin.status.active',
+  Suspended: 'admin.status.suspended',
+};
 
 @Component({
   selector: 'app-admin-companies',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [ReactiveFormsModule, AdminNavComponent],
+  imports: [ReactiveFormsModule, AdminNavComponent, TranslatePipe],
   template: `
     <app-admin-nav />
-    <h1 class="mb-6 text-2xl font-bold text-slate-900">Companies</h1>
+    <h1 class="mb-6 text-2xl font-bold text-slate-900">{{ 'admin.companies.title' | t }}</h1>
 
     <div class="grid gap-6 lg:grid-cols-3">
       <section class="lg:col-span-2">
         <div class="mb-3 flex items-center gap-2 text-sm">
-          <span class="text-slate-500">Filter:</span>
-          <button type="button" (click)="setFilter(null)" [class.font-semibold]="filter() === null" [class.text-indigo-700]="filter() === null" class="text-slate-500 hover:text-slate-800">All</button>
+          <span class="text-slate-500">{{ 'admin.companies.filter' | t }}</span>
+          <button type="button" (click)="setFilter(null)" [class.font-semibold]="filter() === null" [class.text-brand-700]="filter() === null" class="text-slate-500 hover:text-slate-800">{{ 'admin.companies.filterAll' | t }}</button>
           @for (s of statuses; track s) {
-            <button type="button" (click)="setFilter(s)" [class.font-semibold]="filter() === s" [class.text-indigo-700]="filter() === s" class="text-slate-500 hover:text-slate-800">{{ s }}</button>
+            <button type="button" (click)="setFilter(s)" [class.font-semibold]="filter() === s" [class.text-brand-700]="filter() === s" class="text-slate-500 hover:text-slate-800">{{ statusKey(s) | t }}</button>
           }
         </div>
 
         @if (loading()) {
-          <p class="text-slate-500">Loading…</p>
+          <p class="text-slate-500">{{ 'admin.companies.loading' | t }}</p>
         } @else if (companies().length === 0) {
-          <p class="rounded-lg bg-slate-100 p-4 text-slate-600">No companies.</p>
+          <p class="rounded-lg bg-slate-100 p-4 text-slate-600">{{ 'admin.companies.empty' | t }}</p>
         } @else {
           <div class="space-y-3">
             @for (c of companies(); track c.id) {
@@ -47,68 +55,68 @@ const STATUSES: CompanyStatus[] = ['Pending', 'Active', 'Suspended'];
                       [class.text-amber-700]="c.status === 'Pending'"
                       [class.bg-rose-100]="c.status === 'Suspended'"
                       [class.text-rose-700]="c.status === 'Suspended'"
-                      >{{ c.status }}</span
+                      >{{ statusKey(c.status) | t }}</span
                     >
                   </div>
                 </div>
                 <div class="mt-3 flex flex-wrap gap-2 text-sm">
                   @if (c.status !== 'Active') {
-                    <button type="button" [disabled]="busyId() === c.id" (click)="activate(c)" class="rounded-md bg-emerald-50 px-3 py-1.5 font-medium text-emerald-700 hover:bg-emerald-100 disabled:opacity-50">Activate</button>
+                    <button type="button" [disabled]="busyId() === c.id" (click)="activate(c)" class="rounded-md bg-emerald-50 px-3 py-1.5 font-medium text-emerald-700 hover:bg-emerald-100 disabled:opacity-50">{{ 'admin.companies.activate' | t }}</button>
                   }
                   @if (c.status !== 'Suspended') {
-                    <button type="button" [disabled]="busyId() === c.id" (click)="suspend(c)" class="rounded-md bg-rose-50 px-3 py-1.5 font-medium text-rose-700 hover:bg-rose-100 disabled:opacity-50">Suspend</button>
+                    <button type="button" [disabled]="busyId() === c.id" (click)="suspend(c)" class="rounded-md bg-rose-50 px-3 py-1.5 font-medium text-rose-700 hover:bg-rose-100 disabled:opacity-50">{{ 'admin.companies.suspend' | t }}</button>
                   }
                   <button type="button" (click)="toggleManager(c.id)" class="rounded-md bg-slate-100 px-3 py-1.5 font-medium text-slate-700 hover:bg-slate-200">
-                    {{ managerFor() === c.id ? 'Close' : 'Add manager' }}
+                    {{ (managerFor() === c.id ? 'admin.companies.close' : 'admin.companies.addManager') | t }}
                   </button>
                   <button type="button" (click)="toggleNotify(c.id)" class="rounded-md bg-slate-100 px-3 py-1.5 font-medium text-slate-700 hover:bg-slate-200">
-                    {{ notifyFor() === c.id ? 'Close' : 'Notify' }}
+                    {{ (notifyFor() === c.id ? 'admin.companies.close' : 'admin.companies.notify') | t }}
                   </button>
                 </div>
 
                 @if (managerFor() === c.id) {
                   <form [formGroup]="managerForm" (ngSubmit)="createManager(c)" class="mt-3 space-y-2 rounded-lg bg-slate-50 p-3">
-                    <input type="text" formControlName="fullName" placeholder="Manager full name" class="w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500" />
-                    <input type="email" formControlName="email" placeholder="Manager email" class="w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500" />
-                    <input type="password" formControlName="password" placeholder="Temp password" autocomplete="new-password" class="w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500" />
-                    <p class="text-xs text-slate-500">Min 10 chars with upper, lower, digit, and a symbol.</p>
-                    <button type="submit" [disabled]="busyId() === c.id" class="rounded-md bg-indigo-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-indigo-700 disabled:opacity-50">Create manager</button>
+                    <input type="text" formControlName="fullName" [placeholder]="'admin.companies.managerFullName' | t" class="w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500" />
+                    <input type="email" formControlName="email" [placeholder]="'admin.companies.managerEmail' | t" class="w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500" />
+                    <input type="password" formControlName="password" [placeholder]="'admin.companies.tempPassword' | t" autocomplete="new-password" class="w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500" />
+                    <p class="text-xs text-slate-500">{{ 'admin.companies.passwordHint' | t }}</p>
+                    <button type="submit" [disabled]="busyId() === c.id" class="rounded-md bg-brand-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-brand-700 disabled:opacity-50">{{ 'admin.companies.createManager' | t }}</button>
                   </form>
                 }
 
                 @if (notifyFor() === c.id) {
                   <form [formGroup]="notifyForm" (ngSubmit)="notify(c)" class="mt-3 space-y-2 rounded-lg bg-slate-50 p-3">
-                    <input type="text" formControlName="title" placeholder="Title" class="w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500" />
-                    <textarea formControlName="message" rows="2" placeholder="Message to the company's manager(s)" class="w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"></textarea>
-                    <button type="submit" [disabled]="busyId() === c.id" class="rounded-md bg-indigo-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-indigo-700 disabled:opacity-50">Send notification</button>
+                    <input type="text" formControlName="title" [placeholder]="'admin.companies.notifyTitle' | t" class="w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500" />
+                    <textarea formControlName="message" rows="2" [placeholder]="'admin.companies.notifyMessage' | t" class="w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"></textarea>
+                    <button type="submit" [disabled]="busyId() === c.id" class="rounded-md bg-brand-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-brand-700 disabled:opacity-50">{{ 'admin.companies.sendNotification' | t }}</button>
                   </form>
                 }
               </div>
             }
           </div>
-          <p class="mt-2 text-xs text-slate-400">{{ total() }} company(ies)</p>
+          <p class="mt-2 text-xs text-slate-400">{{ 'admin.companies.count' | t: { count: total() } }}</p>
         }
       </section>
 
       <section class="rounded-xl border border-slate-200 bg-white p-4">
-        <h2 class="mb-3 font-semibold text-slate-900">Onboard a company</h2>
+        <h2 class="mb-3 font-semibold text-slate-900">{{ 'admin.companies.onboard' | t }}</h2>
         <form [formGroup]="form" (ngSubmit)="create()" class="space-y-3">
           <div>
-            <label for="name" class="mb-1 block text-sm font-medium text-slate-700">Name</label>
-            <input id="name" type="text" formControlName="name" class="w-full rounded-md border border-slate-300 px-3 py-2 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500" />
+            <label for="name" class="mb-1 block text-sm font-medium text-slate-700">{{ 'admin.companies.name' | t }}</label>
+            <input id="name" type="text" formControlName="name" class="w-full rounded-md border border-slate-300 px-3 py-2 focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500" />
           </div>
           <div>
-            <label for="cemail" class="mb-1 block text-sm font-medium text-slate-700">Email</label>
-            <input id="cemail" type="email" formControlName="email" class="w-full rounded-md border border-slate-300 px-3 py-2 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500" />
+            <label for="cemail" class="mb-1 block text-sm font-medium text-slate-700">{{ 'admin.companies.email' | t }}</label>
+            <input id="cemail" type="email" formControlName="email" class="w-full rounded-md border border-slate-300 px-3 py-2 focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500" />
           </div>
           <div>
-            <label for="phone" class="mb-1 block text-sm font-medium text-slate-700">Phone (optional)</label>
-            <input id="phone" type="text" formControlName="phone" class="w-full rounded-md border border-slate-300 px-3 py-2 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500" />
+            <label for="phone" class="mb-1 block text-sm font-medium text-slate-700">{{ 'admin.companies.phone' | t }}</label>
+            <input id="phone" type="text" formControlName="phone" class="w-full rounded-md border border-slate-300 px-3 py-2 focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500" />
           </div>
-          <button type="submit" [disabled]="creating()" class="w-full rounded-md bg-indigo-600 px-4 py-2 font-medium text-white hover:bg-indigo-700 disabled:opacity-50">
-            {{ creating() ? 'Creating…' : 'Create company' }}
+          <button type="submit" [disabled]="creating()" class="w-full rounded-md bg-brand-600 px-4 py-2 font-medium text-white hover:bg-brand-700 disabled:opacity-50">
+            {{ (creating() ? 'admin.companies.creating' : 'admin.companies.create') | t }}
           </button>
-          <p class="text-xs text-slate-400">New companies start as <b>Pending</b> — activate them to let them sell.</p>
+          <p class="text-xs text-slate-400">{{ 'admin.companies.pendingHint' | t }}</p>
         </form>
       </section>
     </div>
@@ -118,6 +126,7 @@ export class AdminCompaniesComponent implements OnInit {
   private readonly fb = inject(FormBuilder);
   private readonly api = inject(AdminApiService);
   private readonly toasts = inject(ToastService);
+  private readonly i18n = inject(TranslationService);
 
   protected readonly statuses = STATUSES;
   protected readonly companies = signal<Company[]>([]);
@@ -153,6 +162,10 @@ export class AdminCompaniesComponent implements OnInit {
     this.load();
   }
 
+  protected statusKey(status: CompanyStatus): string {
+    return STATUS_KEY[status];
+  }
+
   protected setFilter(status: CompanyStatus | null): void {
     this.filter.set(status);
     this.load();
@@ -185,7 +198,7 @@ export class AdminCompaniesComponent implements OnInit {
     this.api.createCompany(body).subscribe({
       next: () => {
         this.creating.set(false);
-        this.toasts.success(`Company "${body.name}" created (Pending).`);
+        this.toasts.success(this.i18n.t('admin.companies.toast.created', { name: body.name }));
         this.form.reset({ name: '', email: '', phone: '' });
         this.load();
       },
@@ -198,7 +211,7 @@ export class AdminCompaniesComponent implements OnInit {
     this.api.activateCompany(c.id).subscribe({
       next: () => {
         this.busyId.set(null);
-        this.toasts.success(`${c.name} activated.`);
+        this.toasts.success(this.i18n.t('admin.companies.toast.activated', { name: c.name }));
         this.load();
       },
       error: () => this.busyId.set(null),
@@ -210,7 +223,7 @@ export class AdminCompaniesComponent implements OnInit {
     this.api.suspendCompany(c.id).subscribe({
       next: () => {
         this.busyId.set(null);
-        this.toasts.info(`${c.name} suspended.`);
+        this.toasts.info(this.i18n.t('admin.companies.toast.suspended', { name: c.name }));
         this.load();
       },
       error: () => this.busyId.set(null),
@@ -240,7 +253,7 @@ export class AdminCompaniesComponent implements OnInit {
       next: () => {
         this.busyId.set(null);
         this.notifyFor.set(null);
-        this.toasts.success(`Notification sent to ${c.name}.`);
+        this.toasts.success(this.i18n.t('admin.companies.toast.notified', { name: c.name }));
       },
       error: () => this.busyId.set(null),
     });
@@ -257,7 +270,7 @@ export class AdminCompaniesComponent implements OnInit {
       next: (m) => {
         this.busyId.set(null);
         this.managerFor.set(null);
-        this.toasts.success(`Manager ${m.email} created for ${c.name}.`);
+        this.toasts.success(this.i18n.t('admin.companies.toast.managerCreated', { email: m.email, name: c.name }));
       },
       error: () => this.busyId.set(null),
     });

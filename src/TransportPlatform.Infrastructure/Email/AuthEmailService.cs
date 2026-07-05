@@ -16,12 +16,12 @@ public sealed class AuthEmailService(
 {
     private readonly EmailOptions _options = options.Value;
 
-    public async Task SendEmailVerificationAsync(string email, string token, CancellationToken cancellationToken = default)
+    public async Task SendEmailVerificationAsync(string email, string token, string? lang = null, CancellationToken cancellationToken = default)
     {
         try
         {
             var url = _options.BuildVerifyUrl(email, token);
-            await sender.SendAsync(EmailTemplates.Verification(email, url), cancellationToken);
+            await sender.SendAsync(EmailTemplates.Verification(email, url, lang), cancellationToken);
         }
         catch (Exception ex) when (ex is not OperationCanceledException)
         {
@@ -29,12 +29,12 @@ public sealed class AuthEmailService(
         }
     }
 
-    public async Task SendPasswordResetAsync(string email, string token, CancellationToken cancellationToken = default)
+    public async Task SendPasswordResetAsync(string email, string token, string? lang = null, CancellationToken cancellationToken = default)
     {
         try
         {
             var url = _options.BuildResetUrl(email, token);
-            await sender.SendAsync(EmailTemplates.PasswordReset(email, url), cancellationToken);
+            await sender.SendAsync(EmailTemplates.PasswordReset(email, url, lang), cancellationToken);
         }
         catch (Exception ex) when (ex is not OperationCanceledException)
         {

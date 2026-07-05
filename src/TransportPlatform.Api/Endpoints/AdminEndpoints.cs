@@ -11,10 +11,12 @@ namespace TransportPlatform.Api.Endpoints;
 
 public static class AdminEndpoints
 {
-    public sealed record CreateCompanyRequest(string Name, string Email, string? Phone);
+    public sealed record CreateCompanyRequest(string Name, string Email, string? Phone,
+        string? TaxId = null, string? BankAccount = null, string? Address = null);
     public sealed record CreateManagerRequest(string Email, string Password, string FullName);
     public sealed record NotifyCompanyRequest(string Title, string Message, string? Type);
-    public sealed record UpdateCompanyRequest(string Name, string? Phone);
+    public sealed record UpdateCompanyRequest(string Name, string? Phone,
+        string? TaxId = null, string? BankAccount = null, string? Address = null);
 
     public static IEndpointRouteBuilder MapAdminEndpoints(this IEndpointRouteBuilder app)
     {
@@ -27,7 +29,8 @@ public static class AdminEndpoints
             CreateCompanyRequest body, CreateCompanyHandler handler,
             IValidator<CreateCompanyCommand> validator, CancellationToken ct) =>
         {
-            var command = new CreateCompanyCommand(body.Name, body.Email, body.Phone);
+            var command = new CreateCompanyCommand(body.Name, body.Email, body.Phone,
+                body.TaxId, body.BankAccount, body.Address);
             await validator.ValidateAndThrowAsync(command, ct);
             return Results.Ok(await handler.HandleAsync(command, ct));
         })
@@ -71,7 +74,8 @@ public static class AdminEndpoints
             Guid id, UpdateCompanyRequest body, UpdateCompanyHandler handler,
             IValidator<UpdateCompanyCommand> validator, CancellationToken ct) =>
         {
-            var command = new UpdateCompanyCommand(id, body.Name, body.Phone);
+            var command = new UpdateCompanyCommand(id, body.Name, body.Phone,
+                body.TaxId, body.BankAccount, body.Address);
             await validator.ValidateAndThrowAsync(command, ct);
             return Results.Ok(await handler.HandleAsync(command, ct));
         })
@@ -111,6 +115,21 @@ public static class AdminEndpoints
             Results.Ok(await handler.HandleAsync(ct)))
         .WithName("AdminCompanyReport")
         .WithSummary("Per-company trips, confirmed bookings and revenue (by currency).");
+
+        // ── Admin · refund oversight (find stuck/failed refunds and retry them) ─────────
+        var refunds = app.MapGroup("/api/admin/refunds").WithTags("Admin · Refunds")
+            .RequireAuthorization(AuthorizationPolicies.AdminOnly)
+            .RequireRateLimiting(RateLimitPolicies.Sensitive);
+
+        refunds.MapGet("/", async (string? status, ListRefundsHandler handler, CancellationToken ct) =>
+            Results.Ok(await handler.HandleAsync(status, ct)))
+        .WithName("ListRefunds")
+        .WithSummary("List refunds, optionally filtered by status (Pending / Completed / Failed).");
+
+        refunds.MapPost("/{id:guid}/retry", async (Guid id, RetryRefundHandler handler, CancellationToken ct) =>
+            Results.Ok(await handler.HandleAsync(id, ct)))
+        .WithName("RetryRefund")
+        .WithSummary("Manually re-process a Pending refund through the gateway (idempotent).");
 
         // ── Admin · customer accounts (management only; customers self-register) ─────────
         var customers = app.MapGroup("/api/admin/users").WithTags("Admin · Users")

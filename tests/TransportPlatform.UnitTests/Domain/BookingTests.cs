@@ -74,4 +74,61 @@ public class BookingTests
 
         act.Should().Throw<DomainException>().Which.Code.Should().Be("booking.already_confirmed");
     }
+
+    [Fact]
+    public void A_confirmed_booking_can_be_marked_no_show()
+    {
+        var booking = NewBooking(1);
+        booking.Confirm();
+
+        booking.MarkNoShow();
+        booking.MarkNoShow(); // idempotent
+
+        booking.Status.Should().Be(BookingStatus.NoShow);
+    }
+
+    [Fact]
+    public void A_pending_booking_cannot_be_marked_no_show()
+    {
+        var booking = NewBooking(1); // PendingPayment
+
+        var act = () => booking.MarkNoShow();
+
+        act.Should().Throw<DomainException>().Which.Code.Should().Be("booking.not_confirmed");
+    }
+
+    [Fact]
+    public void ChangeSeat_moves_the_passenger_and_reassigns_the_seat()
+    {
+        var booking = NewBooking(4);
+        booking.Confirm();
+
+        booking.ChangeSeat(4, 9);
+
+        booking.Passengers.Should().ContainSingle(p => p.SeatNumber == 9);
+        booking.Passengers.Should().NotContain(p => p.SeatNumber == 4);
+        booking.SeatAssignments.Should().ContainSingle(a => a.SeatNumber == 9);
+        booking.SeatAssignments.Should().NotContain(a => a.SeatNumber == 4);
+    }
+
+    [Fact]
+    public void ChangeSeat_is_rejected_before_confirmation()
+    {
+        var booking = NewBooking(4); // PendingPayment
+
+        var act = () => booking.ChangeSeat(4, 9);
+
+        act.Should().Throw<DomainException>().Which.Code.Should().Be("booking.not_confirmed");
+    }
+
+    [Fact]
+    public void ChangeSeat_rejects_a_seat_already_on_the_booking()
+    {
+        var booking = NewBooking(1, 2);
+        booking.Confirm();
+
+        var act = () => booking.ChangeSeat(1, 2);
+
+        act.Should().Throw<DomainException>().Which.Code.Should().Be("booking.duplicate_seats");
+    }
 }

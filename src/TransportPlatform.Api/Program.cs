@@ -176,9 +176,11 @@ builder.Services.AddHsts(options =>
     options.Preload = true;
 });
 
-// ── Background workers: seat-hold expiry + outbox publisher ──────────────────────
+// ── Background workers: seat-hold expiry + outbox publisher + refund reconciliation ──
 builder.Services.AddHostedService<SeatHoldExpirySweeper>();
 builder.Services.AddHostedService<OutboxPublisher>();
+builder.Services.AddHostedService<RefundReconciliationWorker>();
+builder.Services.AddHostedService<DataRetentionWorker>();
 
 var app = builder.Build();
 
@@ -246,6 +248,7 @@ app.MapBookingEndpoints();
 app.MapPaymentEndpoints();
 app.MapNotificationEndpoints();
 app.MapReviewEndpoints();
+app.MapSeoEndpoints();
 // Exempt the hub from the HTTP rate limiter: SignalR long-polling sends one HTTP request PER POLL,
 // so any per-request limit (named OR the global fallback) would throttle a legitimate connection.
 // The hub is instead protected by [Authorize] (no anonymous connections) and a per-connection cap

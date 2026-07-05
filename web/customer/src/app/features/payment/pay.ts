@@ -2,20 +2,23 @@ import { ChangeDetectionStrategy, Component, inject, OnInit, signal } from '@ang
 import { ActivatedRoute, Router } from '@angular/router';
 import { ApiService } from '../../core/api/api.service';
 import { ToastService } from '../../core/toast/toast.service';
+import { TranslatePipe } from '../../core/i18n/translate.pipe';
+import { TranslationService } from '../../core/i18n/translation.service';
 import { environment } from '../../../environments/environment';
 
 @Component({
   selector: 'app-pay',
   changeDetection: ChangeDetectionStrategy.OnPush,
+  imports: [TranslatePipe],
   template: `
     <div class="mx-auto max-w-md">
-      <h1 class="mb-2 text-2xl font-bold text-slate-900">Payment</h1>
+      <h1 class="mb-2 text-2xl font-bold text-slate-900">{{ 'pay.title' | t }}</h1>
 
       @if (loading()) {
-        <p class="text-slate-500">Loading…</p>
+        <p class="text-slate-500">{{ 'common.loading' | t }}</p>
       } @else {
         <p class="mb-6 text-slate-500">
-          Booking <span class="font-mono font-medium text-slate-700">{{ reference() }}</span>
+          {{ 'pay.booking' | t }} <span class="font-mono font-medium text-slate-700">{{ reference() }}</span>
         </p>
 
         @if (!checkoutStarted()) {
@@ -23,18 +26,18 @@ import { environment } from '../../../environments/environment';
             type="button"
             [disabled]="busy()"
             (click)="startCheckout()"
-            class="w-full rounded-md bg-indigo-600 px-4 py-3 font-medium text-white hover:bg-indigo-700 disabled:opacity-50"
+            class="w-full rounded-md bg-brand-600 px-4 py-3 font-medium text-white hover:bg-brand-700 disabled:opacity-50"
           >
-            {{ busy() ? 'Starting…' : 'Proceed to payment' }}
+            {{ (busy() ? 'pay.starting' : 'pay.proceed') | t }}
           </button>
           <p class="mt-3 text-center text-xs text-slate-400">
-            You'll be taken to the payment provider's secure page. No card details are stored by TPX.
+            {{ 'pay.secureNote' | t }}
           </p>
         } @else {
           <!-- Development stand-in for the gateway's hosted page (no real card entry). -->
           <div class="rounded-xl border border-dashed border-slate-300 bg-white p-4">
             <p class="mb-4 text-sm text-slate-600">
-              Sandbox gateway — simulate the payment result the provider would send back:
+              {{ 'pay.sandboxNote' | t }}
             </p>
             <div class="flex gap-3">
               <button
@@ -43,7 +46,7 @@ import { environment } from '../../../environments/environment';
                 (click)="simulate(true)"
                 class="flex-1 rounded-md bg-emerald-600 px-4 py-2 font-medium text-white hover:bg-emerald-700 disabled:opacity-50"
               >
-                Pay now
+                {{ 'pay.payNow' | t }}
               </button>
               <button
                 type="button"
@@ -51,7 +54,7 @@ import { environment } from '../../../environments/environment';
                 (click)="simulate(false)"
                 class="flex-1 rounded-md bg-slate-200 px-4 py-2 font-medium text-slate-700 hover:bg-slate-300 disabled:opacity-50"
               >
-                Cancel payment
+                {{ 'pay.cancelPayment' | t }}
               </button>
             </div>
           </div>
@@ -65,6 +68,7 @@ export class PayComponent implements OnInit {
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
   private readonly toasts = inject(ToastService);
+  private readonly i18n = inject(TranslationService);
 
   protected readonly loading = signal(true);
   protected readonly busy = signal(false);
@@ -104,7 +108,7 @@ export class PayComponent implements OnInit {
           if (/^https:\/\//i.test(session.checkoutUrl)) {
             window.location.href = session.checkoutUrl;
           } else {
-            this.toasts.error('The payment provider returned an invalid checkout URL.');
+            this.toasts.error(this.i18n.t('pay.invalidUrl'));
           }
         } else {
           // Local/dev: the sandbox URL isn't a real page, so reveal the simulate controls.
@@ -121,10 +125,10 @@ export class PayComponent implements OnInit {
       next: (result) => {
         this.busy.set(false);
         if (result.status === 'confirmed') {
-          this.toasts.success('Payment confirmed!');
+          this.toasts.success(this.i18n.t('pay.confirmed'));
           this.router.navigate(['/ticket', this.bookingId]);
         } else {
-          this.toasts.info('Payment was not completed.');
+          this.toasts.info(this.i18n.t('pay.notCompleted'));
           this.checkoutStarted.set(false);
         }
       },

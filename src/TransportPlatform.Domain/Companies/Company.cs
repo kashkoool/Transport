@@ -13,9 +13,19 @@ public sealed class Company : AggregateRoot
     public string? Phone { get; private set; }
     public CompanyStatus Status { get; private set; } = CompanyStatus.Pending;
 
+    /// <summary>Tax / VAT registration number, if recorded.</summary>
+    public string? TaxId { get; private set; }
+
+    /// <summary>Bank account (IBAN or account number) for payouts, if recorded.</summary>
+    public string? BankAccount { get; private set; }
+
+    /// <summary>Postal / office address, if recorded.</summary>
+    public string? Address { get; private set; }
+
     private Company() { } // EF
 
-    public Company(string name, string email, string? phone)
+    public Company(string name, string email, string? phone,
+        string? taxId = null, string? bankAccount = null, string? address = null)
     {
         if (string.IsNullOrWhiteSpace(name))
             throw new DomainException("company.name_required", "Company name is required.");
@@ -25,15 +35,22 @@ public sealed class Company : AggregateRoot
         Name = name.Trim();
         Email = email.Trim().ToLowerInvariant();
         Phone = phone?.Trim();
+        TaxId = string.IsNullOrWhiteSpace(taxId) ? null : taxId.Trim();
+        BankAccount = string.IsNullOrWhiteSpace(bankAccount) ? null : bankAccount.Trim();
+        Address = string.IsNullOrWhiteSpace(address) ? null : address.Trim();
     }
 
     /// <summary>Edit the company profile (name + phone). Email is immutable (it's the unique key).</summary>
-    public void Update(string name, string? phone)
+    public void Update(string name, string? phone,
+        string? taxId = null, string? bankAccount = null, string? address = null)
     {
         if (string.IsNullOrWhiteSpace(name))
             throw new DomainException("company.name_required", "Company name is required.");
         Name = name.Trim();
         Phone = string.IsNullOrWhiteSpace(phone) ? null : phone.Trim();
+        TaxId = string.IsNullOrWhiteSpace(taxId) ? null : taxId.Trim();
+        BankAccount = string.IsNullOrWhiteSpace(bankAccount) ? null : bankAccount.Trim();
+        Address = string.IsNullOrWhiteSpace(address) ? null : address.Trim();
     }
 
     public void Activate() => Status = CompanyStatus.Active;

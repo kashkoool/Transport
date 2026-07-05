@@ -19,6 +19,9 @@ public sealed class RequestPasswordResetHandler(IIdentityService identity, IAuth
         var email = command.Email.Trim();
         var created = await identity.CreatePasswordResetTokenAsync(email, ct);
         if (created is { } reset)
-            await authEmail.SendPasswordResetAsync(email, reset.Token, ct);
+        {
+            var lang = await identity.GetUserLanguageByEmailAsync(email, ct);
+            await authEmail.SendPasswordResetAsync(email, reset.Token, lang, ct);
+        }
     }
 }

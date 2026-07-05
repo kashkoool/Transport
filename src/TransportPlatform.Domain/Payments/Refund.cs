@@ -45,5 +45,17 @@ public sealed class Refund : AggregateRoot
         Status = RefundStatus.Completed;
     }
 
-    public void MarkFailed() => Status = RefundStatus.Failed;
+    /// <summary>
+    /// Mark a refund permanently failed (gateway declined). A Pending refund is retried by the
+    /// reconciliation worker; Failed means "give up and alert" — so a Completed refund can never
+    /// regress to Failed.
+    /// </summary>
+    public void MarkFailed()
+    {
+        if (Status == RefundStatus.Failed)
+            return; // idempotent
+        if (Status == RefundStatus.Completed)
+            throw new DomainException("refund.invalid_transition", "A completed refund cannot be marked failed.");
+        Status = RefundStatus.Failed;
+    }
 }

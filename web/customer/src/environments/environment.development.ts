@@ -6,4 +6,6 @@
 export const environment = {
   production: false,
   apiBaseUrl: '/api',
+  // Canonical public origin used for <link rel=canonical>, og:url and absolute OG image URLs.
+  siteBaseUrl: 'http://localhost:8080',
 };

@@ -37,6 +37,7 @@ public sealed class DevDataSeeder(
         {
             await SeedCoreAsync(ct);
         }
+        // CodeQL: intentional catch-all — dev seeder must never break app startup.
         catch (Exception ex)
         {
             // Never let a seeding hiccup crash startup — the API is still useful without demo data.

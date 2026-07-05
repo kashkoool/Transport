@@ -11,7 +11,7 @@ namespace TransportPlatform.Api.Endpoints;
 
 public static class AuthEndpoints
 {
-    public sealed record RegisterRequest(string Email, string Password, string FullName);
+    public sealed record RegisterRequest(string Email, string Password, string FullName, string? Language = null);
     public sealed record LoginRequest(string Email, string Password);
     // Optional: a browser SPA carries the refresh token in the HttpOnly `rt` cookie and sends
     // no body; API/native clients may still pass it in the body. Either source is accepted.
@@ -36,7 +36,7 @@ public static class AuthEndpoints
             RegisterRequest body, RegisterHandler handler, HttpResponse response,
             IValidator<RegisterCommand> validator, IHostEnvironment env, CancellationToken ct) =>
         {
-            var command = new RegisterCommand(body.Email, body.Password, body.FullName);
+            var command = new RegisterCommand(body.Email, body.Password, body.FullName, body.Language);
             await validator.ValidateAndThrowAsync(command, ct);
             var result = await handler.HandleAsync(command, ct);
             RefreshCookie.Set(response, result.RefreshToken, result.RefreshTokenExpiresAtUtc, RefreshCookie.SecureFor(env));
@@ -236,6 +236,13 @@ public static class AuthEndpoints
         .RequireAuthorization()
         .WithName("ChangePassword")
         .WithSummary("Change the caller's password (verifies the current one; revokes other sessions).");
+
+        group.MapDelete("/account", async (DeleteMyAccountHandler handler, CancellationToken ct) =>
+            Results.Ok(await handler.HandleAsync(ct)))
+        .RequireAuthorization()
+        .RequireRateLimiting(RateLimitPolicies.Sensitive)
+        .WithName("DeleteMyAccount")
+        .WithSummary("Permanently delete the caller's own account (GDPR); blocked while they have upcoming trips.");
 
         return app;
     }

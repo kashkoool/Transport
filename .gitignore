@@ -1,3 +1,11 @@
+# E2E (Playwright) — installed deps + run artifacts (never committed)
+tests/e2e/node_modules/
+tests/e2e/test-results/
+tests/e2e/playwright-report/
+
+# Machine-local Docker Compose overrides (per-developer port/profile tweaks)
+docker-compose.override.yml
+
 # .NET build output
 bin/
 obj/

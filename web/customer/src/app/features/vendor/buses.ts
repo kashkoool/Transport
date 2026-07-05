@@ -8,16 +8,26 @@ import {
 import { ToastService } from '../../core/toast/toast.service';
 import { Bus, BusType, Driver } from '../../core/models';
 import { VendorNavComponent } from './vendor-nav';
+import { TranslatePipe } from '../../core/i18n/translate.pipe';
+import { TranslationService } from '../../core/i18n/translation.service';
 
 const BUS_TYPES: BusType[] = ['Standard', 'Premium', 'Luxury', 'Sleeper'];
+// Map each API bus-type value to its dictionary key so the <option> label can be translated
+// while the underlying [value] stays the raw enum the API expects.
+const BUS_TYPE_KEY: Record<BusType, string> = {
+  Standard: 'vendor.buses.type.standard',
+  Premium: 'vendor.buses.type.premium',
+  Luxury: 'vendor.buses.type.luxury',
+  Sleeper: 'vendor.buses.type.sleeper',
+};
 
 @Component({
   selector: 'app-vendor-buses',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [ReactiveFormsModule, VendorNavComponent],
+  imports: [ReactiveFormsModule, VendorNavComponent, TranslatePipe],
   template: `
     <app-vendor-nav />
-    <h1 class="mb-6 text-2xl font-bold text-slate-900">Fleet</h1>
+    <h1 class="mb-6 text-2xl font-bold text-slate-900">{{ 'vendor.buses.title' | t }}</h1>
 
     <div class="grid gap-6 lg:grid-cols-3">
       <section class="lg:col-span-2">
@@ -25,23 +35,23 @@ const BUS_TYPES: BusType[] = ['Standard', 'Premium', 'Luxury', 'Sleeper'];
           type="search"
           [value]="search()"
           (input)="onSearch($event)"
-          placeholder="Search by bus number or model…"
-          class="mb-3 w-full max-w-sm rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+          [placeholder]="'vendor.buses.searchPlaceholder' | t"
+          class="mb-3 w-full max-w-sm rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
         />
         @if (loading()) {
-          <p class="text-slate-500">Loading…</p>
+          <p class="text-slate-500">{{ 'vendor.common.loading' | t }}</p>
         } @else if (buses().length === 0) {
-          <p class="rounded-lg bg-slate-100 p-4 text-slate-600">No buses found.</p>
+          <p class="rounded-lg bg-slate-100 p-4 text-slate-600">{{ 'vendor.buses.empty' | t }}</p>
         } @else {
           <div class="overflow-x-auto rounded-xl border border-slate-200 bg-white">
             <table class="w-full text-sm">
               <thead class="bg-slate-50 text-left text-slate-500">
                 <tr>
-                  <th class="px-4 py-2 font-medium">Bus #</th>
-                  <th class="px-4 py-2 font-medium">Seats</th>
-                  <th class="px-4 py-2 font-medium">Per row</th>
-                  <th class="px-4 py-2 font-medium">Type</th>
-                  <th class="px-4 py-2 font-medium">Driver</th>
+                  <th class="px-4 py-2 font-medium">{{ 'vendor.buses.th.busNumber' | t }}</th>
+                  <th class="px-4 py-2 font-medium">{{ 'vendor.buses.th.seats' | t }}</th>
+                  <th class="px-4 py-2 font-medium">{{ 'vendor.buses.th.perRow' | t }}</th>
+                  <th class="px-4 py-2 font-medium">{{ 'vendor.buses.th.type' | t }}</th>
+                  <th class="px-4 py-2 font-medium">{{ 'vendor.buses.th.driver' | t }}</th>
                   <th class="px-4 py-2 font-medium"></th>
                 </tr>
               </thead>
@@ -51,26 +61,26 @@ const BUS_TYPES: BusType[] = ['Standard', 'Premium', 'Luxury', 'Sleeper'];
                     <td class="px-4 py-2 font-medium text-slate-800">{{ b.busNumber }}</td>
                     <td class="px-4 py-2">{{ b.seatCount }}</td>
                     <td class="px-4 py-2">{{ b.seatsPerRow }}</td>
-                    <td class="px-4 py-2">{{ b.type }}</td>
+                    <td class="px-4 py-2">{{ typeKey(b.type) | t }}</td>
                     <td class="px-4 py-2">
                       <select
                         [value]="b.driverId ?? ''"
                         (change)="assignDriver(b, $any($event.target).value)"
-                        class="rounded-md border border-slate-300 px-2 py-1 text-sm focus:border-indigo-500 focus:outline-none"
+                        class="rounded-md border border-slate-300 px-2 py-1 text-sm focus:border-brand-500 focus:outline-none"
                       >
-                        <option value="">— none —</option>
+                        <option value="">{{ 'vendor.common.none' | t }}</option>
                         @for (d of drivers(); track d.id) {
                           <option [value]="d.id">{{ d.fullName }}</option>
                         }
                       </select>
                     </td>
                     <td class="px-4 py-2 text-right whitespace-nowrap">
-                      <button type="button" (click)="edit(b)" class="text-sm font-medium text-indigo-600 hover:text-indigo-700">Edit</button>
+                      <button type="button" (click)="edit(b)" class="text-sm font-medium text-brand-600 hover:text-brand-700">{{ 'vendor.common.edit' | t }}</button>
                       @if (confirmingDelete() === b.id) {
-                        <button type="button" [disabled]="busy()" (click)="remove(b)" class="ml-3 text-sm font-medium text-rose-600 hover:text-rose-700">Confirm</button>
-                        <button type="button" (click)="confirmingDelete.set(null)" class="ml-2 text-sm text-slate-500">Keep</button>
+                        <button type="button" [disabled]="busy()" (click)="remove(b)" class="ml-3 text-sm font-medium text-rose-600 hover:text-rose-700">{{ 'vendor.common.confirm' | t }}</button>
+                        <button type="button" (click)="confirmingDelete.set(null)" class="ml-2 text-sm text-slate-500">{{ 'vendor.common.keep' | t }}</button>
                       } @else {
-                        <button type="button" (click)="confirmingDelete.set(b.id)" class="ml-3 text-sm font-medium text-rose-600 hover:text-rose-700">Delete</button>
+                        <button type="button" (click)="confirmingDelete.set(b.id)" class="ml-3 text-sm font-medium text-rose-600 hover:text-rose-700">{{ 'vendor.common.delete' | t }}</button>
                       }
                     </td>
                   </tr>
@@ -78,44 +88,44 @@ const BUS_TYPES: BusType[] = ['Standard', 'Premium', 'Luxury', 'Sleeper'];
               </tbody>
             </table>
           </div>
-          <p class="mt-2 text-xs text-slate-400">{{ total() }} bus(es)</p>
+          <p class="mt-2 text-xs text-slate-400">{{ 'vendor.buses.count' | t: { n: total() } }}</p>
         }
       </section>
 
       <section class="rounded-xl border border-slate-200 bg-white p-4">
-        <h2 class="mb-3 font-semibold text-slate-900">{{ editingId() ? 'Edit bus' : 'Add a bus' }}</h2>
+        <h2 class="mb-3 font-semibold text-slate-900">{{ (editingId() ? 'vendor.buses.editBus' : 'vendor.buses.addBus') | t }}</h2>
         <form [formGroup]="form" (ngSubmit)="submit()" class="space-y-3">
           <div>
-            <label for="busNumber" class="mb-1 block text-sm font-medium text-slate-700">Bus number</label>
-            <input id="busNumber" type="text" formControlName="busNumber" [readonly]="!!editingId()" class="w-full rounded-md border border-slate-300 px-3 py-2 read-only:bg-slate-50 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500" />
+            <label for="busNumber" class="mb-1 block text-sm font-medium text-slate-700">{{ 'vendor.buses.busNumber' | t }}</label>
+            <input id="busNumber" type="text" formControlName="busNumber" [readonly]="!!editingId()" class="w-full rounded-md border border-slate-300 px-3 py-2 read-only:bg-slate-50 focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500" />
           </div>
           <div class="grid grid-cols-2 gap-2">
             <div>
-              <label for="seatCount" class="mb-1 block text-sm font-medium text-slate-700">Seats</label>
-              <input id="seatCount" type="number" min="1" max="120" formControlName="seatCount" class="w-full rounded-md border border-slate-300 px-3 py-2 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500" />
+              <label for="seatCount" class="mb-1 block text-sm font-medium text-slate-700">{{ 'vendor.buses.seats' | t }}</label>
+              <input id="seatCount" type="number" min="1" max="120" formControlName="seatCount" class="w-full rounded-md border border-slate-300 px-3 py-2 focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500" />
             </div>
             <div>
-              <label for="seatsPerRow" class="mb-1 block text-sm font-medium text-slate-700">Seats / row</label>
-              <input id="seatsPerRow" type="number" min="1" max="6" formControlName="seatsPerRow" class="w-full rounded-md border border-slate-300 px-3 py-2 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500" />
+              <label for="seatsPerRow" class="mb-1 block text-sm font-medium text-slate-700">{{ 'vendor.buses.seatsPerRow' | t }}</label>
+              <input id="seatsPerRow" type="number" min="1" max="6" formControlName="seatsPerRow" class="w-full rounded-md border border-slate-300 px-3 py-2 focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500" />
             </div>
           </div>
           <div>
-            <label for="type" class="mb-1 block text-sm font-medium text-slate-700">Type</label>
-            <select id="type" formControlName="type" class="w-full rounded-md border border-slate-300 px-3 py-2 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500">
+            <label for="type" class="mb-1 block text-sm font-medium text-slate-700">{{ 'vendor.buses.type' | t }}</label>
+            <select id="type" formControlName="type" class="w-full rounded-md border border-slate-300 px-3 py-2 focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500">
               @for (t of busTypes; track t) {
-                <option [value]="t">{{ t }}</option>
+                <option [value]="t">{{ typeKey(t) | t }}</option>
               }
             </select>
           </div>
           <div>
-            <label for="model" class="mb-1 block text-sm font-medium text-slate-700">Model (optional)</label>
-            <input id="model" type="text" formControlName="model" class="w-full rounded-md border border-slate-300 px-3 py-2 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500" />
+            <label for="model" class="mb-1 block text-sm font-medium text-slate-700">{{ 'vendor.buses.model' | t }}</label>
+            <input id="model" type="text" formControlName="model" class="w-full rounded-md border border-slate-300 px-3 py-2 focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500" />
           </div>
-          <button type="submit" [disabled]="submitting()" class="w-full rounded-md bg-indigo-600 px-4 py-2 font-medium text-white hover:bg-indigo-700 disabled:opacity-50">
-            {{ submitting() ? 'Saving…' : editingId() ? 'Save changes' : 'Add bus' }}
+          <button type="submit" [disabled]="submitting()" class="w-full rounded-md bg-brand-600 px-4 py-2 font-medium text-white hover:bg-brand-700 disabled:opacity-50">
+            {{ (submitting() ? 'vendor.common.saving' : editingId() ? 'vendor.common.saveChanges' : 'vendor.buses.addBusBtn') | t }}
           </button>
           @if (editingId()) {
-            <button type="button" (click)="cancelEdit()" class="w-full text-sm text-slate-500 hover:text-slate-700">Cancel edit</button>
+            <button type="button" (click)="cancelEdit()" class="w-full text-sm text-slate-500 hover:text-slate-700">{{ 'vendor.common.cancelEdit' | t }}</button>
           }
         </form>
       </section>
@@ -126,8 +136,13 @@ export class VendorBusesComponent implements OnInit {
   private readonly fb = inject(FormBuilder);
   private readonly api = inject(VendorApiService);
   private readonly toasts = inject(ToastService);
+  private readonly i18n = inject(TranslationService);
 
   protected readonly busTypes = BUS_TYPES;
+  /** Dictionary key for a bus type, so the template can translate the label. */
+  protected typeKey(type: BusType): string {
+    return BUS_TYPE_KEY[type] ?? type;
+  }
   protected readonly buses = signal<Bus[]>([]);
   protected readonly drivers = signal<Driver[]>([]);
   protected readonly total = signal(0);
@@ -204,7 +219,7 @@ export class VendorBusesComponent implements OnInit {
       this.api.updateBus(editId, body).subscribe({
         next: () => {
           this.submitting.set(false);
-          this.toasts.success('Bus updated.');
+          this.toasts.success(this.i18n.t('vendor.buses.toast.updated'));
           this.cancelEdit();
           this.load();
         },
@@ -221,7 +236,7 @@ export class VendorBusesComponent implements OnInit {
       this.api.addBus(body).subscribe({
         next: () => {
           this.submitting.set(false);
-          this.toasts.success(`Bus ${body.busNumber} added.`);
+          this.toasts.success(this.i18n.t('vendor.buses.toast.added', { number: body.busNumber }));
           this.cancelEdit();
           this.load();
         },
@@ -236,7 +251,7 @@ export class VendorBusesComponent implements OnInit {
       next: () => {
         this.busy.set(false);
         this.confirmingDelete.set(null);
-        this.toasts.success(`Bus ${bus.busNumber} deleted.`);
+        this.toasts.success(this.i18n.t('vendor.buses.toast.deleted', { number: bus.busNumber }));
         this.load();
       },
       error: () => {
@@ -248,7 +263,7 @@ export class VendorBusesComponent implements OnInit {
 
   protected assignDriver(bus: Bus, driverId: string): void {
     this.api.assignDriver(bus.id, driverId || null).subscribe({
-      next: () => this.toasts.success('Driver updated.'),
+      next: () => this.toasts.success(this.i18n.t('vendor.buses.toast.driverUpdated')),
       error: () => this.load(), // revert the select to the server's truth on failure
     });
   }

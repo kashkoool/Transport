@@ -1,6 +1,7 @@
 using FluentAssertions;
 using TransportPlatform.Domain.Common;
 using TransportPlatform.Domain.Trips;
+using TransportPlatform.Domain.Trips.Events;
 
 namespace TransportPlatform.UnitTests.Domain;
 
@@ -51,6 +52,48 @@ public class TripLifecycleTests
         var trip = NewTrip();
         trip.Start();
         var act = () => trip.SyncSeatCount(52);
+        act.Should().Throw<DomainException>().Which.Code.Should().Be("trip.not_editable");
+    }
+
+    [Fact]
+    public void Cancel_is_rejected_once_the_trip_has_started()
+    {
+        var trip = NewTrip();
+        trip.Start(); // InProgress
+        var act = trip.Cancel;
+        act.Should().Throw<DomainException>().Which.Code.Should().Be("trip.not_cancellable");
+    }
+
+    [Fact]
+    public void Cancel_is_idempotent()
+    {
+        var trip = NewTrip();
+        trip.Cancel();
+        trip.Cancel(); // no-op, no throw
+        trip.Status.Should().Be(TripStatus.Cancelled);
+    }
+
+    [Fact]
+    public void Reschedule_updates_times_and_raises_an_event()
+    {
+        var trip = NewTrip();
+        var newDeparture = DateTimeOffset.UtcNow.AddDays(2);
+
+        trip.Reschedule(newDeparture, newDeparture.AddHours(4));
+
+        trip.DepartureUtc.Should().Be(newDeparture);
+        trip.DomainEvents.Should().ContainSingle(e => e is TripRescheduledDomainEvent);
+    }
+
+    [Fact]
+    public void Reschedule_is_rejected_once_the_trip_has_started()
+    {
+        var trip = NewTrip();
+        trip.Start();
+        var newDeparture = DateTimeOffset.UtcNow.AddDays(2);
+
+        var act = () => trip.Reschedule(newDeparture, newDeparture.AddHours(4));
+
         act.Should().Throw<DomainException>().Which.Code.Should().Be("trip.not_editable");
     }
 }

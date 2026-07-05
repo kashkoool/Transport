@@ -71,12 +71,12 @@ public sealed class DeleteTripHandler(IApplicationDbContext db, ICurrentUser cur
 
 public sealed record StartTripCommand(Guid TripId);
 
-public sealed class StartTripHandler(IApplicationDbContext db, ICurrentUser currentUser)
+public sealed class StartTripHandler(IApplicationDbContext db, ICurrentUser currentUser, IClock clock)
 {
     public async Task<TripDto> HandleAsync(StartTripCommand command, CancellationToken ct)
     {
         var trip = await db.LoadOwnTripAsync(currentUser, command.TripId, ct);
-        trip.Start();
+        trip.Start(clock.UtcNow);
         await db.SaveChangesAsync(ct);
         return TripDto.From(trip);
     }
@@ -84,12 +84,12 @@ public sealed class StartTripHandler(IApplicationDbContext db, ICurrentUser curr
 
 public sealed record CompleteTripCommand(Guid TripId);
 
-public sealed class CompleteTripHandler(IApplicationDbContext db, ICurrentUser currentUser)
+public sealed class CompleteTripHandler(IApplicationDbContext db, ICurrentUser currentUser, IClock clock)
 {
     public async Task<TripDto> HandleAsync(CompleteTripCommand command, CancellationToken ct)
     {
         var trip = await db.LoadOwnTripAsync(currentUser, command.TripId, ct);
-        trip.Complete();
+        trip.Complete(clock.UtcNow);
         await db.SaveChangesAsync(ct);
         return TripDto.From(trip);
     }

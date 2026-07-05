@@ -13,6 +13,9 @@ internal sealed class CompanyConfiguration : IEntityTypeConfiguration<Company>
         builder.Property(c => c.Name).HasMaxLength(200).IsRequired();
         builder.Property(c => c.Email).HasMaxLength(256).IsRequired();
         builder.Property(c => c.Phone).HasMaxLength(40);
+        builder.Property(c => c.TaxId).HasMaxLength(50);
+        builder.Property(c => c.BankAccount).HasMaxLength(64);
+        builder.Property(c => c.Address).HasMaxLength(200);
         builder.Property(c => c.Status).HasConversion<string>().HasMaxLength(20).IsRequired();
         builder.HasIndex(c => c.Email).IsUnique();
 

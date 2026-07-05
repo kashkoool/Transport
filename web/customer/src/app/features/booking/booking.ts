@@ -15,6 +15,8 @@ import { BookingFlow } from '../../core/booking-flow';
 import { TripRealtimeService } from '../../core/notifications/trip-realtime.service';
 import { ToastService } from '../../core/toast/toast.service';
 import { HoldResult, PromoPreview, ReviewSummary, SeatMap, TripStop } from '../../core/models';
+import { TranslatePipe } from '../../core/i18n/translate.pipe';
+import { TranslationService } from '../../core/i18n/translation.service';
 
 const MAX_SEATS = 10;
 const DOCUMENT_TYPES = ['National ID', 'Passport', 'Driver License'] as const;
@@ -22,18 +24,18 @@ const DOCUMENT_TYPES = ['National ID', 'Passport', 'Driver License'] as const;
 @Component({
   selector: 'app-booking',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [ReactiveFormsModule, DecimalPipe, DatePipe],
+  imports: [ReactiveFormsModule, DecimalPipe, DatePipe, TranslatePipe],
   template: `
     @if (trip(); as t) {
-      <button type="button" class="text-sm text-indigo-600 hover:text-indigo-700" (click)="back()">
-        ← Back to search
+      <button type="button" class="text-sm text-brand-600 hover:text-brand-700" (click)="back()">
+        {{ 'booking.backToSearch' | t }}
       </button>
       <h1 class="mt-2 text-2xl font-bold text-slate-900">{{ t.origin }} → {{ t.destination }}</h1>
-      <p class="mb-6 text-slate-500">{{ t.price | number: '1.0-0' }} {{ t.currency }} per seat</p>
+      <p class="mb-6 text-slate-500">{{ 'booking.perSeat' | t: { price: (t.price | number: '1.0-0'), currency: t.currency } }}</p>
 
       @if (stops().length > 0) {
         <section class="mb-6 rounded-xl border border-slate-200 bg-white p-4">
-          <h2 class="mb-2 font-semibold text-slate-900">Route</h2>
+          <h2 class="mb-2 font-semibold text-slate-900">{{ 'booking.route' | t }}</h2>
           <ol class="space-y-1 text-sm text-slate-600">
             <li class="flex justify-between"><span class="font-medium text-slate-900">{{ t.origin }}</span><span>{{ t.departureUtc | date: 'HH:mm' }}</span></li>
             @for (s of stops(); track s.sequence) {
@@ -51,7 +53,7 @@ const DOCUMENT_TYPES = ['National ID', 'Passport', 'Driver License'] as const;
         @if (r.count > 0) {
           <section class="mb-6 rounded-xl border border-slate-200 bg-white p-4">
             <h2 class="mb-2 font-semibold text-slate-900">
-              Reviews
+              {{ 'booking.reviews' | t }}
               <span class="ml-1 text-sm font-normal text-amber-500">★ {{ r.averageRating | number: '1.1-1' }}</span>
               <span class="text-sm font-normal text-slate-400">({{ r.count }})</span>
             </h2>
@@ -60,7 +62,7 @@ const DOCUMENT_TYPES = ['National ID', 'Passport', 'Driver License'] as const;
                 <li class="text-sm">
                   <span class="text-amber-400">{{ stars(rev.rating) }}</span>
                   <span class="font-medium text-slate-700">{{ rev.displayName }}</span>
-                  @if (rev.comment) { <span class="text-slate-500">— {{ rev.comment }}</span> }
+                  @if (rev.comment) { <span class="italic text-slate-500">“{{ rev.comment }}”</span> }
                 </li>
               }
             </ul>
@@ -70,8 +72,8 @@ const DOCUMENT_TYPES = ['National ID', 'Passport', 'Driver License'] as const;
 
       @if (!held()) {
         <section class="rounded-xl border border-slate-200 bg-white p-4">
-          <h2 class="mb-3 font-semibold text-slate-900">Choose your seats</h2>
-          <p class="mb-3 text-sm text-slate-500">Pick up to {{ maxSeats }} seats. Greyed seats are taken.</p>
+          <h2 class="mb-3 font-semibold text-slate-900">{{ 'booking.chooseSeats' | t }}</h2>
+          <p class="mb-3 text-sm text-slate-500">{{ 'booking.seatHint' | t: { max: maxSeats } }}</p>
           <div class="space-y-2">
             @for (row of rows(); track $index) {
               <div class="flex justify-center gap-2">
@@ -81,9 +83,9 @@ const DOCUMENT_TYPES = ['National ID', 'Passport', 'Driver License'] as const;
                     [disabled]="isTaken(seat)"
                     (click)="toggleSeat(seat)"
                     class="h-10 w-10 rounded-md border text-sm font-medium"
-                    [class.bg-indigo-600]="isSelected(seat)"
+                    [class.bg-brand-600]="isSelected(seat)"
                     [class.text-white]="isSelected(seat)"
-                    [class.border-indigo-600]="isSelected(seat)"
+                    [class.border-brand-600]="isSelected(seat)"
                     [class.bg-slate-200]="isTaken(seat)"
                     [class.text-slate-400]="isTaken(seat)"
                     [class.cursor-not-allowed]="isTaken(seat)"
@@ -100,15 +102,15 @@ const DOCUMENT_TYPES = ['National ID', 'Passport', 'Driver License'] as const;
             type="button"
             [disabled]="selectedSeats().length === 0 || holding()"
             (click)="hold()"
-            class="mt-4 rounded-md bg-indigo-600 px-4 py-2 font-medium text-white hover:bg-indigo-700 disabled:opacity-50"
+            class="mt-4 rounded-md bg-brand-600 px-4 py-2 font-medium text-white hover:bg-brand-700 disabled:opacity-50"
           >
-            {{ holding() ? 'Holding…' : 'Hold ' + selectedSeats().length + ' seat(s)' }}
+            {{ holding() ? ('booking.holding' | t) : ('booking.holdSeats' | t: { count: selectedSeats().length }) }}
           </button>
         </section>
       } @else {
         <section class="rounded-xl border border-slate-200 bg-white p-4">
           <div class="mb-4 flex items-center justify-between">
-            <h2 class="font-semibold text-slate-900">Passenger details</h2>
+            <h2 class="font-semibold text-slate-900">{{ 'booking.passengerDetails' | t }}</h2>
             <span
               class="rounded-full px-3 py-1 text-sm font-medium"
               [class.bg-amber-100]="remaining() > 0"
@@ -116,7 +118,7 @@ const DOCUMENT_TYPES = ['National ID', 'Passport', 'Driver License'] as const;
               [class.bg-rose-100]="remaining() === 0"
               [class.text-rose-700]="remaining() === 0"
             >
-              {{ remaining() > 0 ? 'Held — ' + countdown() + ' left' : 'Hold expired' }}
+              {{ remaining() > 0 ? ('booking.heldLeft' | t: { time: countdown() }) : ('booking.holdExpired' | t) }}
             </span>
           </div>
 
@@ -124,25 +126,25 @@ const DOCUMENT_TYPES = ['National ID', 'Passport', 'Driver License'] as const;
             <div formArrayName="passengers" class="space-y-4">
               @for (group of passengers.controls; track $index) {
                 <div [formGroupName]="$index" class="rounded-lg border border-slate-100 p-3">
-                  <p class="mb-2 text-sm font-semibold text-slate-700">Seat {{ group.value.seatNumber }}</p>
+                  <p class="mb-2 text-sm font-semibold text-slate-700">{{ 'booking.seatLabel' | t: { seat: group.value.seatNumber } }}</p>
                   <div class="grid gap-3 sm:grid-cols-2">
                     <input
                       type="text"
                       formControlName="firstName"
-                      placeholder="First name"
-                      class="rounded-md border border-slate-300 px-3 py-2 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                      [placeholder]="'booking.firstName' | t"
+                      class="rounded-md border border-slate-300 px-3 py-2 focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
                     />
                     <input
                       type="text"
                       formControlName="lastName"
-                      placeholder="Last name"
-                      class="rounded-md border border-slate-300 px-3 py-2 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                      [placeholder]="'booking.lastName' | t"
+                      class="rounded-md border border-slate-300 px-3 py-2 focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
                     />
                     <select
                       formControlName="documentType"
-                      class="rounded-md border border-slate-300 px-3 py-2 text-slate-700 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                      class="rounded-md border border-slate-300 px-3 py-2 text-slate-700 focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
                     >
-                      <option value="">ID document (optional)</option>
+                      <option value="">{{ 'booking.idDocumentOptional' | t }}</option>
                       @for (dt of documentTypes; track dt) {
                         <option [value]="dt">{{ dt }}</option>
                       }
@@ -150,8 +152,8 @@ const DOCUMENT_TYPES = ['National ID', 'Passport', 'Driver License'] as const;
                     <input
                       type="text"
                       formControlName="documentNumber"
-                      placeholder="Document number (optional)"
-                      class="rounded-md border border-slate-300 px-3 py-2 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                      [placeholder]="'booking.documentNumberOptional' | t"
+                      class="rounded-md border border-slate-300 px-3 py-2 focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
                     />
                   </div>
                 </div>
@@ -159,15 +161,15 @@ const DOCUMENT_TYPES = ['National ID', 'Passport', 'Driver License'] as const;
             </div>
 
             <div class="rounded-lg border border-slate-100 p-3">
-              <label for="promo-code" class="mb-1 block text-sm font-medium text-slate-700">Promo code</label>
+              <label for="promo-code" class="mb-1 block text-sm font-medium text-slate-700">{{ 'booking.promoCode' | t }}</label>
               <div class="flex gap-2">
                 <input
                   id="promo-code"
                   type="text"
                   [value]="promoCode()"
                   (input)="onPromoInput($event)"
-                  placeholder="e.g. SAVE20"
-                  class="flex-1 rounded-md border border-slate-300 px-3 py-2 uppercase focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                  [placeholder]="'booking.promoPlaceholder' | t"
+                  class="flex-1 rounded-md border border-slate-300 px-3 py-2 uppercase focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
                 />
                 <button
                   type="button"
@@ -175,26 +177,38 @@ const DOCUMENT_TYPES = ['National ID', 'Passport', 'Driver License'] as const;
                   (click)="applyPromo()"
                   class="rounded-md bg-slate-800 px-4 py-2 text-sm font-medium text-white hover:bg-slate-900 disabled:opacity-50"
                 >
-                  {{ promoChecking() ? 'Checking…' : 'Apply' }}
+                  {{ (promoChecking() ? 'booking.checking' : 'booking.apply') | t }}
                 </button>
               </div>
               @if (promo(); as p) {
                 <p class="mt-2 text-sm text-emerald-700">
-                  −{{ p.discount | number: '1.0-0' }} {{ p.currency }} applied ({{ p.code }}).
+                  {{ 'booking.promoApplied' | t: { discount: (p.discount | number: '1.0-0'), currency: p.currency, code: p.code } }}
                 </p>
               }
             </div>
 
+            <div class="rounded-lg border border-slate-100 p-3">
+              <label for="contact-phone" class="mb-1 block text-sm font-medium text-slate-700">{{ 'booking.contactPhone' | t }}</label>
+              <input
+                id="contact-phone"
+                type="tel"
+                [value]="contactPhone()"
+                (input)="onContactPhoneInput($event)"
+                [placeholder]="'booking.contactPhonePlaceholder' | t"
+                class="w-full rounded-md border border-slate-300 px-3 py-2 focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
+              />
+            </div>
+
             <div class="flex items-center justify-between border-t border-slate-100 pt-4">
               <span class="text-lg font-bold text-slate-900">
-                Total: {{ total() | number: '1.0-0' }} {{ t.currency }}
+                {{ 'booking.total' | t: { amount: (total() | number: '1.0-0'), currency: t.currency } }}
               </span>
               <button
                 type="submit"
                 [disabled]="submitting() || remaining() === 0"
                 class="rounded-md bg-emerald-600 px-5 py-2 font-medium text-white hover:bg-emerald-700 disabled:opacity-50"
               >
-                {{ submitting() ? 'Creating…' : 'Confirm & continue to payment' }}
+                {{ (submitting() ? 'booking.creating' : 'booking.confirmContinue') | t }}
               </button>
             </div>
           </form>
@@ -209,6 +223,7 @@ export class BookingComponent implements OnInit, OnDestroy {
   private readonly toasts = inject(ToastService);
   private readonly router = inject(Router);
   private readonly realtime = inject(TripRealtimeService);
+  private readonly i18n = inject(TranslationService);
   protected readonly flow = inject(BookingFlow);
 
   protected readonly maxSeats = MAX_SEATS;
@@ -225,6 +240,7 @@ export class BookingComponent implements OnInit, OnDestroy {
   protected readonly promoCode = signal('');
   protected readonly promo = signal<PromoPreview | null>(null);
   protected readonly promoChecking = signal(false);
+  protected readonly contactPhone = signal('');
 
   private readonly takenSet = computed(() => new Set(this.seatMap()?.takenSeats ?? []));
   protected readonly total = computed(() => {
@@ -241,7 +257,7 @@ export class BookingComponent implements OnInit, OnDestroy {
 
   constructor() {
     if (!this.trip()) {
-      this.toasts.info('Please pick a trip first.');
+      this.toasts.info(this.i18n.t('booking.pickTripFirst'));
       this.router.navigate(['/search']);
     }
   }
@@ -286,7 +302,7 @@ export class BookingComponent implements OnInit, OnDestroy {
     this.selectedSeats.update((seats) => {
       if (seats.includes(seat)) return seats.filter((s) => s !== seat);
       if (seats.length >= MAX_SEATS) {
-        this.toasts.info(`You can hold at most ${MAX_SEATS} seats.`);
+        this.toasts.info(this.i18n.t('booking.maxSeats', { max: MAX_SEATS }));
         return seats;
       }
       return [...seats, seat].sort((a, b) => a - b);
@@ -316,6 +332,10 @@ export class BookingComponent implements OnInit, OnDestroy {
     this.promo.set(null); // a changed code invalidates a prior preview
   }
 
+  protected onContactPhoneInput(event: Event): void {
+    this.contactPhone.set((event.target as HTMLInputElement).value);
+  }
+
   protected applyPromo(): void {
     const trip = this.trip();
     const code = this.promoCode().trim();
@@ -325,7 +345,7 @@ export class BookingComponent implements OnInit, OnDestroy {
       next: (preview) => {
         this.promoChecking.set(false);
         this.promo.set(preview);
-        this.toasts.success('Promo code applied.');
+        this.toasts.success(this.i18n.t('booking.promoAppliedToast'));
       },
       error: () => {
         this.promoChecking.set(false);
@@ -339,7 +359,7 @@ export class BookingComponent implements OnInit, OnDestroy {
     if (!trip) return;
     if (this.passengerForm.invalid) {
       this.passengerForm.markAllAsTouched();
-      this.toasts.info('Please enter every passenger’s name.');
+      this.toasts.info(this.i18n.t('booking.enterPassengerNames'));
       return;
     }
     this.submitting.set(true);
@@ -350,7 +370,7 @@ export class BookingComponent implements OnInit, OnDestroy {
       documentType: string;
       documentNumber: string;
     }[];
-    this.api.createBooking(trip.id, passengers, this.promo()?.code ?? null).subscribe({
+    this.api.createBooking(trip.id, passengers, this.promo()?.code ?? null, this.contactPhone().trim() || null).subscribe({
       next: (booking) => this.router.navigate(['/pay', booking.bookingId]),
       error: () => this.submitting.set(false),
     });
@@ -384,7 +404,7 @@ export class BookingComponent implements OnInit, OnDestroy {
         const clashes = this.selectedSeats().filter((s) => taken.has(s));
         if (clashes.length > 0) {
           this.selectedSeats.update((seats) => seats.filter((s) => !taken.has(s)));
-          this.toasts.info('Some seats were just taken — please reselect.');
+          this.toasts.info(this.i18n.t('booking.seatsJustTaken'));
         }
       },
       error: () => undefined,

@@ -3,7 +3,7 @@ using TransportPlatform.Application.Abstractions;
 
 namespace TransportPlatform.Application.Identity;
 
-public sealed record RegisterCommand(string Email, string Password, string FullName);
+public sealed record RegisterCommand(string Email, string Password, string FullName, string? Language = null);
 
 public sealed class RegisterValidator : AbstractValidator<RegisterCommand>
 {
@@ -19,9 +19,14 @@ public sealed class RegisterValidator : AbstractValidator<RegisterCommand>
 /// <summary>Registers a new customer and immediately issues their first token pair.</summary>
 public sealed class RegisterHandler(IIdentityService identity, ITokenService tokens, IAuthEmailService authEmail)
 {
+    /// <summary>Maps a client-supplied language to a stored value: <c>"ar"</c> stays Arabic; everything else (incl. null) is English.</summary>
+    internal static string NormalizeLang(string? language) =>
+        string.Equals(language, "ar", StringComparison.OrdinalIgnoreCase) ? "ar" : "en";
+
     public async Task<AuthResult> HandleAsync(RegisterCommand command, CancellationToken ct)
     {
-        var user = await identity.RegisterCustomerAsync(command.Email, command.Password, command.FullName, ct);
+        var lang = NormalizeLang(command.Language);
+        var user = await identity.RegisterCustomerAsync(command.Email, command.Password, command.FullName, lang, ct);
 
         // Send a verification email — entirely best-effort. The whole block is guarded (not just
         // the send) so a token-provider hiccup can't roll back an otherwise-successful sign-up;
@@ -31,7 +36,7 @@ public sealed class RegisterHandler(IIdentityService identity, ITokenService tok
         {
             var verifyToken = await identity.GenerateEmailConfirmationTokenAsync(user.UserId, ct);
             if (!string.IsNullOrEmpty(verifyToken))
-                await authEmail.SendEmailVerificationAsync(user.Email, verifyToken, ct);
+                await authEmail.SendEmailVerificationAsync(user.Email, verifyToken, lang, ct);
         }
         catch (Exception ex) when (ex is not OperationCanceledException)
         {

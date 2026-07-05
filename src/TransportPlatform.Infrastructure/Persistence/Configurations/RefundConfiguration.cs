@@ -18,6 +18,7 @@ internal sealed class RefundConfiguration : IEntityTypeConfiguration<Refund>
         builder.Property(r => r.IdempotencyKey).HasMaxLength(100).IsRequired();
 
         builder.HasIndex(r => r.PaymentId);
+        builder.HasIndex(r => r.BookingId);
         builder.HasIndex(r => r.IdempotencyKey).IsUnique(); // a retry can't double-refund
         builder.HasIndex(r => r.GatewayRefundRef);
 

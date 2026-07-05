@@ -22,12 +22,17 @@ public sealed class ListCustomersHandler(IIdentityService identity)
 public sealed record SetCustomerSuspendedCommand(Guid UserId, bool Suspended);
 
 /// <summary>Admin: suspend or reactivate a customer account (blocks/restores their login).</summary>
-public sealed class SetCustomerSuspendedHandler(IIdentityService identity)
+public sealed class SetCustomerSuspendedHandler(IIdentityService identity, ITokenService tokens)
 {
     public async Task HandleAsync(SetCustomerSuspendedCommand command, CancellationToken ct)
     {
         if (!await identity.SetCustomerSuspendedAsync(command.UserId, command.Suspended, ct))
             throw new NotFoundException("Customer", command.UserId);
+
+        // Suspending must sever any live sessions: kill all refresh tokens so the account
+        // can't keep refreshing an access token after being locked out.
+        if (command.Suspended)
+            await tokens.RevokeAllForUserAsync(command.UserId, ct);
     }
 }
 
@@ -37,7 +42,7 @@ public sealed record DeleteCustomerCommand(Guid UserId);
 /// Admin: delete a customer account — blocked while they have non-cancelled bookings (financial
 /// history must be preserved; cancel/settle those first). Guarded + 404 for non-customers.
 /// </summary>
-public sealed class DeleteCustomerHandler(IIdentityService identity, IApplicationDbContext db)
+public sealed class DeleteCustomerHandler(IIdentityService identity, IApplicationDbContext db, ITokenService tokens)
 {
     public async Task HandleAsync(DeleteCustomerCommand command, CancellationToken ct)
     {
@@ -49,6 +54,9 @@ public sealed class DeleteCustomerHandler(IIdentityService identity, IApplicatio
         if (await db.Bookings.AnyAsync(b => b.CustomerEmail == email && b.Status != BookingStatus.Cancelled, ct))
             throw new ConflictException("customer.has_bookings",
                 "This customer has active bookings and can't be deleted.");
+
+        // Revoke sessions first so a token can't be used in the window between delete and cascade.
+        await tokens.RevokeAllForUserAsync(command.UserId, ct);
 
         if (!await identity.DeleteCustomerAsync(command.UserId, ct))
             throw new NotFoundException("Customer", command.UserId);

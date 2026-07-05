@@ -13,27 +13,29 @@ import {
   VendorReportSummary,
 } from '../../core/models';
 import { VendorNavComponent } from './vendor-nav';
+import { TranslatePipe } from '../../core/i18n/translate.pipe';
+import { TranslationService } from '../../core/i18n/translation.service';
 
 type Tab = 'trips' | 'bookings' | 'employees';
 
 @Component({
   selector: 'app-vendor-reports',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [ReactiveFormsModule, DatePipe, DecimalPipe, VendorNavComponent],
+  imports: [ReactiveFormsModule, DatePipe, DecimalPipe, VendorNavComponent, TranslatePipe],
   template: `
     <app-vendor-nav />
-    <h1 class="mb-6 text-2xl font-bold text-slate-900">Reports</h1>
+    <h1 class="mb-6 text-2xl font-bold text-slate-900">{{ 'vendor.reports.title' | t }}</h1>
 
     <form [formGroup]="rangeForm" (ngSubmit)="load()" class="mb-6 flex flex-wrap items-end gap-3">
       <div>
-        <label for="from" class="mb-1 block text-sm font-medium text-slate-700">From</label>
-        <input id="from" type="date" formControlName="from" class="rounded-md border border-slate-300 px-3 py-2 focus:border-indigo-500 focus:outline-none" />
+        <label for="from" class="mb-1 block text-sm font-medium text-slate-700">{{ 'vendor.reports.from' | t }}</label>
+        <input id="from" type="date" formControlName="from" class="rounded-md border border-slate-300 px-3 py-2 focus:border-brand-500 focus:outline-none" />
       </div>
       <div>
-        <label for="to" class="mb-1 block text-sm font-medium text-slate-700">To</label>
-        <input id="to" type="date" formControlName="to" class="rounded-md border border-slate-300 px-3 py-2 focus:border-indigo-500 focus:outline-none" />
+        <label for="to" class="mb-1 block text-sm font-medium text-slate-700">{{ 'vendor.reports.to' | t }}</label>
+        <input id="to" type="date" formControlName="to" class="rounded-md border border-slate-300 px-3 py-2 focus:border-brand-500 focus:outline-none" />
       </div>
-      <button type="submit" class="rounded-md bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700">Apply</button>
+      <button type="submit" class="rounded-md bg-brand-600 px-4 py-2 text-sm font-medium text-white hover:bg-brand-700">{{ 'vendor.reports.apply' | t }}</button>
       <span class="flex-1"></span>
       @if (tab() !== 'employees') {
         <div class="flex gap-2">
@@ -47,19 +49,19 @@ type Tab = 'trips' | 'bookings' | 'employees';
     @if (summary(); as s) {
       <div class="mb-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         <div class="rounded-xl border border-slate-200 bg-white p-4">
-          <p class="text-xs uppercase text-slate-400">Revenue</p>
+          <p class="text-xs uppercase text-slate-400">{{ 'vendor.reports.kpi.revenue' | t }}</p>
           <p class="text-xl font-bold text-slate-900">{{ s.revenue | number: '1.0-0' }} {{ s.currency }}</p>
         </div>
         <div class="rounded-xl border border-slate-200 bg-white p-4">
-          <p class="text-xs uppercase text-slate-400">Confirmed bookings</p>
+          <p class="text-xs uppercase text-slate-400">{{ 'vendor.reports.kpi.confirmedBookings' | t }}</p>
           <p class="text-xl font-bold text-slate-900">{{ s.confirmedBookings }}</p>
         </div>
         <div class="rounded-xl border border-slate-200 bg-white p-4">
-          <p class="text-xs uppercase text-slate-400">Seats sold</p>
+          <p class="text-xs uppercase text-slate-400">{{ 'vendor.reports.kpi.seatsSold' | t }}</p>
           <p class="text-xl font-bold text-slate-900">{{ s.seatsSold }} / {{ s.seatsOffered }}</p>
         </div>
         <div class="rounded-xl border border-slate-200 bg-white p-4">
-          <p class="text-xs uppercase text-slate-400">Occupancy</p>
+          <p class="text-xs uppercase text-slate-400">{{ 'vendor.reports.kpi.occupancy' | t }}</p>
           <p class="text-xl font-bold text-slate-900">{{ s.occupancyPct }}%</p>
         </div>
       </div>
@@ -71,23 +73,23 @@ type Tab = 'trips' | 'bookings' | 'employees';
           @for (t of tabs; track t.key) {
             <button type="button" (click)="setTab(t.key)"
               class="-mb-px border-b-2 px-4 py-2 text-sm font-medium"
-              [class.border-indigo-600]="tab() === t.key" [class.text-indigo-700]="tab() === t.key"
+              [class.border-brand-600]="tab() === t.key" [class.text-brand-700]="tab() === t.key"
               [class.border-transparent]="tab() !== t.key" [class.text-slate-500]="tab() !== t.key">
-              {{ t.label }}
+              {{ t.label | t }}
             </button>
           }
         </nav>
 
         @if (loading()) {
-          <p class="text-slate-500">Loading…</p>
+          <p class="text-slate-500">{{ 'vendor.common.loading' | t }}</p>
         } @else if (tab() === 'trips') {
-          @if (trips().length === 0) { <p class="rounded-lg bg-slate-100 p-4 text-slate-600">No trips in this range.</p> }
+          @if (trips().length === 0) { <p class="rounded-lg bg-slate-100 p-4 text-slate-600">{{ 'vendor.reports.emptyTrips' | t }}</p> }
           @else {
             <div class="overflow-x-auto rounded-xl border border-slate-200 bg-white">
               <table class="w-full text-sm">
                 <thead class="bg-slate-50 text-left text-slate-500"><tr>
-                  <th class="px-3 py-2 font-medium">Route</th><th class="px-3 py-2 font-medium">Departs</th>
-                  <th class="px-3 py-2 font-medium">Sold</th><th class="px-3 py-2 font-medium">Revenue</th><th class="px-3 py-2 font-medium">Status</th>
+                  <th class="px-3 py-2 font-medium">{{ 'vendor.reports.th.route' | t }}</th><th class="px-3 py-2 font-medium">{{ 'vendor.reports.th.departs' | t }}</th>
+                  <th class="px-3 py-2 font-medium">{{ 'vendor.reports.th.sold' | t }}</th><th class="px-3 py-2 font-medium">{{ 'vendor.reports.th.revenue' | t }}</th><th class="px-3 py-2 font-medium">{{ 'vendor.reports.th.status' | t }}</th>
                 </tr></thead>
                 <tbody class="divide-y divide-slate-100">
                   @for (r of trips(); track r.tripId) {
@@ -104,13 +106,13 @@ type Tab = 'trips' | 'bookings' | 'employees';
             </div>
           }
         } @else if (tab() === 'bookings') {
-          @if (bookings().length === 0) { <p class="rounded-lg bg-slate-100 p-4 text-slate-600">No bookings in this range.</p> }
+          @if (bookings().length === 0) { <p class="rounded-lg bg-slate-100 p-4 text-slate-600">{{ 'vendor.reports.emptyBookings' | t }}</p> }
           @else {
             <div class="overflow-x-auto rounded-xl border border-slate-200 bg-white">
               <table class="w-full text-sm">
                 <thead class="bg-slate-50 text-left text-slate-500"><tr>
-                  <th class="px-3 py-2 font-medium">Reference</th><th class="px-3 py-2 font-medium">Customer</th>
-                  <th class="px-3 py-2 font-medium">Status</th><th class="px-3 py-2 font-medium">Total</th><th class="px-3 py-2 font-medium">Gateway</th>
+                  <th class="px-3 py-2 font-medium">{{ 'vendor.reports.th.reference' | t }}</th><th class="px-3 py-2 font-medium">{{ 'vendor.reports.th.customer' | t }}</th>
+                  <th class="px-3 py-2 font-medium">{{ 'vendor.reports.th.status' | t }}</th><th class="px-3 py-2 font-medium">{{ 'vendor.reports.th.total' | t }}</th><th class="px-3 py-2 font-medium">{{ 'vendor.reports.th.gateway' | t }}</th>
                 </tr></thead>
                 <tbody class="divide-y divide-slate-100">
                   @for (b of bookings(); track b.bookingId) {
@@ -127,13 +129,13 @@ type Tab = 'trips' | 'bookings' | 'employees';
             </div>
           }
         } @else {
-          @if (employees().length === 0) { <p class="rounded-lg bg-slate-100 p-4 text-slate-600">No desk-booking activity in this range.</p> }
+          @if (employees().length === 0) { <p class="rounded-lg bg-slate-100 p-4 text-slate-600">{{ 'vendor.reports.emptyEmployees' | t }}</p> }
           @else {
             <div class="overflow-x-auto rounded-xl border border-slate-200 bg-white">
               <table class="w-full text-sm">
                 <thead class="bg-slate-50 text-left text-slate-500"><tr>
-                  <th class="px-3 py-2 font-medium">Employee</th><th class="px-3 py-2 font-medium">Email</th>
-                  <th class="px-3 py-2 font-medium">Bookings</th><th class="px-3 py-2 font-medium">Revenue</th>
+                  <th class="px-3 py-2 font-medium">{{ 'vendor.reports.th.employee' | t }}</th><th class="px-3 py-2 font-medium">{{ 'vendor.reports.th.email' | t }}</th>
+                  <th class="px-3 py-2 font-medium">{{ 'vendor.reports.th.bookings' | t }}</th><th class="px-3 py-2 font-medium">{{ 'vendor.reports.th.revenue' | t }}</th>
                 </tr></thead>
                 <tbody class="divide-y divide-slate-100">
                   @for (e of employees(); track e.staffId) {
@@ -152,21 +154,21 @@ type Tab = 'trips' | 'bookings' | 'employees';
       </section>
 
       <section class="rounded-xl border border-slate-200 bg-white p-4">
-        <h2 class="mb-3 font-semibold text-slate-900">Demand forecast</h2>
+        <h2 class="mb-3 font-semibold text-slate-900">{{ 'vendor.reports.demandForecast' | t }}</h2>
         <form [formGroup]="demandForm" (ngSubmit)="predict()" class="space-y-3">
           <div class="grid grid-cols-2 gap-2">
-            <input type="text" formControlName="origin" placeholder="From" class="rounded-md border border-slate-300 px-3 py-2 focus:border-indigo-500 focus:outline-none" />
-            <input type="text" formControlName="destination" placeholder="To" class="rounded-md border border-slate-300 px-3 py-2 focus:border-indigo-500 focus:outline-none" />
+            <input type="text" formControlName="origin" [placeholder]="'common.from' | t" class="rounded-md border border-slate-300 px-3 py-2 focus:border-brand-500 focus:outline-none" />
+            <input type="text" formControlName="destination" [placeholder]="'common.to' | t" class="rounded-md border border-slate-300 px-3 py-2 focus:border-brand-500 focus:outline-none" />
           </div>
-          <input type="date" formControlName="date" class="w-full rounded-md border border-slate-300 px-3 py-2 focus:border-indigo-500 focus:outline-none" />
+          <input type="date" formControlName="date" class="w-full rounded-md border border-slate-300 px-3 py-2 focus:border-brand-500 focus:outline-none" />
           <button type="submit" [disabled]="predicting()" class="w-full rounded-md bg-slate-800 px-4 py-2 text-sm font-medium text-white hover:bg-slate-900 disabled:opacity-50">
-            {{ predicting() ? 'Forecasting…' : 'Forecast' }}
+            {{ (predicting() ? 'vendor.reports.forecasting' : 'vendor.reports.forecast') | t }}
           </button>
         </form>
         @if (demand(); as d) {
           <div class="mt-3 rounded-lg bg-slate-50 p-3 text-sm">
-            <p class="text-2xl font-bold text-slate-900">~{{ d.predictedBookings }} <span class="text-sm font-normal text-slate-500">bookings</span></p>
-            <p class="text-slate-600">Confidence: <span class="font-medium capitalize">{{ d.confidence }}</span> ({{ d.sampleSize }} past bookings)</p>
+            <p class="text-2xl font-bold text-slate-900">~{{ d.predictedBookings }} <span class="text-sm font-normal text-slate-500">{{ 'vendor.reports.bookingsLabel' | t }}</span></p>
+            <p class="text-slate-600">{{ 'vendor.reports.confidence' | t }} <span class="font-medium capitalize">{{ d.confidence }}</span> {{ 'vendor.reports.pastBookings' | t: { n: d.sampleSize } }}</p>
           </div>
         }
       </section>
@@ -177,11 +179,12 @@ export class VendorReportsComponent implements OnInit {
   private readonly fb = inject(FormBuilder);
   private readonly api = inject(VendorApiService);
   private readonly toasts = inject(ToastService);
+  private readonly i18n = inject(TranslationService);
 
   protected readonly tabs: { key: Tab; label: string }[] = [
-    { key: 'trips', label: 'Trips' },
-    { key: 'bookings', label: 'Bookings' },
-    { key: 'employees', label: 'Employees' },
+    { key: 'trips', label: 'vendor.reports.tab.trips' },
+    { key: 'bookings', label: 'vendor.reports.tab.bookings' },
+    { key: 'employees', label: 'vendor.reports.tab.employees' },
   ];
   protected readonly tab = signal<Tab>('trips');
   protected readonly summary = signal<VendorReportSummary | null>(null);
@@ -242,7 +245,7 @@ export class VendorReportsComponent implements OnInit {
         a.click();
         URL.revokeObjectURL(url);
       },
-      error: () => this.toasts.error('Could not download the report.'),
+      error: () => this.toasts.error(this.i18n.t('vendor.reports.toast.downloadFailed')),
     });
   }
 

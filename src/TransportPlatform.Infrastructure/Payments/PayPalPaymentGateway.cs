@@ -84,8 +84,12 @@ public sealed class PayPalPaymentGateway(IHttpClientFactory httpClientFactory, I
                 return await CaptureOrderAsync(resource, cancellationToken);
 
             case "PAYMENT.CAPTURE.COMPLETED":
+            {
+                var (amount, currency) = resource.TryGetProperty("amount", out var amt)
+                    ? ParseMoney(amt) : (null, null);
                 return new PaymentWebhook(
-                    GetString(resource, "id"), GetString(resource, "custom_id"), Succeeded: true);
+                    GetString(resource, "id"), GetString(resource, "custom_id"), Succeeded: true, amount, currency);
+            }
 
             case "PAYMENT.CAPTURE.DENIED":
             case "CHECKOUT.ORDER.DECLINED":
@@ -133,16 +137,35 @@ public sealed class PayPalPaymentGateway(IHttpClientFactory httpClientFactory, I
             return new PaymentWebhook(orderId, bookingRef, Succeeded: false);
 
         using var doc = JsonDocument.Parse(await resp.Content.ReadAsStringAsync(ct));
-        var completed = doc.RootElement.TryGetProperty("status", out var st) && st.GetString() == "COMPLETED";
-        // The capture id is the gateway reference we later refund against.
-        var captureId = doc.RootElement.TryGetProperty("purchase_units", out var pu)
-            && pu.GetArrayLength() > 0
+        var root = doc.RootElement;
+        var completed = root.TryGetProperty("status", out var st) && st.GetString() == "COMPLETED";
+
+        // The capture id is the gateway reference we later refund against; the captured amount is
+        // echoed back so the webhook handler can re-verify it equals the booking total.
+        var captureId = orderId;
+        decimal? amount = null;
+        string? currency = null;
+        if (root.TryGetProperty("purchase_units", out var pu) && pu.GetArrayLength() > 0
             && pu[0].TryGetProperty("payments", out var pay)
-            && pay.TryGetProperty("captures", out var caps)
-            && caps.GetArrayLength() > 0
-                ? GetString(caps[0], "id")
-                : orderId;
-        return new PaymentWebhook(captureId, bookingRef, completed);
+            && pay.TryGetProperty("captures", out var caps) && caps.GetArrayLength() > 0)
+        {
+            captureId = GetString(caps[0], "id");
+            if (caps[0].TryGetProperty("amount", out var amt))
+                (amount, currency) = ParseMoney(amt);
+        }
+        return new PaymentWebhook(captureId, bookingRef, completed, amount, currency);
+    }
+
+    /// <summary>Parse a PayPal money object {value:"12.34", currency_code:"USD"} → (decimal, currency).</summary>
+    private static (decimal? Amount, string? Currency) ParseMoney(JsonElement amountObj)
+    {
+        if (amountObj.ValueKind != JsonValueKind.Object)
+            return (null, null);
+        var currency = amountObj.TryGetProperty("currency_code", out var c) ? c.GetString() : null;
+        if (amountObj.TryGetProperty("value", out var v) && v.GetString() is { } s
+            && decimal.TryParse(s, NumberStyles.Number, CultureInfo.InvariantCulture, out var d))
+            return (d, currency);
+        return (null, currency);
     }
 
     private async Task<bool> VerifySignatureAsync(

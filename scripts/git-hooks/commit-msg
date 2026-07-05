@@ -1,0 +1,23 @@
+#!/bin/sh
+# commit-msg — strip any Claude/Anthropic co-author or attribution trailers before the commit is
+# written, so the `@claude` contributor can NEVER reappear on GitHub. Commits are authored by the
+# repo owner only. This hook is intentionally silent and non-blocking: it edits the message in place
+# and always succeeds, so it never interrupts a normal commit.
+#
+# Active via `git config core.hooksPath scripts/git-hooks` (already set for this repo).
+set -eu
+
+msg_file="$1"
+
+# Delete, case-insensitively:
+#   - "Co-authored-by:" lines that name claude or anthropic
+#   - "Generated with ... Claude ..." advertising lines (incl. the 🤖 variant)
+#   - any bare line that is just a claude/anthropic noreply attribution
+sed -i -E \
+  -e '/^[[:space:]]*Co-authored-by:.*(claude|anthropic)/Id' \
+  -e '/Generated with .*Claude/Id' \
+  -e '/^[[:space:]]*🤖/d' \
+  -e '/noreply@anthropic\.com/Id' \
+  "$msg_file"
+
+exit 0
