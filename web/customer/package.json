@@ -34,7 +34,7 @@
     "@angular/ssr": "^20.3.31",
     "@microsoft/signalr": "^10.0.0",
     "@ng-icons/core": "^32.5.0",
-    "@ng-icons/phosphor-icons": "^32.5.0",
+    "@ng-icons/phosphor-icons": "^33.3.0",
     "@tailwindcss/postcss": "^4.3.0",
     "@types/qrcode": "^1.5.6",
     "express": "^5.1.0",
