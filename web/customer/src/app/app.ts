@@ -68,7 +68,11 @@ import { NotificationBellComponent } from './core/notifications/notification-bel
             </button>
 
             @if (auth.isAuthenticated()) {
-              <app-notification-bell />
+              <!-- Deferred so the bell's @microsoft/signalr client is split into a lazy chunk and
+                   never downloaded on anonymous (logged-out) landing loads. -->
+              @defer (on immediate) {
+                <app-notification-bell />
+              }
               <a
                 [routerLink]="'/account'"
                 class="hidden items-center gap-2 rounded-full py-1 pl-1 pr-3 ring-1 bg-slate-50 ring-slate-200 hover:bg-slate-100 dark:bg-white/10 dark:ring-white/15 dark:hover:bg-white/20 sm:flex"

@@ -7,6 +7,9 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#0b1020">
   <link rel="icon" type="image/x-icon" href="favicon.ico">
+  <!-- The full-viewport hero is the landing LCP element and loads via a CSS background-image, which
+       the preload scanner can't discover — preload it so the fetch starts immediately. -->
+  <link rel="preload" as="image" href="assets/hero.jpg" fetchpriority="high">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <!-- Changa (display) + Cairo (body) carry both Latin and Arabic, so the same type system works
