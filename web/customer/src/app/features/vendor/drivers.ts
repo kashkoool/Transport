@@ -1,5 +1,7 @@
 import { ChangeDetectionStrategy, Component, inject, OnInit, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
+import { NgIcon, provideIcons } from '@ng-icons/core';
+import { phosphorSteeringWheel, phosphorMagnifyingGlass, phosphorPlus } from '@ng-icons/phosphor-icons/regular';
 import { AddDriverRequest, VendorApiService } from '../../core/api/vendor-api.service';
 import { ToastService } from '../../core/toast/toast.service';
 import { Driver } from '../../core/models';
@@ -10,69 +12,95 @@ import { TranslationService } from '../../core/i18n/translation.service';
 @Component({
   selector: 'app-vendor-drivers',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [ReactiveFormsModule, VendorNavComponent, TranslatePipe],
+  imports: [ReactiveFormsModule, VendorNavComponent, NgIcon, TranslatePipe],
+  providers: [provideIcons({ phosphorSteeringWheel, phosphorMagnifyingGlass, phosphorPlus })],
   template: `
-    <app-vendor-nav />
-    <h1 class="mb-6 text-2xl font-bold text-slate-900">{{ 'vendor.drivers.title' | t }}</h1>
+    <div class="lg:grid lg:grid-cols-[15rem_1fr] lg:items-start lg:gap-8">
+      <app-vendor-nav />
 
-    <div class="grid gap-6 lg:grid-cols-3">
-      <section class="lg:col-span-2">
-        <input
-          type="search"
-          [value]="search()"
-          (input)="onSearch($event)"
-          [placeholder]="'vendor.drivers.searchPlaceholder' | t"
-          class="mb-3 w-full max-w-sm rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
-        />
-        @if (loading()) {
-          <p class="text-slate-500">{{ 'vendor.common.loading' | t }}</p>
-        } @else if (drivers().length === 0) {
-          <p class="rounded-lg bg-slate-100 p-4 text-slate-600">{{ 'vendor.drivers.empty' | t }}</p>
-        } @else {
-          <div class="overflow-x-auto">
-          <table class="w-full overflow-hidden rounded-xl border border-slate-200 bg-white text-sm">
-            <thead class="bg-slate-50 text-left text-slate-500">
-              <tr>
-                <th class="px-4 py-2 font-medium">{{ 'vendor.drivers.th.name' | t }}</th>
-                <th class="px-4 py-2 font-medium">{{ 'vendor.drivers.th.phone' | t }}</th>
-                <th class="px-4 py-2 font-medium">{{ 'vendor.drivers.th.license' | t }}</th>
-              </tr>
-            </thead>
-            <tbody class="divide-y divide-slate-100">
-              @for (d of drivers(); track d.id) {
-                <tr>
-                  <td class="px-4 py-2 font-medium text-slate-800">{{ d.fullName }}</td>
-                  <td class="px-4 py-2 text-slate-500">{{ d.phone || '—' }}</td>
-                  <td class="px-4 py-2 text-slate-500">{{ d.licenseNumber || '—' }}</td>
-                </tr>
-              }
-            </tbody>
-          </table>
-          </div>
-          <p class="mt-2 text-xs text-slate-400">{{ 'vendor.drivers.count' | t: { n: total() } }}</p>
-        }
-      </section>
+      <div class="min-w-0">
+        <h1 class="animate-in mb-6 font-display text-2xl font-bold text-ink dark:text-white">{{ 'vendor.drivers.title' | t }}</h1>
 
-      <section class="rounded-xl border border-slate-200 bg-white p-4">
-        <h2 class="mb-3 font-semibold text-slate-900">{{ 'vendor.drivers.addDriver' | t }}</h2>
-        <form [formGroup]="form" (ngSubmit)="submit()" class="space-y-3">
-          <div>
-            <label for="fullName" class="mb-1 block text-sm font-medium text-slate-700">{{ 'vendor.drivers.fullName' | t }}</label>
-            <input id="fullName" type="text" formControlName="fullName" class="w-full rounded-md border border-slate-300 px-3 py-2 focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500" />
-          </div>
-          <div>
-            <label for="phone" class="mb-1 block text-sm font-medium text-slate-700">{{ 'vendor.drivers.phone' | t }}</label>
-            <input id="phone" type="tel" formControlName="phone" class="w-full rounded-md border border-slate-300 px-3 py-2 focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500" />
-          </div>
-          <div>
-            <label for="licenseNumber" class="mb-1 block text-sm font-medium text-slate-700">{{ 'vendor.drivers.license' | t }}</label>
-            <input id="licenseNumber" type="text" formControlName="licenseNumber" class="w-full rounded-md border border-slate-300 px-3 py-2 focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500" />
-          </div>
-          <button type="submit" [disabled]="submitting()" class="w-full rounded-md bg-brand-600 px-4 py-2 font-medium text-white hover:bg-brand-700 disabled:opacity-50">
-            {{ (submitting() ? 'vendor.drivers.adding' : 'vendor.drivers.addDriverBtn') | t }}
-          </button>
-        </form>
-      </section>
+        <div class="grid gap-6 lg:grid-cols-3">
+          <section class="lg:col-span-2">
+            <div class="mb-3 flex flex-wrap items-center justify-between gap-3">
+              <div class="relative w-full max-w-sm">
+                <span class="pointer-events-none absolute inset-y-0 inset-s-3 flex items-center text-slate-400">
+                  <ng-icon name="phosphorMagnifyingGlass" aria-hidden="true" />
+                </span>
+                <input
+                  type="search"
+                  [value]="search()"
+                  (input)="onSearch($event)"
+                  [placeholder]="'vendor.drivers.searchPlaceholder' | t"
+                  class="input ps-10"
+                />
+              </div>
+              <p class="text-sm text-slate-500 dark:text-slate-400">{{ 'vendor.drivers.count' | t: { n: total() } }}</p>
+            </div>
+
+            @if (loading()) {
+              <p class="text-slate-500 dark:text-slate-400">{{ 'vendor.common.loading' | t }}</p>
+            } @else if (drivers().length === 0) {
+              <div class="flex flex-col items-center gap-3 rounded-2xl border border-dashed border-slate-200 bg-slate-50/60 px-6 py-14 text-center dark:border-white/10 dark:bg-white/5">
+                <span class="grid h-12 w-12 place-items-center rounded-full bg-brand-50 text-brand-600 dark:bg-brand-500/15 dark:text-brand-300">
+                  <ng-icon name="phosphorSteeringWheel" class="text-2xl" aria-hidden="true" />
+                </span>
+                <p class="text-sm font-medium text-slate-600 dark:text-slate-300">{{ 'vendor.drivers.empty' | t }}</p>
+                <a href="#driver-form-panel" class="btn btn-primary px-4 py-2 text-sm">
+                  <ng-icon name="phosphorPlus" aria-hidden="true" />
+                  {{ 'vendor.drivers.addDriver' | t }}
+                </a>
+              </div>
+            } @else {
+              <div class="card overflow-hidden">
+                <div class="overflow-x-auto">
+                  <table class="w-full text-sm">
+                    <thead class="bg-slate-50 text-xs font-semibold tracking-wide text-slate-500 uppercase dark:bg-white/5 dark:text-slate-400">
+                      <tr>
+                        <th class="px-4 py-3 text-start font-semibold">{{ 'vendor.drivers.th.name' | t }}</th>
+                        <th class="px-4 py-3 text-start font-semibold">{{ 'vendor.drivers.th.phone' | t }}</th>
+                        <th class="px-4 py-3 text-start font-semibold">{{ 'vendor.drivers.th.license' | t }}</th>
+                      </tr>
+                    </thead>
+                    <tbody class="stagger-children divide-y divide-slate-100 dark:divide-white/10">
+                      @for (d of drivers(); track d.id) {
+                        <tr class="transition-colors hover:bg-slate-50 dark:hover:bg-white/3">
+                          <td class="px-4 py-3 font-medium text-slate-800 dark:text-slate-100">{{ d.fullName }}</td>
+                          <td class="px-4 py-3 tabular-nums text-slate-500 dark:text-slate-400">{{ d.phone || '—' }}</td>
+                          <td class="px-4 py-3 tabular-nums text-slate-500 dark:text-slate-400">{{ d.licenseNumber || '—' }}</td>
+                        </tr>
+                      }
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            }
+          </section>
+
+          <section id="driver-form-panel" class="card p-5">
+            <h2 class="mb-3 font-display font-semibold text-ink dark:text-white">{{ 'vendor.drivers.addDriver' | t }}</h2>
+            <form [formGroup]="form" (ngSubmit)="submit()" class="space-y-3.5">
+              <div>
+                <label for="fullName" class="label">{{ 'vendor.drivers.fullName' | t }}</label>
+                <input id="fullName" type="text" formControlName="fullName" class="input" />
+              </div>
+              <div>
+                <label for="phone" class="label">{{ 'vendor.drivers.phone' | t }}</label>
+                <input id="phone" type="tel" formControlName="phone" class="input" />
+              </div>
+              <div>
+                <label for="licenseNumber" class="label">{{ 'vendor.drivers.license' | t }}</label>
+                <input id="licenseNumber" type="text" formControlName="licenseNumber" class="input" />
+              </div>
+              <button type="submit" [disabled]="submitting()" class="btn btn-primary w-full">
+                <ng-icon name="phosphorPlus" aria-hidden="true" />
+                {{ (submitting() ? 'vendor.drivers.adding' : 'vendor.drivers.addDriverBtn') | t }}
+              </button>
+            </form>
+          </section>
+        </div>
+      </div>
     </div>
   `,
 })

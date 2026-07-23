@@ -10,6 +10,15 @@ import {
 import { DatePipe, DecimalPipe } from '@angular/common';
 import { FormArray, FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router } from '@angular/router';
+import { NgIcon, provideIcons } from '@ng-icons/core';
+import {
+  phosphorArrowLeft,
+  phosphorBus,
+  phosphorClockCountdown,
+  phosphorMapPinSimple,
+  phosphorPhone,
+  phosphorTag,
+} from '@ng-icons/phosphor-icons/regular';
 import { ApiService } from '../../core/api/api.service';
 import { BookingFlow } from '../../core/booking-flow';
 import { TripRealtimeService } from '../../core/notifications/trip-realtime.service';
@@ -24,45 +33,57 @@ const DOCUMENT_TYPES = ['National ID', 'Passport', 'Driver License'] as const;
 @Component({
   selector: 'app-booking',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [ReactiveFormsModule, DecimalPipe, DatePipe, TranslatePipe],
+  imports: [ReactiveFormsModule, DecimalPipe, DatePipe, NgIcon, TranslatePipe],
+  providers: [
+    provideIcons({ phosphorArrowLeft, phosphorBus, phosphorClockCountdown, phosphorMapPinSimple, phosphorPhone, phosphorTag }),
+  ],
   template: `
     @if (trip(); as t) {
-      <button type="button" class="text-sm text-brand-600 hover:text-brand-700" (click)="back()">
-        {{ 'booking.backToSearch' | t }}
+      <button
+        type="button"
+        class="inline-flex cursor-pointer items-center gap-1.5 text-sm font-semibold text-brand-600 transition hover:text-brand-700 dark:text-brand-400 dark:hover:text-brand-300"
+        (click)="back()"
+      >
+        <ng-icon name="phosphorArrowLeft" class="rtl:rotate-180" /> {{ 'booking.backToSearch' | t }}
       </button>
-      <h1 class="mt-2 text-2xl font-bold text-slate-900">{{ t.origin }} → {{ t.destination }}</h1>
-      <p class="mb-6 text-slate-500">{{ 'booking.perSeat' | t: { price: (t.price | number: '1.0-0'), currency: t.currency } }}</p>
+      <h1 class="animate-in mt-2 flex items-center gap-2 text-2xl font-bold text-slate-900 dark:text-slate-100">
+        <span class="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-linear-to-br from-brand-500 to-brand-700 text-lg text-white"><ng-icon name="phosphorBus" /></span>
+        {{ t.origin }} <span class="text-brand-500">→</span> {{ t.destination }}
+      </h1>
+      <p class="mb-6 text-slate-500 dark:text-slate-400">{{ 'booking.perSeat' | t: { price: (t.price | number: '1.0-0'), currency: t.currency } }}</p>
 
       @if (stops().length > 0) {
-        <section class="mb-6 rounded-xl border border-slate-200 bg-white p-4">
-          <h2 class="mb-2 font-semibold text-slate-900">{{ 'booking.route' | t }}</h2>
-          <ol class="space-y-1 text-sm text-slate-600">
-            <li class="flex justify-between"><span class="font-medium text-slate-900">{{ t.origin }}</span><span>{{ t.departureUtc | date: 'HH:mm' }}</span></li>
+        <section class="card mb-6 p-5">
+          <h2 class="mb-3 flex items-center gap-1.5 font-semibold text-slate-900 dark:text-slate-100">
+            <ng-icon name="phosphorMapPinSimple" class="text-brand-600 dark:text-brand-400" /> {{ 'booking.route' | t }}
+          </h2>
+          <ol class="space-y-1.5 border-s-2 border-dashed border-slate-200 ps-4 text-sm text-slate-600 dark:border-white/10 dark:text-slate-300">
+            <li class="flex justify-between font-medium text-slate-900 dark:text-slate-100"><span>{{ t.origin }}</span><span>{{ t.departureUtc | date: 'HH:mm' }}</span></li>
             @for (s of stops(); track s.sequence) {
-              <li class="flex justify-between pl-3">
-                <span>↳ {{ s.name }}</span>
+              <li class="flex justify-between text-slate-500 dark:text-slate-400">
+                <span>{{ s.name }}</span>
                 <span>{{ s.arrivalUtc ? (s.arrivalUtc | date: 'HH:mm') : '—' }}</span>
               </li>
             }
-            <li class="flex justify-between"><span class="font-medium text-slate-900">{{ t.destination }}</span><span>{{ t.arrivalUtc | date: 'HH:mm' }}</span></li>
+            <li class="flex justify-between font-medium text-slate-900 dark:text-slate-100"><span>{{ t.destination }}</span><span>{{ t.arrivalUtc | date: 'HH:mm' }}</span></li>
           </ol>
         </section>
       }
 
       @if (reviews(); as r) {
         @if (r.count > 0) {
-          <section class="mb-6 rounded-xl border border-slate-200 bg-white p-4">
-            <h2 class="mb-2 font-semibold text-slate-900">
+          <section class="card mb-6 p-5">
+            <h2 class="mb-3 font-semibold text-slate-900 dark:text-slate-100">
               {{ 'booking.reviews' | t }}
-              <span class="ml-1 text-sm font-normal text-amber-500">★ {{ r.averageRating | number: '1.1-1' }}</span>
-              <span class="text-sm font-normal text-slate-400">({{ r.count }})</span>
+              <span class="ms-1 text-sm font-normal text-amber-500">★ {{ r.averageRating | number: '1.1-1' }}</span>
+              <span class="text-sm font-normal text-slate-400 dark:text-slate-500">({{ r.count }})</span>
             </h2>
-            <ul class="space-y-2">
+            <ul class="stagger-children space-y-2">
               @for (rev of r.reviews; track rev.id) {
                 <li class="text-sm">
                   <span class="text-amber-400">{{ stars(rev.rating) }}</span>
-                  <span class="font-medium text-slate-700">{{ rev.displayName }}</span>
-                  @if (rev.comment) { <span class="italic text-slate-500">“{{ rev.comment }}”</span> }
+                  <span class="font-medium text-slate-700 dark:text-slate-300">{{ rev.displayName }}</span>
+                  @if (rev.comment) { <span class="italic text-slate-500 dark:text-slate-400">“{{ rev.comment }}”</span> }
                 </li>
               }
             </ul>
@@ -71,9 +92,9 @@ const DOCUMENT_TYPES = ['National ID', 'Passport', 'Driver License'] as const;
       }
 
       @if (!held()) {
-        <section class="rounded-xl border border-slate-200 bg-white p-4">
-          <h2 class="mb-3 font-semibold text-slate-900">{{ 'booking.chooseSeats' | t }}</h2>
-          <p class="mb-3 text-sm text-slate-500">{{ 'booking.seatHint' | t: { max: maxSeats } }}</p>
+        <section class="card p-5">
+          <h2 class="mb-3 font-semibold text-slate-900 dark:text-slate-100">{{ 'booking.chooseSeats' | t }}</h2>
+          <p class="mb-4 text-sm text-slate-500 dark:text-slate-400">{{ 'booking.seatHint' | t: { max: maxSeats } }}</p>
           <div class="space-y-2">
             @for (row of rows(); track $index) {
               <div class="flex justify-center gap-2">
@@ -82,15 +103,14 @@ const DOCUMENT_TYPES = ['National ID', 'Passport', 'Driver License'] as const;
                     type="button"
                     [disabled]="isTaken(seat)"
                     (click)="toggleSeat(seat)"
-                    class="h-10 w-10 rounded-md border text-sm font-medium"
-                    [class.bg-brand-600]="isSelected(seat)"
-                    [class.text-white]="isSelected(seat)"
-                    [class.border-brand-600]="isSelected(seat)"
-                    [class.bg-slate-200]="isTaken(seat)"
-                    [class.text-slate-400]="isTaken(seat)"
-                    [class.cursor-not-allowed]="isTaken(seat)"
-                    [class.border-slate-300]="!isSelected(seat) && !isTaken(seat)"
-                    [class.text-slate-700]="!isSelected(seat) && !isTaken(seat)"
+                    class="h-10 w-10 cursor-pointer rounded-lg border text-sm font-medium transition-all duration-150 enabled:hover:-translate-y-0.5 enabled:hover:shadow-sm disabled:cursor-not-allowed"
+                    [class]="
+                      isSelected(seat)
+                        ? 'bg-brand-600 text-white border-brand-600 shadow-sm'
+                        : isTaken(seat)
+                          ? 'bg-slate-200 text-slate-400 dark:bg-white/10 dark:text-slate-600'
+                          : 'border-slate-300 text-slate-700 dark:border-white/15 dark:text-slate-300'
+                    "
                   >
                     {{ seat }}
                   </button>
@@ -102,66 +122,61 @@ const DOCUMENT_TYPES = ['National ID', 'Passport', 'Driver License'] as const;
             type="button"
             [disabled]="selectedSeats().length === 0 || holding()"
             (click)="hold()"
-            class="mt-4 rounded-md bg-brand-600 px-4 py-2 font-medium text-white hover:bg-brand-700 disabled:opacity-50"
+            class="btn btn-primary mt-5"
           >
             {{ holding() ? ('booking.holding' | t) : ('booking.holdSeats' | t: { count: selectedSeats().length }) }}
           </button>
         </section>
       } @else {
-        <section class="rounded-xl border border-slate-200 bg-white p-4">
+        <section class="card p-5">
           <div class="mb-4 flex items-center justify-between">
-            <h2 class="font-semibold text-slate-900">{{ 'booking.passengerDetails' | t }}</h2>
+            <h2 class="font-semibold text-slate-900 dark:text-slate-100">{{ 'booking.passengerDetails' | t }}</h2>
             <span
-              class="rounded-full px-3 py-1 text-sm font-medium"
-              [class.bg-amber-100]="remaining() > 0"
-              [class.text-amber-700]="remaining() > 0"
-              [class.bg-rose-100]="remaining() === 0"
-              [class.text-rose-700]="remaining() === 0"
+              class="badge"
+              [class]="remaining() > 0 ? 'bg-amber-100 text-amber-700 dark:bg-amber-400/15 dark:text-amber-300' : 'bg-rose-100 text-rose-700 dark:bg-rose-500/15 dark:text-rose-300'"
             >
+              <ng-icon name="phosphorClockCountdown" />
               {{ remaining() > 0 ? ('booking.heldLeft' | t: { time: countdown() }) : ('booking.holdExpired' | t) }}
             </span>
           </div>
 
           <form [formGroup]="passengerForm" (ngSubmit)="confirm()" class="space-y-4">
-            <div formArrayName="passengers" class="space-y-4">
+            <div formArrayName="passengers" class="stagger-children space-y-4">
               @for (group of passengers.controls; track $index) {
-                <div [formGroupName]="$index" class="rounded-lg border border-slate-100 p-3">
-                  <p class="mb-2 text-sm font-semibold text-slate-700">{{ 'booking.seatLabel' | t: { seat: group.value.seatNumber } }}</p>
+                <div [formGroupName]="$index" class="rounded-2xl ring-1 ring-slate-200 dark:ring-white/10 p-4">
+                  <p class="mb-3 text-sm font-semibold text-slate-700 dark:text-slate-300">{{ 'booking.seatLabel' | t: { seat: group.value.seatNumber } }}</p>
                   <div class="grid gap-3 sm:grid-cols-2">
-                    <input
-                      type="text"
-                      formControlName="firstName"
-                      [placeholder]="'booking.firstName' | t"
-                      class="rounded-md border border-slate-300 px-3 py-2 focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
-                    />
-                    <input
-                      type="text"
-                      formControlName="lastName"
-                      [placeholder]="'booking.lastName' | t"
-                      class="rounded-md border border-slate-300 px-3 py-2 focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
-                    />
-                    <select
-                      formControlName="documentType"
-                      class="rounded-md border border-slate-300 px-3 py-2 text-slate-700 focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
-                    >
-                      <option value="">{{ 'booking.idDocumentOptional' | t }}</option>
-                      @for (dt of documentTypes; track dt) {
-                        <option [value]="dt">{{ dt }}</option>
-                      }
-                    </select>
-                    <input
-                      type="text"
-                      formControlName="documentNumber"
-                      [placeholder]="'booking.documentNumberOptional' | t"
-                      class="rounded-md border border-slate-300 px-3 py-2 focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
-                    />
+                    <div>
+                      <label for="firstName-{{ $index }}" class="label">{{ 'booking.firstName' | t }} <span class="text-rose-500">*</span></label>
+                      <input id="firstName-{{ $index }}" type="text" required formControlName="firstName" class="input" />
+                    </div>
+                    <div>
+                      <label for="lastName-{{ $index }}" class="label">{{ 'booking.lastName' | t }} <span class="text-rose-500">*</span></label>
+                      <input id="lastName-{{ $index }}" type="text" required formControlName="lastName" class="input" />
+                    </div>
+                    <div>
+                      <label for="documentType-{{ $index }}" class="label">{{ 'booking.idDocumentOptional' | t }}</label>
+                      <select id="documentType-{{ $index }}" formControlName="documentType" class="input">
+                        <option value="">{{ 'booking.idDocumentOptional' | t }}</option>
+                        @for (dt of documentTypes; track dt) {
+                          <option [value]="dt">{{ dt }}</option>
+                        }
+                      </select>
+                    </div>
+                    <div>
+                      <label for="documentNumber-{{ $index }}" class="label">{{ 'booking.documentNumberOptional' | t }}</label>
+                      <input id="documentNumber-{{ $index }}" type="text" formControlName="documentNumber" class="input" />
+                    </div>
                   </div>
+                  @if ((group.get('firstName')?.invalid && group.get('firstName')?.touched) || (group.get('lastName')?.invalid && group.get('lastName')?.touched)) {
+                    <p class="field-error">{{ 'booking.enterPassengerNames' | t }}</p>
+                  }
                 </div>
               }
             </div>
 
-            <div class="rounded-lg border border-slate-100 p-3">
-              <label for="promo-code" class="mb-1 block text-sm font-medium text-slate-700">{{ 'booking.promoCode' | t }}</label>
+            <div class="rounded-2xl ring-1 ring-slate-200 dark:ring-white/10 p-4">
+              <label for="promo-code" class="label flex items-center gap-1.5"><ng-icon name="phosphorTag" class="text-brand-600 dark:text-brand-400" /> {{ 'booking.promoCode' | t }}</label>
               <div class="flex gap-2">
                 <input
                   id="promo-code"
@@ -169,44 +184,44 @@ const DOCUMENT_TYPES = ['National ID', 'Passport', 'Driver License'] as const;
                   [value]="promoCode()"
                   (input)="onPromoInput($event)"
                   [placeholder]="'booking.promoPlaceholder' | t"
-                  class="flex-1 rounded-md border border-slate-300 px-3 py-2 uppercase focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
+                  class="input flex-1 uppercase"
                 />
                 <button
                   type="button"
                   [disabled]="!promoCode() || promoChecking()"
                   (click)="applyPromo()"
-                  class="rounded-md bg-slate-800 px-4 py-2 text-sm font-medium text-white hover:bg-slate-900 disabled:opacity-50"
+                  class="btn btn-dark shrink-0"
                 >
                   {{ (promoChecking() ? 'booking.checking' : 'booking.apply') | t }}
                 </button>
               </div>
               @if (promo(); as p) {
-                <p class="mt-2 text-sm text-emerald-700">
+                <p class="mt-2 text-sm font-medium text-emerald-700 dark:text-emerald-400">
                   {{ 'booking.promoApplied' | t: { discount: (p.discount | number: '1.0-0'), currency: p.currency, code: p.code } }}
                 </p>
               }
             </div>
 
-            <div class="rounded-lg border border-slate-100 p-3">
-              <label for="contact-phone" class="mb-1 block text-sm font-medium text-slate-700">{{ 'booking.contactPhone' | t }}</label>
+            <div class="rounded-2xl ring-1 ring-slate-200 dark:ring-white/10 p-4">
+              <label for="contact-phone" class="label flex items-center gap-1.5"><ng-icon name="phosphorPhone" class="text-brand-600 dark:text-brand-400" /> {{ 'booking.contactPhone' | t }}</label>
               <input
                 id="contact-phone"
                 type="tel"
                 [value]="contactPhone()"
                 (input)="onContactPhoneInput($event)"
                 [placeholder]="'booking.contactPhonePlaceholder' | t"
-                class="w-full rounded-md border border-slate-300 px-3 py-2 focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
+                class="input"
               />
             </div>
 
-            <div class="flex items-center justify-between border-t border-slate-100 pt-4">
-              <span class="text-lg font-bold text-slate-900">
+            <div class="flex items-center justify-between border-t border-dashed border-slate-200 pt-4 dark:border-white/10">
+              <span class="text-lg font-bold text-slate-900 dark:text-slate-100">
                 {{ 'booking.total' | t: { amount: (total() | number: '1.0-0'), currency: t.currency } }}
               </span>
               <button
                 type="submit"
                 [disabled]="submitting() || remaining() === 0"
-                class="rounded-md bg-emerald-600 px-5 py-2 font-medium text-white hover:bg-emerald-700 disabled:opacity-50"
+                class="btn btn-primary"
               >
                 {{ (submitting() ? 'booking.creating' : 'booking.confirmContinue') | t }}
               </button>

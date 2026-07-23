@@ -1,6 +1,8 @@
 import { ChangeDetectionStrategy, Component, inject, OnInit, signal } from '@angular/core';
 import { DatePipe, DecimalPipe } from '@angular/common';
 import { RouterLink } from '@angular/router';
+import { NgIcon, provideIcons } from '@ng-icons/core';
+import { phosphorTicket } from '@ng-icons/phosphor-icons/regular';
 import { ApiService } from '../../core/api/api.service';
 import { ToastService } from '../../core/toast/toast.service';
 import { BookingSummary } from '../../core/models';
@@ -10,79 +12,93 @@ import { TranslationService } from '../../core/i18n/translation.service';
 @Component({
   selector: 'app-my-bookings',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [DatePipe, DecimalPipe, RouterLink, TranslatePipe],
+  imports: [DatePipe, DecimalPipe, RouterLink, NgIcon, TranslatePipe],
+  providers: [provideIcons({ phosphorTicket })],
   template: `
-    <h1 class="mb-6 text-2xl font-bold text-slate-900">{{ 'myBookings.title' | t }}</h1>
+    <h1 class="animate-in mb-6 text-2xl font-bold text-slate-900 dark:text-slate-100">{{ 'myBookings.title' | t }}</h1>
 
     @if (loading()) {
-      <p class="text-slate-500">{{ 'common.loading' | t }}</p>
+      <div class="stagger-children space-y-3">
+        @for (s of [1, 2, 3]; track s) {
+          <div class="card flex animate-pulse items-center justify-between gap-4 p-5">
+            <div class="space-y-2">
+              <div class="h-4 w-40 rounded bg-slate-100 dark:bg-white/10"></div>
+              <div class="h-3 w-56 rounded bg-slate-100 dark:bg-white/10"></div>
+            </div>
+            <div class="h-8 w-20 rounded-full bg-slate-100 dark:bg-white/10"></div>
+          </div>
+        }
+      </div>
     } @else if (bookings().length === 0) {
-      <div class="rounded-xl bg-slate-100 p-6 text-center">
-        <p class="text-slate-600">{{ 'myBookings.empty' | t }}</p>
-        <a routerLink="/search" class="mt-2 inline-block font-medium text-brand-600 hover:text-brand-700">
+      <div class="card flex flex-col items-center gap-2 p-12 text-center">
+        <ng-icon name="phosphorTicket" class="text-4xl text-slate-300 dark:text-slate-600" />
+        <p class="mt-2 text-slate-600 dark:text-slate-300">{{ 'myBookings.empty' | t }}</p>
+        <a routerLink="/search" class="btn btn-primary mt-4">
           {{ 'myBookings.findTrip' | t }}
         </a>
       </div>
     } @else {
-      <div class="space-y-3">
+      <div class="stagger-children space-y-3">
         @for (b of bookings(); track b.bookingId) {
-          <div class="rounded-xl border border-slate-200 bg-white p-4">
-            <div class="flex items-center justify-between">
+          <div class="card card-interactive p-5">
+            <div class="flex items-center justify-between gap-3">
               <div>
-                <p class="font-semibold text-slate-900">{{ b.origin }} → {{ b.destination }}</p>
-                <p class="text-sm text-slate-500">{{ b.departureUtc | date: 'EEE, MMM d • HH:mm' }}</p>
-                <p class="font-mono text-xs text-slate-400">{{ b.reference }}</p>
+                <p class="font-semibold text-slate-900 dark:text-slate-100">{{ b.origin }} → {{ b.destination }}</p>
+                <p class="text-sm text-slate-500 dark:text-slate-400">{{ b.departureUtc | date: 'EEE, MMM d • HH:mm' }}</p>
+                <p class="font-mono text-xs text-slate-400 dark:text-slate-500">{{ b.reference }}</p>
               </div>
-              <div class="text-right">
+              <div class="text-end">
                 <span
-                  class="rounded-full px-3 py-1 text-xs font-semibold"
-                  [class.bg-emerald-100]="b.status === 'Confirmed'"
-                  [class.text-emerald-700]="b.status === 'Confirmed'"
-                  [class.bg-rose-100]="b.status === 'Cancelled'"
-                  [class.text-rose-700]="b.status === 'Cancelled'"
-                  [class.bg-amber-100]="b.status !== 'Confirmed' && b.status !== 'Cancelled'"
-                  [class.text-amber-700]="b.status !== 'Confirmed' && b.status !== 'Cancelled'"
+                  class="badge"
+                  [class]="
+                    b.status === 'Confirmed'
+                      ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-400/15 dark:text-emerald-300'
+                      : b.status === 'Cancelled'
+                        ? 'bg-rose-100 text-rose-700 dark:bg-rose-500/15 dark:text-rose-300'
+                        : 'bg-amber-100 text-amber-700 dark:bg-amber-400/15 dark:text-amber-300'
+                  "
                 >
                   {{ b.status }}
                 </span>
-                <p class="mt-1 text-sm font-bold text-slate-900">
+                <p class="mt-1 text-sm font-bold text-slate-900 dark:text-slate-100">
                   {{ b.totalAmount | number: '1.0-0' }} {{ b.currency }}
                 </p>
               </div>
             </div>
 
-            <div class="mt-3 flex flex-wrap items-center gap-2 border-t border-slate-100 pt-3">
-              <a [routerLink]="['/ticket', b.bookingId]" class="text-sm font-medium text-brand-600 hover:text-brand-700">
-                {{ 'myBookings.viewTicket' | t }}
+            <div class="mt-3 flex flex-wrap items-center gap-2 border-t border-slate-100 pt-3 dark:border-white/10">
+              <a [routerLink]="['/ticket', b.bookingId]" class="btn btn-soft px-3 py-1.5 text-sm">
+                <ng-icon name="phosphorTicket" /> {{ 'myBookings.viewTicket' | t }}
               </a>
 
               @if (b.status !== 'Cancelled') {
                 @if (confirmingCancel() === b.bookingId) {
-                  <span class="text-sm text-slate-600">{{ 'myBookings.cancelConfirm' | t }}</span>
+                  <span class="text-sm text-slate-600 dark:text-slate-400">{{ 'myBookings.cancelConfirm' | t }}</span>
                   <button type="button" [disabled]="busy() === b.bookingId" (click)="cancel(b.bookingId)"
-                    class="rounded-md bg-rose-600 px-3 py-1 text-sm font-medium text-white hover:bg-rose-700 disabled:opacity-50">
+                    class="btn btn-danger px-3 py-1.5 text-sm">
                     {{ (busy() === b.bookingId ? 'myBookings.cancelling' : 'myBookings.yesCancel') | t }}
                   </button>
-                  <button type="button" (click)="confirmingCancel.set(null)" class="text-sm text-slate-500 hover:text-slate-700">{{ 'myBookings.keep' | t }}</button>
+                  <button type="button" (click)="confirmingCancel.set(null)" class="btn btn-ghost px-3 py-1.5 text-sm">{{ 'myBookings.keep' | t }}</button>
                 } @else {
-                  <button type="button" (click)="confirmingCancel.set(b.bookingId)" class="text-sm font-medium text-rose-600 hover:text-rose-700">
+                  <button type="button" (click)="confirmingCancel.set(b.bookingId)"
+                    class="cursor-pointer text-sm font-semibold text-rose-600 transition hover:text-rose-700 dark:text-rose-400 dark:hover:text-rose-300">
                     {{ 'myBookings.cancel' | t }}
                   </button>
                 }
-                <button type="button" (click)="toggleReview(b.bookingId)" class="text-sm font-medium text-slate-600 hover:text-slate-800">
+                <button type="button" (click)="toggleReview(b.bookingId)"
+                  class="cursor-pointer text-sm font-semibold text-slate-600 transition hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200">
                   {{ 'myBookings.leaveReview' | t }}
                 </button>
               }
             </div>
 
             @if (reviewing() === b.bookingId) {
-              <div class="mt-3 rounded-lg border border-slate-100 bg-slate-50 p-3">
+              <div class="mt-3 rounded-2xl ring-1 ring-slate-200 dark:ring-white/10 bg-slate-50 p-4 dark:bg-white/5">
                 <div class="mb-2 flex items-center gap-1">
                   @for (star of stars; track star) {
                     <button type="button" (click)="reviewRating.set(star)"
-                      class="text-2xl leading-none"
-                      [class.text-amber-400]="star <= reviewRating()"
-                      [class.text-slate-300]="star > reviewRating()">★</button>
+                      class="cursor-pointer text-2xl leading-none transition hover:scale-110"
+                      [class]="star <= reviewRating() ? 'text-amber-400' : 'text-slate-300 dark:text-slate-600'">★</button>
                   }
                 </div>
                 <textarea
@@ -91,14 +107,14 @@ import { TranslationService } from '../../core/i18n/translation.service';
                   rows="2"
                   maxlength="1000"
                   [placeholder]="'myBookings.reviewPlaceholder' | t"
-                  class="w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
+                  class="input text-sm"
                 ></textarea>
                 <div class="mt-2 flex gap-2">
                   <button type="button" [disabled]="busy() === b.bookingId" (click)="submitReview(b.bookingId)"
-                    class="rounded-md bg-brand-600 px-3 py-1 text-sm font-medium text-white hover:bg-brand-700 disabled:opacity-50">
+                    class="btn btn-primary px-3 py-1.5 text-sm">
                     {{ (busy() === b.bookingId ? 'myBookings.submitting' : 'myBookings.submitReview') | t }}
                   </button>
-                  <button type="button" (click)="reviewing.set(null)" class="text-sm text-slate-500 hover:text-slate-700">{{ 'myBookings.cancel' | t }}</button>
+                  <button type="button" (click)="reviewing.set(null)" class="btn btn-ghost px-3 py-1.5 text-sm">{{ 'myBookings.cancel' | t }}</button>
                 </div>
               </div>
             }

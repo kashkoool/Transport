@@ -63,7 +63,7 @@ interface Route {
       <!-- Hero content (relative z-10 so it sits above the scrims; over the dark hero → white styling) -->
       <div class="relative z-10 w-full">
         <div class="mx-auto w-full max-w-6xl px-4 py-24 text-white">
-          <div class="max-w-2xl text-center [text-shadow:0_2px_18px_rgb(0_0_0_/_0.85)] lg:text-left">
+          <div class="animate-in max-w-2xl text-center [text-shadow:0_2px_18px_rgb(0_0_0_/_0.85)] lg:text-left">
             <span class="badge bg-black/30 text-white ring-1 ring-white/20 backdrop-blur-sm">
               <span class="tracking-[0.2em] text-flag">★★★</span> {{ 'hero.badge' | t }}
             </span>
@@ -145,16 +145,16 @@ interface Route {
         <section>
           <p class="eyebrow">Most booked</p>
           <h2 class="mt-1 text-2xl text-slate-900 dark:text-slate-100 sm:text-3xl">Trending routes this week</h2>
-          <div class="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          <div class="stagger-children mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
             @for (r of popularRoutes; track r.from + r.to; let i = $index) {
               <button
                 type="button"
                 (click)="quickRoute(r)"
-                class="group relative overflow-hidden rounded-3xl bg-ink p-5 text-left text-white ring-1 ring-white/10 transition hover:-translate-y-0.5 hover:shadow-glow dark:bg-ink-700"
+                class="group relative cursor-pointer overflow-hidden rounded-3xl bg-ink p-5 text-start text-white ring-1 ring-white/10 transition hover:-translate-y-0.5 hover:shadow-glow dark:bg-ink-700"
               >
                 <div class="absolute inset-0 bg-linear-to-br from-brand-600/50 to-transparent opacity-70 transition group-hover:opacity-100"></div>
                 @if (i === 0) {
-                  <span class="absolute right-3 top-3 z-10 inline-flex items-center gap-1 rounded-full bg-accent-400 px-2 py-0.5 text-xs font-bold text-ink"><ng-icon name="phosphorFire" /> Hot</span>
+                  <span class="absolute end-3 top-3 z-10 inline-flex items-center gap-1 rounded-full bg-accent-400 px-2 py-0.5 text-xs font-bold text-ink"><ng-icon name="phosphorFire" /> Hot</span>
                 }
                 <div class="relative">
                   <p class="text-sm text-white/60">{{ r.from }}</p>
@@ -175,11 +175,11 @@ interface Route {
             </div>
             <a routerLink="/routes" class="btn btn-ghost shrink-0">All routes →</a>
           </div>
-          <div class="mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          <div class="stagger-children mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
             @for (r of seoRoutes(); track r.slug) {
               <a
                 [routerLink]="['/bus', r.slug]"
-                class="card group flex items-center justify-between gap-2 p-4 transition hover:-translate-y-0.5 hover:shadow-glow"
+                class="card card-interactive group flex items-center justify-between gap-2 p-4"
               >
                 <span class="font-semibold text-slate-900 dark:text-slate-100">{{ r.origin }} → {{ r.destination }}</span>
                 <span class="text-brand-500 transition group-hover:translate-x-0.5">→</span>
@@ -191,7 +191,7 @@ interface Route {
         <!-- Why TPX -->
         <section class="mt-16">
           <h2 class="text-2xl text-slate-900 dark:text-slate-100 sm:text-3xl">Everything in a couple of taps</h2>
-          <div class="mt-6 grid gap-4 sm:grid-cols-3">
+          <div class="stagger-children mt-6 grid gap-4 sm:grid-cols-3">
             @for (f of features; track f.title) {
               <div class="card p-6">
                 <span class="grid h-12 w-12 place-items-center rounded-2xl bg-brand-50 text-2xl text-brand-600"><ng-icon [name]="f.icon" /></span>
@@ -228,7 +228,7 @@ interface Route {
         <section class="full-bleed mt-16">
           <div class="mx-auto max-w-6xl px-4">
             <div class="relative overflow-hidden rounded-3xl bg-linear-to-br from-brand-700 to-brand-500 px-6 py-12 text-center text-white sm:px-12 sm:py-16">
-              <div class="pointer-events-none absolute -right-10 -top-10 h-48 w-48 rounded-full bg-white/10 blur-2xl"></div>
+              <div class="pointer-events-none absolute -end-10 -top-10 h-48 w-48 rounded-full bg-white/10 blur-2xl"></div>
               <h2 class="text-2xl font-bold sm:text-3xl">Ready when you are.</h2>
               <p class="mx-auto mt-2 max-w-md text-white/80">Pick a route and you'll be holding a ticket in under a minute.</p>
               <button type="button" (click)="scrollTop()" class="btn btn-accent mt-6">Find your trip ↑</button>
@@ -238,33 +238,36 @@ interface Route {
       }
 
       <!-- Results -->
-      <div class="space-y-3" [class.mt-2]="!searched()">
+      <div class="stagger-children space-y-3" [class.mt-2]="!searched()">
         @if (loading()) {
           @for (s of [1, 2, 3]; track s) {
             <div class="card flex animate-pulse items-center justify-between gap-4 p-5">
               <div class="flex items-center gap-4">
-                <div class="h-12 w-12 rounded-2xl bg-slate-100"></div>
+                <div class="h-12 w-12 rounded-2xl bg-slate-100 dark:bg-white/10"></div>
                 <div class="space-y-2">
                   <div class="h-4 w-40 rounded bg-slate-100 dark:bg-white/10"></div>
                   <div class="h-3 w-56 rounded bg-slate-100 dark:bg-white/10"></div>
                 </div>
               </div>
-              <div class="h-10 w-28 rounded-full bg-slate-100"></div>
+              <div class="h-10 w-28 rounded-full bg-slate-100 dark:bg-white/10"></div>
             </div>
           }
         } @else {
           @if (searched() && results().length === 0) {
             <div class="card flex flex-col items-center gap-2 p-12 text-center">
-              <ng-icon name="phosphorMapTrifold" class="text-4xl text-slate-300 dark:text-slate-600" />
-              <p class="text-lg font-bold text-slate-900 dark:text-slate-100">No trips on that route yet</p>
+              <span class="grid h-16 w-16 place-items-center rounded-full bg-slate-50 dark:bg-white/5">
+                <ng-icon name="phosphorMapTrifold" class="text-3xl text-slate-300 dark:text-slate-600" />
+              </span>
+              <p class="mt-2 text-lg font-bold text-slate-900 dark:text-slate-100">No trips on that route yet</p>
               <p class="text-sm text-slate-500 dark:text-slate-400">Try a different date, or clear the extra filters.</p>
+              <button type="button" (click)="scrollTop()" class="btn btn-soft mt-4">{{ 'common.search' | t }}</button>
             </div>
           }
           @if (results().length > 0) {
             <h2 class="text-xl text-slate-900 dark:text-slate-100">{{ results().length }} trips found</h2>
           }
           @for (trip of results(); track trip.id) {
-            <article class="card flex flex-col gap-4 p-5 transition hover:-translate-y-0.5 hover:shadow-glow sm:flex-row sm:items-center sm:justify-between">
+            <article class="card card-interactive flex flex-col gap-4 p-5 sm:flex-row sm:items-center sm:justify-between">
               <div class="flex items-center gap-4">
                 <div class="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-linear-to-br from-brand-500 to-brand-700 text-xl text-white"><ng-icon name="phosphorBus" /></div>
                 <div>
@@ -286,7 +289,7 @@ interface Route {
                 </div>
               </div>
               <div class="flex items-center justify-between gap-5 sm:flex-col sm:items-end">
-                <div class="text-right">
+                <div class="text-end">
                   <div class="text-2xl font-bold text-slate-900 dark:text-slate-100">
                     {{ trip.price | number: '1.0-0' }} <span class="text-sm font-semibold text-slate-500 dark:text-slate-400">{{ trip.currency }}</span>
                   </div>

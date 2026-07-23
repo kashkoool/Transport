@@ -1,5 +1,7 @@
 import { ChangeDetectionStrategy, Component, inject, OnInit, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
+import { NgIcon, provideIcons } from '@ng-icons/core';
+import { phosphorBuildings, phosphorFloppyDisk } from '@ng-icons/phosphor-icons/regular';
 import { VendorApiService } from '../../core/api/vendor-api.service';
 import { ToastService } from '../../core/toast/toast.service';
 import { Company } from '../../core/models';
@@ -10,44 +12,57 @@ import { TranslationService } from '../../core/i18n/translation.service';
 @Component({
   selector: 'app-vendor-company',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [ReactiveFormsModule, VendorNavComponent, TranslatePipe],
+  imports: [ReactiveFormsModule, VendorNavComponent, NgIcon, TranslatePipe],
+  providers: [provideIcons({ phosphorBuildings, phosphorFloppyDisk })],
   template: `
-    <app-vendor-nav />
-    <h1 class="mb-6 text-2xl font-bold text-slate-900">{{ 'vendor.company.title' | t }}</h1>
+    <div class="lg:grid lg:grid-cols-[15rem_1fr] lg:items-start lg:gap-8">
+      <app-vendor-nav />
 
-    @if (loading()) {
-      <p class="text-slate-500">{{ 'vendor.common.loading' | t }}</p>
-    } @else if (company(); as c) {
-      <div class="max-w-lg rounded-xl border border-slate-200 bg-white p-5">
-        <dl class="mb-4 space-y-1 text-sm">
-          <div class="flex justify-between"><dt class="text-slate-500">{{ 'vendor.company.email' | t }}</dt><dd class="font-medium text-slate-800">{{ c.email }}</dd></div>
-          <div class="flex justify-between">
-            <dt class="text-slate-500">{{ 'vendor.company.status' | t }}</dt>
-            <dd>
-              <span class="rounded-full px-2 py-0.5 text-xs font-semibold"
-                [class.bg-emerald-100]="c.status === 'Active'" [class.text-emerald-700]="c.status === 'Active'"
-                [class.bg-amber-100]="c.status !== 'Active'" [class.text-amber-700]="c.status !== 'Active'">
-                {{ c.status }}
+      <div class="min-w-0">
+        <h1 class="animate-in mb-6 font-display text-2xl font-bold text-ink dark:text-white">{{ 'vendor.company.title' | t }}</h1>
+
+        @if (loading()) {
+          <p class="text-slate-500 dark:text-slate-400">{{ 'vendor.common.loading' | t }}</p>
+        } @else if (company(); as c) {
+          <div class="card max-w-lg p-6">
+            <div class="mb-5 flex items-center gap-3 border-b border-slate-100 pb-5 dark:border-white/10">
+              <span class="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-brand-50 text-brand-600 dark:bg-brand-500/15 dark:text-brand-300">
+                <ng-icon name="phosphorBuildings" class="text-xl" aria-hidden="true" />
               </span>
-            </dd>
-          </div>
-        </dl>
+              <dl class="min-w-0 flex-1 space-y-1 text-sm">
+                <div class="flex items-center justify-between gap-2">
+                  <dt class="text-slate-500 dark:text-slate-400">{{ 'vendor.company.email' | t }}</dt>
+                  <dd class="truncate font-medium text-slate-800 dark:text-slate-100">{{ c.email }}</dd>
+                </div>
+                <div class="flex items-center justify-between gap-2">
+                  <dt class="text-slate-500 dark:text-slate-400">{{ 'vendor.company.status' | t }}</dt>
+                  <dd>
+                    <span class="badge" [class]="c.status === 'Active' ? 'badge-brand' : 'badge-accent'">
+                      {{ c.status }}
+                    </span>
+                  </dd>
+                </div>
+              </dl>
+            </div>
 
-        <form [formGroup]="form" (ngSubmit)="submit()" class="space-y-3 border-t border-slate-100 pt-4">
-          <div>
-            <label for="name" class="mb-1 block text-sm font-medium text-slate-700">{{ 'vendor.company.name' | t }}</label>
-            <input id="name" type="text" formControlName="name" class="w-full rounded-md border border-slate-300 px-3 py-2 focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500" />
+            <form [formGroup]="form" (ngSubmit)="submit()" class="space-y-3.5">
+              <div>
+                <label for="name" class="label">{{ 'vendor.company.name' | t }}</label>
+                <input id="name" type="text" formControlName="name" class="input" />
+              </div>
+              <div>
+                <label for="phone" class="label">{{ 'vendor.company.phone' | t }}</label>
+                <input id="phone" type="tel" formControlName="phone" class="input" />
+              </div>
+              <button type="submit" [disabled]="submitting()" class="btn btn-primary">
+                <ng-icon name="phosphorFloppyDisk" aria-hidden="true" />
+                {{ (submitting() ? 'vendor.common.saving' : 'vendor.common.saveChanges') | t }}
+              </button>
+            </form>
           </div>
-          <div>
-            <label for="phone" class="mb-1 block text-sm font-medium text-slate-700">{{ 'vendor.company.phone' | t }}</label>
-            <input id="phone" type="tel" formControlName="phone" class="w-full rounded-md border border-slate-300 px-3 py-2 focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500" />
-          </div>
-          <button type="submit" [disabled]="submitting()" class="rounded-md bg-brand-600 px-5 py-2 font-medium text-white hover:bg-brand-700 disabled:opacity-50">
-            {{ (submitting() ? 'vendor.common.saving' : 'vendor.common.saveChanges') | t }}
-          </button>
-        </form>
+        }
       </div>
-    }
+    </div>
   `,
 })
 export class VendorCompanyComponent implements OnInit {

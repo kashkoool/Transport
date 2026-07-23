@@ -1,6 +1,18 @@
 import { ChangeDetectionStrategy, Component, inject, OnInit, signal } from '@angular/core';
 import { CreateStaffRequest, VendorApiService } from '../../core/api/vendor-api.service';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
+import { NgIcon, provideIcons } from '@ng-icons/core';
+import {
+  phosphorUsers,
+  phosphorMagnifyingGlass,
+  phosphorPencilSimple,
+  phosphorTrash,
+  phosphorCheck,
+  phosphorPlus,
+  phosphorFloppyDisk,
+  phosphorProhibit,
+  phosphorArrowsClockwise,
+} from '@ng-icons/phosphor-icons/regular';
 import { ToastService } from '../../core/toast/toast.service';
 import { Staff, StaffType } from '../../core/models';
 import { VendorNavComponent } from './vendor-nav';
@@ -21,107 +33,155 @@ const STRONG_PASSWORD = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{10,}$/;
 @Component({
   selector: 'app-vendor-staff',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [ReactiveFormsModule, VendorNavComponent, TranslatePipe],
+  imports: [ReactiveFormsModule, VendorNavComponent, NgIcon, TranslatePipe],
+  providers: [
+    provideIcons({
+      phosphorUsers,
+      phosphorMagnifyingGlass,
+      phosphorPencilSimple,
+      phosphorTrash,
+      phosphorCheck,
+      phosphorPlus,
+      phosphorFloppyDisk,
+      phosphorProhibit,
+      phosphorArrowsClockwise,
+    }),
+  ],
   template: `
-    <app-vendor-nav />
-    <h1 class="mb-6 text-2xl font-bold text-slate-900">{{ 'vendor.staff.title' | t }}</h1>
+    <div class="lg:grid lg:grid-cols-[15rem_1fr] lg:items-start lg:gap-8">
+      <app-vendor-nav />
 
-    <div class="grid gap-6 lg:grid-cols-3">
-      <section class="lg:col-span-2">
-        <input
-          type="search"
-          [value]="search()"
-          (input)="onSearch($event)"
-          [placeholder]="'vendor.staff.searchPlaceholder' | t"
-          class="mb-3 w-full max-w-sm rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
-        />
+      <div class="min-w-0">
+        <h1 class="animate-in mb-6 font-display text-2xl font-bold text-ink dark:text-white">{{ 'vendor.staff.title' | t }}</h1>
 
-        @if (loading()) {
-          <p class="text-slate-500">{{ 'vendor.common.loading' | t }}</p>
-        } @else if (staff().length === 0) {
-          <p class="rounded-lg bg-slate-100 p-4 text-slate-600">{{ 'vendor.staff.empty' | t }}</p>
-        } @else {
-          <div class="overflow-x-auto rounded-xl border border-slate-200 bg-white">
-            <table class="w-full text-sm">
-              <thead class="bg-slate-50 text-left text-slate-500">
-                <tr>
-                  <th class="px-4 py-2 font-medium">{{ 'vendor.staff.th.name' | t }}</th>
-                  <th class="px-4 py-2 font-medium">{{ 'vendor.staff.th.email' | t }}</th>
-                  <th class="px-4 py-2 font-medium">{{ 'vendor.staff.th.role' | t }}</th>
-                  <th class="px-4 py-2 font-medium">{{ 'vendor.staff.th.status' | t }}</th>
-                  <th class="px-4 py-2 font-medium"></th>
-                </tr>
-              </thead>
-              <tbody class="divide-y divide-slate-100">
-                @for (s of staff(); track s.id) {
-                  <tr>
-                    <td class="px-4 py-2 font-medium text-slate-800">{{ s.fullName }}</td>
-                    <td class="px-4 py-2 text-slate-500">{{ s.email }}</td>
-                    <td class="px-4 py-2">{{ roleKey(s.staffType) | t }}</td>
-                    <td class="px-4 py-2">
-                      <span class="rounded-full px-2 py-0.5 text-xs font-semibold"
-                        [class.bg-emerald-100]="!s.suspended" [class.text-emerald-700]="!s.suspended"
-                        [class.bg-rose-100]="s.suspended" [class.text-rose-700]="s.suspended">
-                        {{ (s.suspended ? 'vendor.staff.suspended' : 'vendor.staff.active') | t }}
-                      </span>
-                    </td>
-                    <td class="px-4 py-2 text-right whitespace-nowrap">
-                      <button type="button" (click)="edit(s)" class="text-sm font-medium text-brand-600 hover:text-brand-700">{{ 'vendor.common.edit' | t }}</button>
-                      @if (s.suspended) {
-                        <button type="button" [disabled]="busy() === s.id" (click)="reactivate(s)" class="ml-3 text-sm font-medium text-emerald-600 hover:text-emerald-700">{{ 'vendor.staff.reactivate' | t }}</button>
-                      } @else {
-                        <button type="button" [disabled]="busy() === s.id" (click)="suspend(s)" class="ml-3 text-sm font-medium text-amber-600 hover:text-amber-700">{{ 'vendor.staff.suspend' | t }}</button>
-                      }
-                      @if (confirmingDelete() === s.id) {
-                        <button type="button" [disabled]="busy() === s.id" (click)="remove(s)" class="ml-3 text-sm font-medium text-rose-700">{{ 'vendor.common.confirm' | t }}</button>
-                        <button type="button" (click)="confirmingDelete.set(null)" class="ml-2 text-sm text-slate-500">{{ 'vendor.common.keep' | t }}</button>
-                      } @else {
-                        <button type="button" (click)="confirmingDelete.set(s.id)" class="ml-3 text-sm font-medium text-rose-600 hover:text-rose-700">{{ 'vendor.common.delete' | t }}</button>
-                      }
-                    </td>
-                  </tr>
-                }
-              </tbody>
-            </table>
-          </div>
-          <p class="mt-2 text-xs text-slate-400">{{ 'vendor.staff.count' | t: { n: total() } }}</p>
-        }
-      </section>
-
-      <section class="rounded-xl border border-slate-200 bg-white p-4">
-        <h2 class="mb-3 font-semibold text-slate-900">{{ (editingId() ? 'vendor.staff.editStaff' : 'vendor.staff.addStaff') | t }}</h2>
-        <form [formGroup]="form" (ngSubmit)="submit()" class="space-y-3">
-          <div>
-            <label for="fullName" class="mb-1 block text-sm font-medium text-slate-700">{{ 'vendor.staff.fullName' | t }}</label>
-            <input id="fullName" type="text" formControlName="fullName" class="w-full rounded-md border border-slate-300 px-3 py-2 focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500" />
-          </div>
-          @if (!editingId()) {
-            <div>
-              <label for="email" class="mb-1 block text-sm font-medium text-slate-700">{{ 'vendor.staff.email' | t }}</label>
-              <input id="email" type="email" formControlName="email" class="w-full rounded-md border border-slate-300 px-3 py-2 focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500" />
+        <div class="grid gap-6 lg:grid-cols-3">
+          <section class="lg:col-span-2">
+            <div class="mb-3 flex flex-wrap items-center justify-between gap-3">
+              <div class="relative w-full max-w-sm">
+                <span class="pointer-events-none absolute inset-y-0 inset-s-3 flex items-center text-slate-400">
+                  <ng-icon name="phosphorMagnifyingGlass" aria-hidden="true" />
+                </span>
+                <input
+                  type="search"
+                  [value]="search()"
+                  (input)="onSearch($event)"
+                  [placeholder]="'vendor.staff.searchPlaceholder' | t"
+                  class="input ps-10"
+                />
+              </div>
+              <p class="text-sm text-slate-500 dark:text-slate-400">{{ 'vendor.staff.count' | t: { n: total() } }}</p>
             </div>
-            <div>
-              <label for="password" class="mb-1 block text-sm font-medium text-slate-700">{{ 'vendor.staff.tempPassword' | t }}</label>
-              <input id="password" type="password" formControlName="password" class="w-full rounded-md border border-slate-300 px-3 py-2 focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500" />
-              <p class="mt-1 text-xs text-slate-400">{{ 'vendor.staff.passwordHint' | t }}</p>
-            </div>
-          }
-          <div>
-            <label for="staffType" class="mb-1 block text-sm font-medium text-slate-700">{{ 'vendor.staff.role' | t }}</label>
-            <select id="staffType" formControlName="staffType" class="w-full rounded-md border border-slate-300 px-3 py-2 focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500">
-              @for (t of staffTypes; track t) {
-                <option [value]="t">{{ roleKey(t) | t }}</option>
+
+            @if (loading()) {
+              <p class="text-slate-500 dark:text-slate-400">{{ 'vendor.common.loading' | t }}</p>
+            } @else if (staff().length === 0) {
+              <div class="flex flex-col items-center gap-3 rounded-2xl border border-dashed border-slate-200 bg-slate-50/60 px-6 py-14 text-center dark:border-white/10 dark:bg-white/2">
+                <span class="grid h-12 w-12 place-items-center rounded-full bg-brand-50 text-brand-600 dark:bg-brand-500/15 dark:text-brand-300">
+                  <ng-icon name="phosphorUsers" class="text-2xl" aria-hidden="true" />
+                </span>
+                <p class="text-sm font-medium text-slate-600 dark:text-slate-300">{{ 'vendor.staff.empty' | t }}</p>
+                <a href="#staff-form-panel" class="btn btn-primary px-4 py-2 text-sm">
+                  <ng-icon name="phosphorPlus" aria-hidden="true" />
+                  {{ 'vendor.staff.addStaff' | t }}
+                </a>
+              </div>
+            } @else {
+              <div class="card overflow-hidden">
+                <div class="overflow-x-auto">
+                  <table class="w-full text-sm">
+                    <thead class="bg-slate-50 text-xs font-semibold tracking-wide text-slate-500 uppercase dark:bg-white/5 dark:text-slate-400">
+                      <tr>
+                        <th class="px-4 py-3 text-start font-semibold">{{ 'vendor.staff.th.name' | t }}</th>
+                        <th class="px-4 py-3 text-start font-semibold">{{ 'vendor.staff.th.email' | t }}</th>
+                        <th class="px-4 py-3 text-start font-semibold">{{ 'vendor.staff.th.role' | t }}</th>
+                        <th class="px-4 py-3 text-start font-semibold">{{ 'vendor.staff.th.status' | t }}</th>
+                        <th class="px-4 py-3"></th>
+                      </tr>
+                    </thead>
+                    <tbody class="stagger-children divide-y divide-slate-100 dark:divide-white/10">
+                      @for (s of staff(); track s.id) {
+                        <tr class="transition-colors hover:bg-slate-50 dark:hover:bg-white/3">
+                          <td class="px-4 py-3 font-medium text-slate-800 dark:text-slate-100">{{ s.fullName }}</td>
+                          <td class="px-4 py-3 text-slate-500 dark:text-slate-400">{{ s.email }}</td>
+                          <td class="px-4 py-3 text-slate-600 dark:text-slate-300">{{ roleKey(s.staffType) | t }}</td>
+                          <td class="px-4 py-3">
+                            <span
+                              class="badge"
+                              [class]="s.suspended ? 'bg-rose-50 text-rose-700 dark:bg-rose-500/15 dark:text-rose-300' : 'badge-brand'"
+                            >
+                              {{ (s.suspended ? 'vendor.staff.suspended' : 'vendor.staff.active') | t }}
+                            </span>
+                          </td>
+                          <td class="px-4 py-3 text-end whitespace-nowrap">
+                            <button type="button" (click)="edit(s)" [attr.aria-label]="'vendor.common.edit' | t" class="btn btn-ghost px-2.5 py-1.5 text-xs">
+                              <ng-icon name="phosphorPencilSimple" aria-hidden="true" />
+                            </button>
+                            @if (s.suspended) {
+                              <button type="button" [disabled]="busy() === s.id" (click)="reactivate(s)" class="btn btn-soft ms-1 px-2.5 py-1.5 text-xs">
+                                <ng-icon name="phosphorArrowsClockwise" aria-hidden="true" />{{ 'vendor.staff.reactivate' | t }}
+                              </button>
+                            } @else {
+                              <button type="button" [disabled]="busy() === s.id" (click)="suspend(s)" class="btn btn-ghost ms-1 px-2.5 py-1.5 text-xs text-amber-600 hover:text-amber-700 dark:text-amber-400">
+                                <ng-icon name="phosphorProhibit" aria-hidden="true" />{{ 'vendor.staff.suspend' | t }}
+                              </button>
+                            }
+                            @if (confirmingDelete() === s.id) {
+                              <button type="button" [disabled]="busy() === s.id" (click)="remove(s)" class="btn btn-danger ms-1 px-2.5 py-1.5 text-xs">
+                                <ng-icon name="phosphorCheck" aria-hidden="true" />{{ 'vendor.common.confirm' | t }}
+                              </button>
+                              <button type="button" (click)="confirmingDelete.set(null)" class="btn btn-ghost ms-1 px-2.5 py-1.5 text-xs">{{ 'vendor.common.keep' | t }}</button>
+                            } @else {
+                              <button type="button" (click)="confirmingDelete.set(s.id)" [attr.aria-label]="'vendor.common.delete' | t" class="btn btn-ghost ms-1 px-2.5 py-1.5 text-xs text-slate-400 hover:text-rose-600 dark:text-slate-500">
+                                <ng-icon name="phosphorTrash" aria-hidden="true" />
+                              </button>
+                            }
+                          </td>
+                        </tr>
+                      }
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            }
+          </section>
+
+          <section id="staff-form-panel" class="card p-5">
+            <h2 class="mb-3 font-display font-semibold text-ink dark:text-white">{{ (editingId() ? 'vendor.staff.editStaff' : 'vendor.staff.addStaff') | t }}</h2>
+            <form [formGroup]="form" (ngSubmit)="submit()" class="space-y-3.5">
+              <div>
+                <label for="fullName" class="label">{{ 'vendor.staff.fullName' | t }}</label>
+                <input id="fullName" type="text" formControlName="fullName" class="input" />
+              </div>
+              @if (!editingId()) {
+                <div>
+                  <label for="email" class="label">{{ 'vendor.staff.email' | t }}</label>
+                  <input id="email" type="email" formControlName="email" class="input" />
+                </div>
+                <div>
+                  <label for="password" class="label">{{ 'vendor.staff.tempPassword' | t }}</label>
+                  <input id="password" type="password" formControlName="password" class="input" />
+                  <p class="mt-1 text-xs text-slate-400 dark:text-slate-500">{{ 'vendor.staff.passwordHint' | t }}</p>
+                </div>
               }
-            </select>
-          </div>
-          <button type="submit" [disabled]="submitting()" class="w-full rounded-md bg-brand-600 px-4 py-2 font-medium text-white hover:bg-brand-700 disabled:opacity-50">
-            {{ (submitting() ? 'vendor.common.saving' : editingId() ? 'vendor.common.saveChanges' : 'vendor.staff.addStaffBtn') | t }}
-          </button>
-          @if (editingId()) {
-            <button type="button" (click)="cancelEdit()" class="w-full text-sm text-slate-500 hover:text-slate-700">{{ 'vendor.common.cancelEdit' | t }}</button>
-          }
-        </form>
-      </section>
+              <div>
+                <label for="staffType" class="label">{{ 'vendor.staff.role' | t }}</label>
+                <select id="staffType" formControlName="staffType" class="input">
+                  @for (t of staffTypes; track t) {
+                    <option [value]="t">{{ roleKey(t) | t }}</option>
+                  }
+                </select>
+              </div>
+              <button type="submit" [disabled]="submitting()" class="btn btn-primary w-full">
+                <ng-icon [name]="editingId() ? 'phosphorFloppyDisk' : 'phosphorPlus'" aria-hidden="true" />
+                {{ (submitting() ? 'vendor.common.saving' : editingId() ? 'vendor.common.saveChanges' : 'vendor.staff.addStaffBtn') | t }}
+              </button>
+              @if (editingId()) {
+                <button type="button" (click)="cancelEdit()" class="btn btn-ghost w-full">{{ 'vendor.common.cancelEdit' | t }}</button>
+              }
+            </form>
+          </section>
+        </div>
+      </div>
     </div>
   `,
 })
