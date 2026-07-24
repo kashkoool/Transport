@@ -39,8 +39,9 @@ test('customer golden flow: login → search → seat → book → pay → ticke
   await page.getByRole('button', { name: /hold \d+ seat/i }).click();
 
   // 4) Passenger details → confirm.
-  await page.getByPlaceholder('First name').first().fill('E2E');
-  await page.getByPlaceholder('Last name').first().fill('Tester');
+  // Fields use visible labels (not placeholders); target the first passenger's inputs by id.
+  await page.locator('#firstName-0').fill('E2E');
+  await page.locator('#lastName-0').fill('Tester');
   await page.getByRole('button', { name: /confirm .* continue to payment/i }).click();
 
   // 5) Payment. The prod-built SPA hands off to the gateway's EXTERNAL hosted page (the in-page
