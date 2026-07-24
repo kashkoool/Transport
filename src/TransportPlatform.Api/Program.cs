@@ -217,10 +217,11 @@ builder.Services.AddHostedService<DataRetentionWorker>();
 
 var app = builder.Build();
 
-// Development-only: seed demo data (roles, one user per role, an active company + upcoming
-// trips) so the stack is usable end-to-end on first run. Idempotent and self-contained — it
-// logs and continues on any failure, and is never wired outside Development. The integration
-// test host sets DevSeed:Enabled=false so seeding never pollutes test data.
+// Development-only: seed demo data (roles, the 3 fixed demo logins, several active companies with
+// staff/fleets, ~6 months of trip + booking history, reviews and promo codes) so the stack looks
+// like a real, lived-in platform on first run. Idempotent and self-contained — it logs and
+// continues on any failure, and is never wired outside Development. The integration test host
+// sets DevSeed:Enabled=false so seeding never pollutes test data.
 if (app.Environment.IsDevelopment() && app.Configuration.GetValue("DevSeed:Enabled", true))
 {
     using var scope = app.Services.CreateScope();
