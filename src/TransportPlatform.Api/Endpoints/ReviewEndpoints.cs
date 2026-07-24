@@ -31,6 +31,7 @@ public static class ReviewEndpoints
             Results.Ok(await handler.HandleAsync(tripId, page, limit, ct)))
         .RequireRateLimiting(RateLimitPolicies.PublicRead)
         .WithTags("Reviews")
+        .CacheOutput("PublicReviews")
         .WithName("ListTripReviews")
         .WithSummary("Public reviews + average rating for a trip.");
 
@@ -39,6 +40,7 @@ public static class ReviewEndpoints
             Results.Ok(await handler.HandleAsync(companyId, page, limit, ct)))
         .RequireRateLimiting(RateLimitPolicies.PublicRead)
         .WithTags("Reviews")
+        .CacheOutput("PublicReviews")
         .WithName("ListCompanyReviews")
         .WithSummary("Public reviews + average rating for a company.");
 

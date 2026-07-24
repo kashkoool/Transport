@@ -53,7 +53,7 @@ import { NotificationBellComponent } from './core/notifications/notification-bel
               type="button"
               (click)="i18n.toggle()"
               [attr.aria-label]="'Switch language'"
-              class="navlink px-2.5 font-semibold"
+              class="navlink cursor-pointer px-2.5 font-semibold"
             >
               {{ 'common.language' | t }}
             </button>
@@ -62,16 +62,20 @@ import { NotificationBellComponent } from './core/notifications/notification-bel
               type="button"
               (click)="theme.toggle()"
               [attr.aria-label]="theme.theme() === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'"
-              class="navlink px-2.5"
+              class="navlink cursor-pointer px-2.5"
             >
               <ng-icon [name]="theme.theme() === 'dark' ? 'phosphorSun' : 'phosphorMoon'" class="text-lg" />
             </button>
 
             @if (auth.isAuthenticated()) {
-              <app-notification-bell />
+              <!-- Deferred so the bell's @microsoft/signalr client is split into a lazy chunk and
+                   never downloaded on anonymous (logged-out) landing loads. -->
+              @defer (on immediate) {
+                <app-notification-bell />
+              }
               <a
                 [routerLink]="'/account'"
-                class="hidden items-center gap-2 rounded-full py-1 pl-1 pr-3 ring-1 bg-slate-50 ring-slate-200 hover:bg-slate-100 dark:bg-white/10 dark:ring-white/15 dark:hover:bg-white/20 sm:flex"
+                class="hidden items-center gap-2 rounded-full py-1 ps-1 pe-3 ring-1 bg-slate-50 ring-slate-200 transition hover:bg-slate-100 dark:bg-white/10 dark:ring-white/15 dark:hover:bg-white/20 sm:flex"
               >
                 <span class="grid h-7 w-7 place-items-center rounded-full bg-brand-600 text-xs font-bold text-white">{{ initial() }}</span>
                 <span class="max-w-40 truncate text-xs font-medium text-slate-600 dark:text-slate-300">{{ auth.email() }}</span>
@@ -107,10 +111,10 @@ import { NotificationBellComponent } from './core/notifications/notification-bel
           <div>
             <p class="text-sm font-bold">Explore</p>
             <ul class="mt-3 space-y-2 text-sm text-white/60">
-              <li><a [routerLink]="'/'" class="hover:text-white">Search trips</a></li>
-              <li><a [routerLink]="'/routes'" class="hover:text-white">All bus routes</a></li>
-              <li><a [routerLink]="'/register'" class="hover:text-white">Create an account</a></li>
-              <li><a [routerLink]="'/login'" class="hover:text-white">Log in</a></li>
+              <li><a [routerLink]="'/'" class="transition-colors hover:text-white">Search trips</a></li>
+              <li><a [routerLink]="'/routes'" class="transition-colors hover:text-white">All bus routes</a></li>
+              <li><a [routerLink]="'/register'" class="transition-colors hover:text-white">Create an account</a></li>
+              <li><a [routerLink]="'/login'" class="transition-colors hover:text-white">Log in</a></li>
             </ul>
           </div>
 

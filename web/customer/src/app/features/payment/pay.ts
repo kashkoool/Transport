@@ -1,5 +1,7 @@
 import { ChangeDetectionStrategy, Component, inject, OnInit, signal } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
+import { NgIcon, provideIcons } from '@ng-icons/core';
+import { phosphorCheckCircle, phosphorLockKey, phosphorTicket, phosphorXCircle } from '@ng-icons/phosphor-icons/regular';
 import { ApiService } from '../../core/api/api.service';
 import { ToastService } from '../../core/toast/toast.service';
 import { TranslatePipe } from '../../core/i18n/translate.pipe';
@@ -9,57 +11,51 @@ import { environment } from '../../../environments/environment';
 @Component({
   selector: 'app-pay',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [TranslatePipe],
+  imports: [NgIcon, TranslatePipe],
+  providers: [provideIcons({ phosphorCheckCircle, phosphorLockKey, phosphorTicket, phosphorXCircle })],
   template: `
-    <div class="mx-auto max-w-md">
-      <h1 class="mb-2 text-2xl font-bold text-slate-900">{{ 'pay.title' | t }}</h1>
+    <div class="mx-auto flex min-h-[60vh] max-w-md items-center">
+      <div class="card animate-in w-full p-7">
+        <h1 class="mb-2 flex items-center gap-2 text-2xl font-bold text-slate-900 dark:text-slate-100">
+          <span class="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-linear-to-br from-brand-500 to-brand-700 text-lg text-white"><ng-icon name="phosphorTicket" /></span>
+          {{ 'pay.title' | t }}
+        </h1>
 
-      @if (loading()) {
-        <p class="text-slate-500">{{ 'common.loading' | t }}</p>
-      } @else {
-        <p class="mb-6 text-slate-500">
-          {{ 'pay.booking' | t }} <span class="font-mono font-medium text-slate-700">{{ reference() }}</span>
-        </p>
-
-        @if (!checkoutStarted()) {
-          <button
-            type="button"
-            [disabled]="busy()"
-            (click)="startCheckout()"
-            class="w-full rounded-md bg-brand-600 px-4 py-3 font-medium text-white hover:bg-brand-700 disabled:opacity-50"
-          >
-            {{ (busy() ? 'pay.starting' : 'pay.proceed') | t }}
-          </button>
-          <p class="mt-3 text-center text-xs text-slate-400">
-            {{ 'pay.secureNote' | t }}
-          </p>
-        } @else {
-          <!-- Development stand-in for the gateway's hosted page (no real card entry). -->
-          <div class="rounded-xl border border-dashed border-slate-300 bg-white p-4">
-            <p class="mb-4 text-sm text-slate-600">
-              {{ 'pay.sandboxNote' | t }}
-            </p>
-            <div class="flex gap-3">
-              <button
-                type="button"
-                [disabled]="busy()"
-                (click)="simulate(true)"
-                class="flex-1 rounded-md bg-emerald-600 px-4 py-2 font-medium text-white hover:bg-emerald-700 disabled:opacity-50"
-              >
-                {{ 'pay.payNow' | t }}
-              </button>
-              <button
-                type="button"
-                [disabled]="busy()"
-                (click)="simulate(false)"
-                class="flex-1 rounded-md bg-slate-200 px-4 py-2 font-medium text-slate-700 hover:bg-slate-300 disabled:opacity-50"
-              >
-                {{ 'pay.cancelPayment' | t }}
-              </button>
-            </div>
+        @if (loading()) {
+          <div class="space-y-3 py-2">
+            <div class="h-4 w-40 animate-pulse rounded bg-slate-100 dark:bg-white/10"></div>
+            <div class="h-12 w-full animate-pulse rounded-2xl bg-slate-100 dark:bg-white/10"></div>
           </div>
+        } @else {
+          <p class="mb-6 text-slate-500 dark:text-slate-400">
+            {{ 'pay.booking' | t }} <span class="font-mono font-medium text-slate-700 dark:text-slate-300">{{ reference() }}</span>
+          </p>
+
+          @if (!checkoutStarted()) {
+            <button type="button" [disabled]="busy()" (click)="startCheckout()" class="btn btn-primary w-full">
+              {{ (busy() ? 'pay.starting' : 'pay.proceed') | t }}
+            </button>
+            <p class="mt-3 flex items-center justify-center gap-1.5 text-center text-xs text-slate-400 dark:text-slate-500">
+              <ng-icon name="phosphorLockKey" /> {{ 'pay.secureNote' | t }}
+            </p>
+          } @else {
+            <!-- Development stand-in for the gateway's hosted page (no real card entry). -->
+            <div class="rounded-2xl border border-dashed border-slate-300 bg-slate-50 p-4 dark:border-white/15 dark:bg-white/5">
+              <p class="mb-4 text-sm text-slate-600 dark:text-slate-300">
+                {{ 'pay.sandboxNote' | t }}
+              </p>
+              <div class="flex gap-3">
+                <button type="button" [disabled]="busy()" (click)="simulate(true)" class="btn btn-primary flex-1">
+                  <ng-icon name="phosphorCheckCircle" /> {{ 'pay.payNow' | t }}
+                </button>
+                <button type="button" [disabled]="busy()" (click)="simulate(false)" class="btn btn-ghost flex-1">
+                  <ng-icon name="phosphorXCircle" /> {{ 'pay.cancelPayment' | t }}
+                </button>
+              </div>
+            </div>
+          }
         }
-      }
+      </div>
     </div>
   `,
 })

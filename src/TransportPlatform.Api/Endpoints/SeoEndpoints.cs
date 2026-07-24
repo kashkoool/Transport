@@ -26,6 +26,7 @@ public static class SeoEndpoints
             response.Headers.CacheControl = CacheControl;
             return Results.Ok(await handler.HandleAsync(ct));
         })
+        .CacheOutput("SeoLong")
         .WithName("ListSeoRoutes")
         .WithSummary("Distinct routes with upcoming trips (count + cheapest fare), most popular first.");
 
@@ -38,6 +39,7 @@ public static class SeoEndpoints
             response.Headers.CacheControl = CacheControl;
             return Results.Ok(await handler.HandleAsync(slug, ct));
         })
+        .CacheOutput("SeoLong")
         .WithName("GetSeoRouteDetail")
         .WithSummary("Route landing-page detail: fare, companies, avg duration and next departures.");
 
@@ -47,6 +49,7 @@ public static class SeoEndpoints
             response.Headers.CacheControl = CacheControl;
             return Results.Ok(await handler.HandleAsync(ct));
         })
+        .CacheOutput("SeoLong")
         .WithName("ListSeoCities")
         .WithSummary("Distinct cities on upcoming routes with their route counts.");
 
@@ -64,6 +67,7 @@ public static class SeoEndpoints
             var xml = await handler.HandleAsync(baseUrl, ct);
             return Results.Text(xml, "application/xml");
         })
+        .CacheOutput("Sitemap")
         .WithName("SeoSitemap")
         .WithSummary("XML sitemap listing the site root, routes index and every route/city page.");
 

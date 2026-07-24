@@ -22,6 +22,7 @@ public static class TripEndpoints
         })
         .RequireRateLimiting(RateLimitPolicies.PublicRead)
         .WithTags("Trips")
+        .CacheOutput("PublicCompanies")
         .WithName("ListPublicCompanies")
         .WithSummary("List active companies (id + name) for trip search filtering.");
 
@@ -36,6 +37,7 @@ public static class TripEndpoints
             var results = await handler.HandleAsync(query, ct);
             return Results.Ok(results);
         })
+        .CacheOutput("TripSearch")
         .WithName("SearchTrips")
         .WithSummary("Search bookable trips by route and date (optional company/maxPrice/departAfter).");
 
@@ -54,6 +56,7 @@ public static class TripEndpoints
             response.Headers.CacheControl = "public, max-age=120";
             return Results.Ok(await handler.HandleAsync(tripId, ct));
         })
+        .CacheOutput("TripStops")
         .WithName("GetTripStops")
         .WithSummary("Ordered intermediate stops for a trip.");
 

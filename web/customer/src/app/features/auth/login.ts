@@ -12,10 +12,10 @@ import { TranslatePipe } from '../../core/i18n/translate.pipe';
   imports: [ReactiveFormsModule, RouterLink, TranslatePipe],
   template: `
     <div class="mx-auto flex min-h-[70vh] max-w-md items-center">
-      <div class="card w-full overflow-hidden">
+      <div class="card animate-in w-full overflow-hidden">
         <!-- Branded header strip -->
         <div class="relative overflow-hidden bg-linear-to-br from-brand-700 to-brand-500 px-7 py-7 text-white">
-          <div class="pointer-events-none absolute -right-8 -top-8 h-32 w-32 rounded-full bg-white/10 blur-2xl"></div>
+          <div class="pointer-events-none absolute -end-8 -top-8 h-32 w-32 rounded-full bg-white/10 blur-2xl"></div>
           <p class="text-sm tracking-[0.3em] text-flag">★★★</p>
           <h1 class="mt-1.5 text-2xl font-bold">{{ 'auth.login.title' | t }}</h1>
           <p class="mt-1 text-sm text-white/80">{{ 'auth.login.subtitle' | t }}</p>

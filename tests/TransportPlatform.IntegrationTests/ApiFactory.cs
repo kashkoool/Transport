@@ -63,6 +63,8 @@ public sealed class ApiFactory : WebApplicationFactory<Program>, IAsyncLifetime
         // Tests boot in Development (so StartupGuards relaxes); disable demo-data seeding so it
         // never pollutes the clean per-test database.
         builder.UseSetting("DevSeed:Enabled", "false");
+        // Disable output caching in tests so mutate-then-read assertions see fresh data.
+        builder.UseSetting("OutputCache:Enabled", "false");
 
         // TestServer has no real client IP, so every request keys into the same rate-limit
         // bucket. Raise the limits well above any single test's call count so we exercise the

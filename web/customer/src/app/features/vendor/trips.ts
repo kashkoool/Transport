@@ -1,6 +1,21 @@
 import { ChangeDetectionStrategy, Component, inject, OnInit, signal } from '@angular/core';
 import { DatePipe, DecimalPipe } from '@angular/common';
 import { FormArray, FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
+import { NgIcon, provideIcons } from '@ng-icons/core';
+import {
+  phosphorPath,
+  phosphorPlay,
+  phosphorPencilSimple,
+  phosphorMapPinLine,
+  phosphorProhibit,
+  phosphorCheckCircle,
+  phosphorArrowsClockwise,
+  phosphorTrash,
+  phosphorCheck,
+  phosphorPlus,
+  phosphorX,
+  phosphorFloppyDisk,
+} from '@ng-icons/phosphor-icons/regular';
 import {
   ScheduleTripRequest,
   TripStopInput,
@@ -17,128 +32,186 @@ import { TranslationService } from '../../core/i18n/translation.service';
 @Component({
   selector: 'app-vendor-trips',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [ReactiveFormsModule, DatePipe, DecimalPipe, VendorNavComponent, TranslatePipe],
+  imports: [ReactiveFormsModule, DatePipe, DecimalPipe, VendorNavComponent, NgIcon, TranslatePipe],
+  providers: [
+    provideIcons({
+      phosphorPath,
+      phosphorPlay,
+      phosphorPencilSimple,
+      phosphorMapPinLine,
+      phosphorProhibit,
+      phosphorCheckCircle,
+      phosphorArrowsClockwise,
+      phosphorTrash,
+      phosphorCheck,
+      phosphorPlus,
+      phosphorX,
+      phosphorFloppyDisk,
+    }),
+  ],
   template: `
-    <app-vendor-nav />
-    <h1 class="mb-6 text-2xl font-bold text-slate-900">{{ 'vendor.trips.title' | t }}</h1>
+    <div class="lg:grid lg:grid-cols-[15rem_1fr] lg:items-start lg:gap-8">
+      <app-vendor-nav />
 
-    <div class="grid gap-6 lg:grid-cols-3">
-      <section class="lg:col-span-2">
-        @if (loading()) {
-          <p class="text-slate-500">{{ 'vendor.common.loading' | t }}</p>
-        } @else if (trips().length === 0) {
-          <p class="rounded-lg bg-slate-100 p-4 text-slate-600">{{ 'vendor.trips.empty' | t }}</p>
-        } @else {
-          <div class="space-y-3">
-            @for (t of trips(); track t.id) {
-              <div class="rounded-xl border border-slate-200 bg-white p-4">
-                <div class="flex items-center justify-between">
-                  <div>
-                    <p class="font-semibold text-slate-900">{{ t.origin }} → {{ t.destination }}</p>
-                    <p class="text-sm text-slate-500">
-                      {{ t.departureUtc | date: 'EEE, MMM d • HH:mm' }} · {{ t.seatCount }} {{ 'vendor.trips.seats' | t }} ·
-                      {{ t.price | number: '1.0-0' }} {{ t.currency }}
-                    </p>
-                  </div>
-                  <span
-                    class="rounded-full px-3 py-1 text-xs font-semibold"
-                    [class.bg-emerald-100]="t.status === 'Scheduled'"
-                    [class.text-emerald-700]="t.status === 'Scheduled'"
-                    [class.bg-sky-100]="t.status === 'InProgress'"
-                    [class.text-sky-700]="t.status === 'InProgress'"
-                    [class.bg-slate-200]="t.status === 'Completed' || t.status === 'Cancelled'"
-                    [class.text-slate-600]="t.status === 'Completed' || t.status === 'Cancelled'"
-                    >{{ statusLabel(t.status) }}</span
-                  >
-                </div>
+      <div class="min-w-0">
+        <h1 class="animate-in mb-6 font-display text-2xl font-bold text-ink dark:text-white">{{ 'vendor.trips.title' | t }}</h1>
 
-                <div class="mt-3 flex flex-wrap items-center gap-2 border-t border-slate-100 pt-3">
-                  @if (t.status === 'Scheduled') {
-                    <button type="button" [disabled]="busy() === t.id" (click)="start(t)" class="rounded-md bg-sky-50 px-3 py-1.5 text-sm font-medium text-sky-700 hover:bg-sky-100 disabled:opacity-50">{{ 'vendor.trips.start' | t }}</button>
-                    <button type="button" (click)="edit(t)" class="text-sm font-medium text-brand-600 hover:text-brand-700">{{ 'vendor.common.edit' | t }}</button>
-                    <button type="button" (click)="openStops(t)" class="text-sm font-medium text-slate-600 hover:text-slate-800">{{ 'vendor.trips.stops' | t }}</button>
-                    <button type="button" [disabled]="busy() === t.id" (click)="cancel(t)" class="text-sm font-medium text-rose-600 hover:text-rose-700">{{ 'vendor.trips.cancel' | t }}</button>
-                    @if (confirmingDelete() === t.id) {
-                      <button type="button" [disabled]="busy() === t.id" (click)="remove(t)" class="text-sm font-medium text-rose-700">{{ 'vendor.common.confirmDelete' | t }}</button>
-                      <button type="button" (click)="confirmingDelete.set(null)" class="text-sm text-slate-500">{{ 'vendor.common.keep' | t }}</button>
-                    } @else {
-                      <button type="button" (click)="confirmingDelete.set(t.id)" class="text-sm text-slate-400 hover:text-rose-600">{{ 'vendor.common.delete' | t }}</button>
-                    }
-                  } @else if (t.status === 'InProgress') {
-                    <button type="button" [disabled]="busy() === t.id" (click)="complete(t)" class="rounded-md bg-emerald-50 px-3 py-1.5 text-sm font-medium text-emerald-700 hover:bg-emerald-100 disabled:opacity-50">{{ 'vendor.trips.markCompleted' | t }}</button>
-                    <button type="button" (click)="openStops(t)" class="text-sm font-medium text-slate-600 hover:text-slate-800">{{ 'vendor.trips.stops' | t }}</button>
-                  } @else if (t.status === 'Cancelled') {
-                    <button type="button" [disabled]="busy() === t.id" (click)="revert(t)" class="rounded-md bg-sky-50 px-3 py-1.5 text-sm font-medium text-sky-700 hover:bg-sky-100 disabled:opacity-50">{{ 'vendor.trips.reactivate' | t }}</button>
-                  }
-                </div>
+        <div class="grid gap-6 lg:grid-cols-3">
+          <section class="lg:col-span-2">
+            <div class="mb-3 flex items-center justify-between gap-3">
+              <p class="text-sm text-slate-500 dark:text-slate-400">{{ 'vendor.trips.count' | t: { n: total() } }}</p>
+            </div>
 
-                @if (stopsTripId() === t.id) {
-                  <form [formGroup]="stopsForm" (ngSubmit)="saveStops(t)" class="mt-3 rounded-lg border border-slate-100 bg-slate-50 p-3">
-                    <p class="mb-2 text-sm font-semibold text-slate-700">{{ 'vendor.trips.intermediateStops' | t }}</p>
-                    <div formArrayName="stops" class="space-y-2">
-                      @for (g of stops.controls; track $index) {
-                        <div [formGroupName]="$index" class="flex flex-wrap items-center gap-2">
-                          <input type="text" formControlName="name" [placeholder]="'vendor.trips.stopName' | t" class="flex-1 rounded-md border border-slate-300 px-2 py-1 text-sm focus:border-brand-500 focus:outline-none" />
-                          <input type="datetime-local" formControlName="arrival" class="rounded-md border border-slate-300 px-2 py-1 text-sm focus:border-brand-500 focus:outline-none" />
-                          <button type="button" (click)="removeStop($index)" class="text-sm text-rose-500 hover:text-rose-700">✕</button>
-                        </div>
+            @if (loading()) {
+              <p class="text-slate-500 dark:text-slate-400">{{ 'vendor.common.loading' | t }}</p>
+            } @else if (trips().length === 0) {
+              <div class="flex flex-col items-center gap-3 rounded-2xl border border-dashed border-slate-200 bg-slate-50/60 px-6 py-14 text-center dark:border-white/10 dark:bg-white/2">
+                <span class="grid h-12 w-12 place-items-center rounded-full bg-brand-50 text-brand-600 dark:bg-brand-500/15 dark:text-brand-300">
+                  <ng-icon name="phosphorPath" class="text-2xl" aria-hidden="true" />
+                </span>
+                <p class="text-sm font-medium text-slate-600 dark:text-slate-300">{{ 'vendor.trips.empty' | t }}</p>
+                <a href="#schedule-trip-panel" class="btn btn-primary px-4 py-2 text-sm">
+                  <ng-icon name="phosphorPlus" aria-hidden="true" />
+                  {{ 'vendor.trips.scheduleTrip' | t }}
+                </a>
+              </div>
+            } @else {
+              <div class="stagger-children space-y-3">
+                @for (t of trips(); track t.id) {
+                  <div class="card p-4">
+                    <div class="flex items-center justify-between gap-3">
+                      <div class="min-w-0">
+                        <p class="truncate font-display font-semibold text-ink dark:text-white">{{ t.origin }} → {{ t.destination }}</p>
+                        <p class="mt-0.5 text-sm tabular-nums text-slate-500 dark:text-slate-400">
+                          {{ t.departureUtc | date: 'EEE, MMM d • HH:mm' }} · {{ t.seatCount }} {{ 'vendor.trips.seats' | t }} ·
+                          {{ t.price | number: '1.0-0' }} {{ t.currency }}
+                        </p>
+                      </div>
+                      <span
+                        class="badge shrink-0"
+                        [class]="
+                          t.status === 'Scheduled' ? 'badge-brand' :
+                          t.status === 'InProgress' ? 'badge-accent' :
+                          t.status === 'Cancelled' ? 'bg-rose-50 text-rose-700 dark:bg-rose-500/15 dark:text-rose-300' :
+                          'badge-muted'
+                        "
+                        >{{ statusLabel(t.status) }}</span
+                      >
+                    </div>
+
+                    <div class="mt-3 flex flex-wrap items-center gap-1.5 border-t border-slate-100 pt-3 dark:border-white/10">
+                      @if (t.status === 'Scheduled') {
+                        <button type="button" [disabled]="busy() === t.id" (click)="start(t)" class="btn btn-soft px-3 py-1.5 text-xs">
+                          <ng-icon name="phosphorPlay" aria-hidden="true" />{{ 'vendor.trips.start' | t }}
+                        </button>
+                        <button type="button" (click)="edit(t)" class="btn btn-ghost px-3 py-1.5 text-xs">
+                          <ng-icon name="phosphorPencilSimple" aria-hidden="true" />{{ 'vendor.common.edit' | t }}
+                        </button>
+                        <button type="button" (click)="openStops(t)" class="btn btn-ghost px-3 py-1.5 text-xs">
+                          <ng-icon name="phosphorMapPinLine" aria-hidden="true" />{{ 'vendor.trips.stops' | t }}
+                        </button>
+                        <button type="button" [disabled]="busy() === t.id" (click)="cancel(t)" class="btn btn-ghost px-3 py-1.5 text-xs text-rose-600 hover:text-rose-700 dark:text-rose-400">
+                          <ng-icon name="phosphorProhibit" aria-hidden="true" />{{ 'vendor.trips.cancel' | t }}
+                        </button>
+                        @if (confirmingDelete() === t.id) {
+                          <button type="button" [disabled]="busy() === t.id" (click)="remove(t)" class="btn btn-danger px-3 py-1.5 text-xs">
+                            <ng-icon name="phosphorCheck" aria-hidden="true" />{{ 'vendor.common.confirmDelete' | t }}
+                          </button>
+                          <button type="button" (click)="confirmingDelete.set(null)" class="btn btn-ghost px-3 py-1.5 text-xs">{{ 'vendor.common.keep' | t }}</button>
+                        } @else {
+                          <button type="button" (click)="confirmingDelete.set(t.id)" [attr.aria-label]="'vendor.common.delete' | t" class="btn btn-ghost ms-auto px-3 py-1.5 text-xs text-slate-400 hover:text-rose-600 dark:text-slate-500">
+                            <ng-icon name="phosphorTrash" aria-hidden="true" />
+                          </button>
+                        }
+                      } @else if (t.status === 'InProgress') {
+                        <button type="button" [disabled]="busy() === t.id" (click)="complete(t)" class="btn btn-soft px-3 py-1.5 text-xs">
+                          <ng-icon name="phosphorCheckCircle" aria-hidden="true" />{{ 'vendor.trips.markCompleted' | t }}
+                        </button>
+                        <button type="button" (click)="openStops(t)" class="btn btn-ghost px-3 py-1.5 text-xs">
+                          <ng-icon name="phosphorMapPinLine" aria-hidden="true" />{{ 'vendor.trips.stops' | t }}
+                        </button>
+                      } @else if (t.status === 'Cancelled') {
+                        <button type="button" [disabled]="busy() === t.id" (click)="revert(t)" class="btn btn-soft px-3 py-1.5 text-xs">
+                          <ng-icon name="phosphorArrowsClockwise" aria-hidden="true" />{{ 'vendor.trips.reactivate' | t }}
+                        </button>
                       }
                     </div>
-                    <div class="mt-2 flex gap-2">
-                      <button type="button" (click)="addStop()" class="text-sm font-medium text-brand-600 hover:text-brand-700">{{ 'vendor.trips.addStop' | t }}</button>
-                      <span class="flex-1"></span>
-                      <button type="submit" [disabled]="busy() === t.id" class="rounded-md bg-brand-600 px-3 py-1 text-sm font-medium text-white hover:bg-brand-700 disabled:opacity-50">{{ 'vendor.trips.saveStops' | t }}</button>
-                      <button type="button" (click)="stopsTripId.set(null)" class="text-sm text-slate-500">{{ 'vendor.common.close' | t }}</button>
-                    </div>
-                  </form>
+
+                    @if (stopsTripId() === t.id) {
+                      <form [formGroup]="stopsForm" (ngSubmit)="saveStops(t)" class="mt-3 rounded-xl border border-slate-100 bg-slate-50 p-3 dark:border-white/10 dark:bg-white/3">
+                        <p class="mb-2 text-sm font-semibold text-slate-700 dark:text-slate-200">{{ 'vendor.trips.intermediateStops' | t }}</p>
+                        <div formArrayName="stops" class="space-y-2">
+                          @for (g of stops.controls; track $index) {
+                            <div [formGroupName]="$index" class="flex flex-wrap items-center gap-2">
+                              <input type="text" formControlName="name" [placeholder]="'vendor.trips.stopName' | t" class="input flex-1 px-3 py-1.5 text-sm" />
+                              <input type="datetime-local" formControlName="arrival" class="input w-auto px-3 py-1.5 text-sm" />
+                              <button type="button" (click)="removeStop($index)" [attr.aria-label]="'vendor.common.delete' | t" class="btn btn-ghost px-2 py-1.5 text-rose-500 hover:text-rose-700">
+                                <ng-icon name="phosphorX" aria-hidden="true" />
+                              </button>
+                            </div>
+                          }
+                        </div>
+                        <div class="mt-2 flex items-center gap-2">
+                          <button type="button" (click)="addStop()" class="btn btn-ghost px-3 py-1.5 text-xs">
+                            <ng-icon name="phosphorPlus" aria-hidden="true" />{{ 'vendor.trips.addStop' | t }}
+                          </button>
+                          <span class="flex-1"></span>
+                          <button type="submit" [disabled]="busy() === t.id" class="btn btn-primary px-3 py-1.5 text-xs">
+                            <ng-icon name="phosphorFloppyDisk" aria-hidden="true" />{{ 'vendor.trips.saveStops' | t }}
+                          </button>
+                          <button type="button" (click)="stopsTripId.set(null)" class="btn btn-ghost px-3 py-1.5 text-xs">{{ 'vendor.common.close' | t }}</button>
+                        </div>
+                      </form>
+                    }
+                  </div>
                 }
               </div>
             }
-          </div>
-          <p class="mt-2 text-xs text-slate-400">{{ 'vendor.trips.count' | t: { n: total() } }}</p>
-        }
-      </section>
+          </section>
 
-      <section class="rounded-xl border border-slate-200 bg-white p-4">
-        <h2 class="mb-3 font-semibold text-slate-900">{{ (editingId() ? 'vendor.trips.editTrip' : 'vendor.trips.scheduleTrip') | t }}</h2>
-        @if (buses().length === 0 && !loading()) {
-          <p class="text-sm text-slate-500">{{ 'vendor.trips.addBusFirst' | t }}</p>
-        } @else {
-          <form [formGroup]="form" (ngSubmit)="submit()" class="space-y-3">
-            <div>
-              <label for="busId" class="mb-1 block text-sm font-medium text-slate-700">{{ 'vendor.trips.bus' | t }}</label>
-              <select id="busId" formControlName="busId" [attr.disabled]="editingId() ? '' : null" class="w-full rounded-md border border-slate-300 px-3 py-2 focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500">
-                <option value="">{{ 'vendor.common.select' | t }}</option>
-                @for (b of buses(); track b.id) {
-                  <option [value]="b.id">{{ 'vendor.trips.busOption' | t: { number: b.busNumber, seats: b.seatCount, type: b.type } }}</option>
+          <section id="schedule-trip-panel" class="card p-5">
+            <h2 class="mb-3 font-display font-semibold text-ink dark:text-white">{{ (editingId() ? 'vendor.trips.editTrip' : 'vendor.trips.scheduleTrip') | t }}</h2>
+            @if (buses().length === 0 && !loading()) {
+              <p class="text-sm text-slate-500 dark:text-slate-400">{{ 'vendor.trips.addBusFirst' | t }}</p>
+            } @else {
+              <form [formGroup]="form" (ngSubmit)="submit()" class="space-y-3.5">
+                <div>
+                  <label for="busId" class="label">{{ 'vendor.trips.bus' | t }}</label>
+                  <select id="busId" formControlName="busId" [attr.disabled]="editingId() ? '' : null" class="input">
+                    <option value="">{{ 'vendor.common.select' | t }}</option>
+                    @for (b of buses(); track b.id) {
+                      <option [value]="b.id">{{ 'vendor.trips.busOption' | t: { number: b.busNumber, seats: b.seatCount, type: b.type } }}</option>
+                    }
+                  </select>
+                </div>
+                <div class="grid grid-cols-2 gap-2.5">
+                  <input type="text" formControlName="origin" [placeholder]="'common.from' | t" class="input" />
+                  <input type="text" formControlName="destination" [placeholder]="'common.to' | t" class="input" />
+                </div>
+                <div>
+                  <label for="departure" class="label">{{ 'vendor.trips.departure' | t }}</label>
+                  <input id="departure" type="datetime-local" formControlName="departure" class="input" />
+                </div>
+                <div>
+                  <label for="arrival" class="label">{{ 'vendor.trips.arrival' | t }}</label>
+                  <input id="arrival" type="datetime-local" formControlName="arrival" class="input" />
+                </div>
+                <div class="grid grid-cols-2 gap-2.5">
+                  <input type="number" min="0" step="1000" formControlName="price" [placeholder]="'vendor.trips.price' | t" class="input" />
+                  <input type="text" maxlength="3" formControlName="currency" placeholder="SYP" class="input uppercase" />
+                </div>
+                <button type="submit" [disabled]="submitting()" class="btn btn-primary w-full">
+                  <ng-icon [name]="editingId() ? 'phosphorFloppyDisk' : 'phosphorPlus'" aria-hidden="true" />
+                  {{ (submitting() ? 'vendor.common.saving' : editingId() ? 'vendor.common.saveChanges' : 'vendor.trips.scheduleTripBtn') | t }}
+                </button>
+                @if (editingId()) {
+                  <button type="button" (click)="cancelEdit()" class="btn btn-ghost w-full">{{ 'vendor.common.cancelEdit' | t }}</button>
                 }
-              </select>
-            </div>
-            <div class="grid grid-cols-2 gap-2">
-              <input type="text" formControlName="origin" [placeholder]="'common.from' | t" class="rounded-md border border-slate-300 px-3 py-2 focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500" />
-              <input type="text" formControlName="destination" [placeholder]="'common.to' | t" class="rounded-md border border-slate-300 px-3 py-2 focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500" />
-            </div>
-            <div>
-              <label for="departure" class="mb-1 block text-sm font-medium text-slate-700">{{ 'vendor.trips.departure' | t }}</label>
-              <input id="departure" type="datetime-local" formControlName="departure" class="w-full rounded-md border border-slate-300 px-3 py-2 focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500" />
-            </div>
-            <div>
-              <label for="arrival" class="mb-1 block text-sm font-medium text-slate-700">{{ 'vendor.trips.arrival' | t }}</label>
-              <input id="arrival" type="datetime-local" formControlName="arrival" class="w-full rounded-md border border-slate-300 px-3 py-2 focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500" />
-            </div>
-            <div class="grid grid-cols-2 gap-2">
-              <input type="number" min="0" step="1000" formControlName="price" [placeholder]="'vendor.trips.price' | t" class="rounded-md border border-slate-300 px-3 py-2 focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500" />
-              <input type="text" maxlength="3" formControlName="currency" placeholder="SYP" class="rounded-md border border-slate-300 px-3 py-2 uppercase focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500" />
-            </div>
-            <button type="submit" [disabled]="submitting()" class="w-full rounded-md bg-brand-600 px-4 py-2 font-medium text-white hover:bg-brand-700 disabled:opacity-50">
-              {{ (submitting() ? 'vendor.common.saving' : editingId() ? 'vendor.common.saveChanges' : 'vendor.trips.scheduleTripBtn') | t }}
-            </button>
-            @if (editingId()) {
-              <button type="button" (click)="cancelEdit()" class="w-full text-sm text-slate-500 hover:text-slate-700">{{ 'vendor.common.cancelEdit' | t }}</button>
+              </form>
             }
-          </form>
-        }
-      </section>
+          </section>
+        </div>
+      </div>
     </div>
   `,
 })

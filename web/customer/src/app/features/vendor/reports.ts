@@ -3,6 +3,18 @@ import { DatePipe, DecimalPipe } from '@angular/common';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { forkJoin, of } from 'rxjs';
 import { catchError } from 'rxjs/operators';
+import { NgIcon, provideIcons } from '@ng-icons/core';
+import {
+  phosphorCurrencyCircleDollar,
+  phosphorCheckCircle,
+  phosphorUsers,
+  phosphorGauge,
+  phosphorFileCsv,
+  phosphorFileXls,
+  phosphorFilePdf,
+  phosphorTrendUp,
+  phosphorFolderOpen,
+} from '@ng-icons/phosphor-icons/regular';
 import { ReportFormat, VendorApiService } from '../../core/api/vendor-api.service';
 import { ToastService } from '../../core/toast/toast.service';
 import {
@@ -21,157 +33,233 @@ type Tab = 'trips' | 'bookings' | 'employees';
 @Component({
   selector: 'app-vendor-reports',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [ReactiveFormsModule, DatePipe, DecimalPipe, VendorNavComponent, TranslatePipe],
+  imports: [ReactiveFormsModule, DatePipe, DecimalPipe, VendorNavComponent, NgIcon, TranslatePipe],
+  providers: [
+    provideIcons({
+      phosphorCurrencyCircleDollar,
+      phosphorCheckCircle,
+      phosphorUsers,
+      phosphorGauge,
+      phosphorFileCsv,
+      phosphorFileXls,
+      phosphorFilePdf,
+      phosphorTrendUp,
+      phosphorFolderOpen,
+    }),
+  ],
   template: `
-    <app-vendor-nav />
-    <h1 class="mb-6 text-2xl font-bold text-slate-900">{{ 'vendor.reports.title' | t }}</h1>
+    <div class="lg:grid lg:grid-cols-[15rem_1fr] lg:items-start lg:gap-8">
+      <app-vendor-nav />
 
-    <form [formGroup]="rangeForm" (ngSubmit)="load()" class="mb-6 flex flex-wrap items-end gap-3">
-      <div>
-        <label for="from" class="mb-1 block text-sm font-medium text-slate-700">{{ 'vendor.reports.from' | t }}</label>
-        <input id="from" type="date" formControlName="from" class="rounded-md border border-slate-300 px-3 py-2 focus:border-brand-500 focus:outline-none" />
-      </div>
-      <div>
-        <label for="to" class="mb-1 block text-sm font-medium text-slate-700">{{ 'vendor.reports.to' | t }}</label>
-        <input id="to" type="date" formControlName="to" class="rounded-md border border-slate-300 px-3 py-2 focus:border-brand-500 focus:outline-none" />
-      </div>
-      <button type="submit" class="rounded-md bg-brand-600 px-4 py-2 text-sm font-medium text-white hover:bg-brand-700">{{ 'vendor.reports.apply' | t }}</button>
-      <span class="flex-1"></span>
-      @if (tab() !== 'employees') {
-        <div class="flex gap-2">
-          <button type="button" (click)="download('csv')" class="rounded-md border border-slate-300 px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50">CSV</button>
-          <button type="button" (click)="download('xlsx')" class="rounded-md border border-slate-300 px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50">XLSX</button>
-          <button type="button" (click)="download('pdf')" class="rounded-md border border-slate-300 px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50">PDF</button>
-        </div>
-      }
-    </form>
+      <div class="min-w-0">
+        <h1 class="animate-in mb-6 font-display text-2xl font-bold text-ink dark:text-white">{{ 'vendor.reports.title' | t }}</h1>
 
-    @if (summary(); as s) {
-      <div class="mb-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-        <div class="rounded-xl border border-slate-200 bg-white p-4">
-          <p class="text-xs uppercase text-slate-400">{{ 'vendor.reports.kpi.revenue' | t }}</p>
-          <p class="text-xl font-bold text-slate-900">{{ s.revenue | number: '1.0-0' }} {{ s.currency }}</p>
-        </div>
-        <div class="rounded-xl border border-slate-200 bg-white p-4">
-          <p class="text-xs uppercase text-slate-400">{{ 'vendor.reports.kpi.confirmedBookings' | t }}</p>
-          <p class="text-xl font-bold text-slate-900">{{ s.confirmedBookings }}</p>
-        </div>
-        <div class="rounded-xl border border-slate-200 bg-white p-4">
-          <p class="text-xs uppercase text-slate-400">{{ 'vendor.reports.kpi.seatsSold' | t }}</p>
-          <p class="text-xl font-bold text-slate-900">{{ s.seatsSold }} / {{ s.seatsOffered }}</p>
-        </div>
-        <div class="rounded-xl border border-slate-200 bg-white p-4">
-          <p class="text-xs uppercase text-slate-400">{{ 'vendor.reports.kpi.occupancy' | t }}</p>
-          <p class="text-xl font-bold text-slate-900">{{ s.occupancyPct }}%</p>
-        </div>
-      </div>
-    }
-
-    <div class="grid gap-6 lg:grid-cols-3">
-      <section class="lg:col-span-2">
-        <nav class="mb-3 flex gap-1 border-b border-slate-200">
-          @for (t of tabs; track t.key) {
-            <button type="button" (click)="setTab(t.key)"
-              class="-mb-px border-b-2 px-4 py-2 text-sm font-medium"
-              [class.border-brand-600]="tab() === t.key" [class.text-brand-700]="tab() === t.key"
-              [class.border-transparent]="tab() !== t.key" [class.text-slate-500]="tab() !== t.key">
-              {{ t.label | t }}
-            </button>
-          }
-        </nav>
-
-        @if (loading()) {
-          <p class="text-slate-500">{{ 'vendor.common.loading' | t }}</p>
-        } @else if (tab() === 'trips') {
-          @if (trips().length === 0) { <p class="rounded-lg bg-slate-100 p-4 text-slate-600">{{ 'vendor.reports.emptyTrips' | t }}</p> }
-          @else {
-            <div class="overflow-x-auto rounded-xl border border-slate-200 bg-white">
-              <table class="w-full text-sm">
-                <thead class="bg-slate-50 text-left text-slate-500"><tr>
-                  <th class="px-3 py-2 font-medium">{{ 'vendor.reports.th.route' | t }}</th><th class="px-3 py-2 font-medium">{{ 'vendor.reports.th.departs' | t }}</th>
-                  <th class="px-3 py-2 font-medium">{{ 'vendor.reports.th.sold' | t }}</th><th class="px-3 py-2 font-medium">{{ 'vendor.reports.th.revenue' | t }}</th><th class="px-3 py-2 font-medium">{{ 'vendor.reports.th.status' | t }}</th>
-                </tr></thead>
-                <tbody class="divide-y divide-slate-100">
-                  @for (r of trips(); track r.tripId) {
-                    <tr>
-                      <td class="px-3 py-2 font-medium text-slate-800">{{ r.origin }} → {{ r.destination }}</td>
-                      <td class="px-3 py-2 text-slate-500">{{ r.departureUtc | date: 'MMM d, HH:mm' }}</td>
-                      <td class="px-3 py-2">{{ r.seatsSold }} / {{ r.seatCount }}</td>
-                      <td class="px-3 py-2">{{ r.revenue | number: '1.0-0' }} {{ r.currency }}</td>
-                      <td class="px-3 py-2 text-slate-500">{{ r.status }}</td>
-                    </tr>
-                  }
-                </tbody>
-              </table>
-            </div>
-          }
-        } @else if (tab() === 'bookings') {
-          @if (bookings().length === 0) { <p class="rounded-lg bg-slate-100 p-4 text-slate-600">{{ 'vendor.reports.emptyBookings' | t }}</p> }
-          @else {
-            <div class="overflow-x-auto rounded-xl border border-slate-200 bg-white">
-              <table class="w-full text-sm">
-                <thead class="bg-slate-50 text-left text-slate-500"><tr>
-                  <th class="px-3 py-2 font-medium">{{ 'vendor.reports.th.reference' | t }}</th><th class="px-3 py-2 font-medium">{{ 'vendor.reports.th.customer' | t }}</th>
-                  <th class="px-3 py-2 font-medium">{{ 'vendor.reports.th.status' | t }}</th><th class="px-3 py-2 font-medium">{{ 'vendor.reports.th.total' | t }}</th><th class="px-3 py-2 font-medium">{{ 'vendor.reports.th.gateway' | t }}</th>
-                </tr></thead>
-                <tbody class="divide-y divide-slate-100">
-                  @for (b of bookings(); track b.bookingId) {
-                    <tr>
-                      <td class="px-3 py-2 font-mono text-slate-800">{{ b.reference }}</td>
-                      <td class="px-3 py-2 text-slate-500">{{ b.customerEmail }}</td>
-                      <td class="px-3 py-2 text-slate-500">{{ b.status }}</td>
-                      <td class="px-3 py-2">{{ b.totalAmount | number: '1.0-0' }} {{ b.currency }}</td>
-                      <td class="px-3 py-2 text-slate-500">{{ b.gateway }}</td>
-                    </tr>
-                  }
-                </tbody>
-              </table>
-            </div>
-          }
-        } @else {
-          @if (employees().length === 0) { <p class="rounded-lg bg-slate-100 p-4 text-slate-600">{{ 'vendor.reports.emptyEmployees' | t }}</p> }
-          @else {
-            <div class="overflow-x-auto rounded-xl border border-slate-200 bg-white">
-              <table class="w-full text-sm">
-                <thead class="bg-slate-50 text-left text-slate-500"><tr>
-                  <th class="px-3 py-2 font-medium">{{ 'vendor.reports.th.employee' | t }}</th><th class="px-3 py-2 font-medium">{{ 'vendor.reports.th.email' | t }}</th>
-                  <th class="px-3 py-2 font-medium">{{ 'vendor.reports.th.bookings' | t }}</th><th class="px-3 py-2 font-medium">{{ 'vendor.reports.th.revenue' | t }}</th>
-                </tr></thead>
-                <tbody class="divide-y divide-slate-100">
-                  @for (e of employees(); track e.staffId) {
-                    <tr>
-                      <td class="px-3 py-2 font-medium text-slate-800">{{ e.fullName }}</td>
-                      <td class="px-3 py-2 text-slate-500">{{ e.email }}</td>
-                      <td class="px-3 py-2">{{ e.bookings }}</td>
-                      <td class="px-3 py-2">{{ e.revenue | number: '1.0-0' }} {{ e.currency }}</td>
-                    </tr>
-                  }
-                </tbody>
-              </table>
-            </div>
-          }
-        }
-      </section>
-
-      <section class="rounded-xl border border-slate-200 bg-white p-4">
-        <h2 class="mb-3 font-semibold text-slate-900">{{ 'vendor.reports.demandForecast' | t }}</h2>
-        <form [formGroup]="demandForm" (ngSubmit)="predict()" class="space-y-3">
-          <div class="grid grid-cols-2 gap-2">
-            <input type="text" formControlName="origin" [placeholder]="'common.from' | t" class="rounded-md border border-slate-300 px-3 py-2 focus:border-brand-500 focus:outline-none" />
-            <input type="text" formControlName="destination" [placeholder]="'common.to' | t" class="rounded-md border border-slate-300 px-3 py-2 focus:border-brand-500 focus:outline-none" />
+        <form [formGroup]="rangeForm" (ngSubmit)="load()" class="card mb-6 flex flex-wrap items-end gap-3 p-4">
+          <div>
+            <label for="from" class="label">{{ 'vendor.reports.from' | t }}</label>
+            <input id="from" type="date" formControlName="from" class="input px-3 py-2" />
           </div>
-          <input type="date" formControlName="date" class="w-full rounded-md border border-slate-300 px-3 py-2 focus:border-brand-500 focus:outline-none" />
-          <button type="submit" [disabled]="predicting()" class="w-full rounded-md bg-slate-800 px-4 py-2 text-sm font-medium text-white hover:bg-slate-900 disabled:opacity-50">
-            {{ (predicting() ? 'vendor.reports.forecasting' : 'vendor.reports.forecast') | t }}
-          </button>
+          <div>
+            <label for="to" class="label">{{ 'vendor.reports.to' | t }}</label>
+            <input id="to" type="date" formControlName="to" class="input px-3 py-2" />
+          </div>
+          <button type="submit" class="btn btn-primary px-4 py-2 text-sm">{{ 'vendor.reports.apply' | t }}</button>
+          <span class="flex-1"></span>
+          @if (tab() !== 'employees') {
+            <div class="flex gap-2">
+              <button type="button" (click)="download('csv')" class="btn btn-ghost px-3 py-2 text-sm">
+                <ng-icon name="phosphorFileCsv" aria-hidden="true" />CSV
+              </button>
+              <button type="button" (click)="download('xlsx')" class="btn btn-ghost px-3 py-2 text-sm">
+                <ng-icon name="phosphorFileXls" aria-hidden="true" />XLSX
+              </button>
+              <button type="button" (click)="download('pdf')" class="btn btn-ghost px-3 py-2 text-sm">
+                <ng-icon name="phosphorFilePdf" aria-hidden="true" />PDF
+              </button>
+            </div>
+          }
         </form>
-        @if (demand(); as d) {
-          <div class="mt-3 rounded-lg bg-slate-50 p-3 text-sm">
-            <p class="text-2xl font-bold text-slate-900">~{{ d.predictedBookings }} <span class="text-sm font-normal text-slate-500">{{ 'vendor.reports.bookingsLabel' | t }}</span></p>
-            <p class="text-slate-600">{{ 'vendor.reports.confidence' | t }} <span class="font-medium capitalize">{{ d.confidence }}</span> {{ 'vendor.reports.pastBookings' | t: { n: d.sampleSize } }}</p>
+
+        @if (summary(); as s) {
+          <div class="mb-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+            <div class="card p-4">
+              <div class="mb-2 flex items-center gap-2 text-slate-400 dark:text-slate-500">
+                <ng-icon name="phosphorCurrencyCircleDollar" class="text-lg" aria-hidden="true" />
+                <p class="text-xs font-semibold tracking-wide uppercase">{{ 'vendor.reports.kpi.revenue' | t }}</p>
+              </div>
+              <p class="font-display text-2xl font-bold tabular-nums text-ink dark:text-white">{{ s.revenue | number: '1.0-0' }} <span class="text-sm font-medium text-slate-400">{{ s.currency }}</span></p>
+            </div>
+            <div class="card p-4">
+              <div class="mb-2 flex items-center gap-2 text-slate-400 dark:text-slate-500">
+                <ng-icon name="phosphorCheckCircle" class="text-lg" aria-hidden="true" />
+                <p class="text-xs font-semibold tracking-wide uppercase">{{ 'vendor.reports.kpi.confirmedBookings' | t }}</p>
+              </div>
+              <p class="font-display text-2xl font-bold tabular-nums text-ink dark:text-white">{{ s.confirmedBookings }}</p>
+            </div>
+            <div class="card p-4">
+              <div class="mb-2 flex items-center gap-2 text-slate-400 dark:text-slate-500">
+                <ng-icon name="phosphorUsers" class="text-lg" aria-hidden="true" />
+                <p class="text-xs font-semibold tracking-wide uppercase">{{ 'vendor.reports.kpi.seatsSold' | t }}</p>
+              </div>
+              <p class="font-display text-2xl font-bold tabular-nums text-ink dark:text-white">{{ s.seatsSold }} <span class="text-sm font-medium text-slate-400">/ {{ s.seatsOffered }}</span></p>
+            </div>
+            <div class="card p-4">
+              <div class="mb-2 flex items-center gap-2 text-slate-400 dark:text-slate-500">
+                <ng-icon name="phosphorGauge" class="text-lg" aria-hidden="true" />
+                <p class="text-xs font-semibold tracking-wide uppercase">{{ 'vendor.reports.kpi.occupancy' | t }}</p>
+              </div>
+              <p class="font-display text-2xl font-bold tabular-nums text-ink dark:text-white">{{ s.occupancyPct }}%</p>
+            </div>
           </div>
         }
-      </section>
+
+        <div class="grid gap-6 lg:grid-cols-3">
+          <section class="lg:col-span-2">
+            <nav class="mb-3 flex gap-1 border-b border-slate-200 dark:border-white/10">
+              @for (t of tabs; track t.key) {
+                <button type="button" (click)="setTab(t.key)"
+                  class="-mb-px border-b-2 px-4 py-2 text-sm font-medium transition-colors"
+                  [class]="tab() === t.key ? 'border-brand-600 text-brand-700 dark:text-brand-300' : 'border-transparent text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200'">
+                  {{ t.label | t }}
+                </button>
+              }
+            </nav>
+
+            @if (loading()) {
+              <p class="text-slate-500 dark:text-slate-400">{{ 'vendor.common.loading' | t }}</p>
+            } @else if (tab() === 'trips') {
+              @if (trips().length === 0) {
+                <div class="flex flex-col items-center gap-3 rounded-2xl border border-dashed border-slate-200 bg-slate-50/60 px-6 py-14 text-center dark:border-white/10 dark:bg-white/5">
+                  <span class="grid h-12 w-12 place-items-center rounded-full bg-slate-100 text-slate-400 dark:bg-white/10 dark:text-slate-400">
+                    <ng-icon name="phosphorFolderOpen" class="text-2xl" aria-hidden="true" />
+                  </span>
+                  <p class="text-sm font-medium text-slate-600 dark:text-slate-300">{{ 'vendor.reports.emptyTrips' | t }}</p>
+                </div>
+              } @else {
+                <div class="card overflow-hidden">
+                  <div class="overflow-x-auto">
+                    <table class="w-full text-sm">
+                      <thead class="bg-slate-50 text-xs font-semibold tracking-wide text-slate-500 uppercase dark:bg-white/5 dark:text-slate-400">
+                        <tr>
+                          <th class="px-3 py-3 text-start font-semibold">{{ 'vendor.reports.th.route' | t }}</th>
+                          <th class="px-3 py-3 text-start font-semibold">{{ 'vendor.reports.th.departs' | t }}</th>
+                          <th class="px-3 py-3 text-end font-semibold">{{ 'vendor.reports.th.sold' | t }}</th>
+                          <th class="px-3 py-3 text-end font-semibold">{{ 'vendor.reports.th.revenue' | t }}</th>
+                          <th class="px-3 py-3 text-start font-semibold">{{ 'vendor.reports.th.status' | t }}</th>
+                        </tr>
+                      </thead>
+                      <tbody class="stagger-children divide-y divide-slate-100 dark:divide-white/10">
+                        @for (r of trips(); track r.tripId) {
+                          <tr class="transition-colors hover:bg-slate-50 dark:hover:bg-white/3">
+                            <td class="px-3 py-3 font-medium text-slate-800 dark:text-slate-100">{{ r.origin }} → {{ r.destination }}</td>
+                            <td class="px-3 py-3 tabular-nums text-slate-500 dark:text-slate-400">{{ r.departureUtc | date: 'MMM d, HH:mm' }}</td>
+                            <td class="px-3 py-3 text-end tabular-nums text-slate-700 dark:text-slate-200">{{ r.seatsSold }} / {{ r.seatCount }}</td>
+                            <td class="px-3 py-3 text-end tabular-nums font-medium text-slate-800 dark:text-slate-100">{{ r.revenue | number: '1.0-0' }} {{ r.currency }}</td>
+                            <td class="px-3 py-3 text-slate-500 dark:text-slate-400">{{ r.status }}</td>
+                          </tr>
+                        }
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              }
+            } @else if (tab() === 'bookings') {
+              @if (bookings().length === 0) {
+                <div class="flex flex-col items-center gap-3 rounded-2xl border border-dashed border-slate-200 bg-slate-50/60 px-6 py-14 text-center dark:border-white/10 dark:bg-white/5">
+                  <span class="grid h-12 w-12 place-items-center rounded-full bg-slate-100 text-slate-400 dark:bg-white/10 dark:text-slate-400">
+                    <ng-icon name="phosphorFolderOpen" class="text-2xl" aria-hidden="true" />
+                  </span>
+                  <p class="text-sm font-medium text-slate-600 dark:text-slate-300">{{ 'vendor.reports.emptyBookings' | t }}</p>
+                </div>
+              } @else {
+                <div class="card overflow-hidden">
+                  <div class="overflow-x-auto">
+                    <table class="w-full text-sm">
+                      <thead class="bg-slate-50 text-xs font-semibold tracking-wide text-slate-500 uppercase dark:bg-white/5 dark:text-slate-400">
+                        <tr>
+                          <th class="px-3 py-3 text-start font-semibold">{{ 'vendor.reports.th.reference' | t }}</th>
+                          <th class="px-3 py-3 text-start font-semibold">{{ 'vendor.reports.th.customer' | t }}</th>
+                          <th class="px-3 py-3 text-start font-semibold">{{ 'vendor.reports.th.status' | t }}</th>
+                          <th class="px-3 py-3 text-end font-semibold">{{ 'vendor.reports.th.total' | t }}</th>
+                          <th class="px-3 py-3 text-start font-semibold">{{ 'vendor.reports.th.gateway' | t }}</th>
+                        </tr>
+                      </thead>
+                      <tbody class="stagger-children divide-y divide-slate-100 dark:divide-white/10">
+                        @for (b of bookings(); track b.bookingId) {
+                          <tr class="transition-colors hover:bg-slate-50 dark:hover:bg-white/3">
+                            <td class="px-3 py-3 font-mono text-slate-800 dark:text-slate-100">{{ b.reference }}</td>
+                            <td class="px-3 py-3 text-slate-500 dark:text-slate-400">{{ b.customerEmail }}</td>
+                            <td class="px-3 py-3 text-slate-500 dark:text-slate-400">{{ b.status }}</td>
+                            <td class="px-3 py-3 text-end tabular-nums font-medium text-slate-800 dark:text-slate-100">{{ b.totalAmount | number: '1.0-0' }} {{ b.currency }}</td>
+                            <td class="px-3 py-3 text-slate-500 dark:text-slate-400">{{ b.gateway }}</td>
+                          </tr>
+                        }
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              }
+            } @else {
+              @if (employees().length === 0) {
+                <div class="flex flex-col items-center gap-3 rounded-2xl border border-dashed border-slate-200 bg-slate-50/60 px-6 py-14 text-center dark:border-white/10 dark:bg-white/5">
+                  <span class="grid h-12 w-12 place-items-center rounded-full bg-slate-100 text-slate-400 dark:bg-white/10 dark:text-slate-400">
+                    <ng-icon name="phosphorFolderOpen" class="text-2xl" aria-hidden="true" />
+                  </span>
+                  <p class="text-sm font-medium text-slate-600 dark:text-slate-300">{{ 'vendor.reports.emptyEmployees' | t }}</p>
+                </div>
+              } @else {
+                <div class="card overflow-hidden">
+                  <div class="overflow-x-auto">
+                    <table class="w-full text-sm">
+                      <thead class="bg-slate-50 text-xs font-semibold tracking-wide text-slate-500 uppercase dark:bg-white/5 dark:text-slate-400">
+                        <tr>
+                          <th class="px-3 py-3 text-start font-semibold">{{ 'vendor.reports.th.employee' | t }}</th>
+                          <th class="px-3 py-3 text-start font-semibold">{{ 'vendor.reports.th.email' | t }}</th>
+                          <th class="px-3 py-3 text-end font-semibold">{{ 'vendor.reports.th.bookings' | t }}</th>
+                          <th class="px-3 py-3 text-end font-semibold">{{ 'vendor.reports.th.revenue' | t }}</th>
+                        </tr>
+                      </thead>
+                      <tbody class="stagger-children divide-y divide-slate-100 dark:divide-white/10">
+                        @for (e of employees(); track e.staffId) {
+                          <tr class="transition-colors hover:bg-slate-50 dark:hover:bg-white/3">
+                            <td class="px-3 py-3 font-medium text-slate-800 dark:text-slate-100">{{ e.fullName }}</td>
+                            <td class="px-3 py-3 text-slate-500 dark:text-slate-400">{{ e.email }}</td>
+                            <td class="px-3 py-3 text-end tabular-nums text-slate-700 dark:text-slate-200">{{ e.bookings }}</td>
+                            <td class="px-3 py-3 text-end tabular-nums font-medium text-slate-800 dark:text-slate-100">{{ e.revenue | number: '1.0-0' }} {{ e.currency }}</td>
+                          </tr>
+                        }
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              }
+            }
+          </section>
+
+          <section class="card p-5">
+            <h2 class="mb-3 flex items-center gap-2 font-display font-semibold text-ink dark:text-white">
+              <ng-icon name="phosphorTrendUp" class="text-brand-600 dark:text-brand-400" aria-hidden="true" />
+              {{ 'vendor.reports.demandForecast' | t }}
+            </h2>
+            <form [formGroup]="demandForm" (ngSubmit)="predict()" class="space-y-3">
+              <div class="grid grid-cols-2 gap-2.5">
+                <input type="text" formControlName="origin" [placeholder]="'common.from' | t" class="input px-3 py-2" />
+                <input type="text" formControlName="destination" [placeholder]="'common.to' | t" class="input px-3 py-2" />
+              </div>
+              <input type="date" formControlName="date" class="input px-3 py-2" />
+              <button type="submit" [disabled]="predicting()" class="btn btn-dark w-full">
+                {{ (predicting() ? 'vendor.reports.forecasting' : 'vendor.reports.forecast') | t }}
+              </button>
+            </form>
+            @if (demand(); as d) {
+              <div class="mt-3 rounded-xl bg-slate-50 p-3.5 text-sm dark:bg-white/5">
+                <p class="font-display text-2xl font-bold tabular-nums text-ink dark:text-white">~{{ d.predictedBookings }} <span class="text-sm font-normal text-slate-500 dark:text-slate-400">{{ 'vendor.reports.bookingsLabel' | t }}</span></p>
+                <p class="mt-1 text-slate-600 dark:text-slate-300">{{ 'vendor.reports.confidence' | t }} <span class="font-medium capitalize">{{ d.confidence }}</span> {{ 'vendor.reports.pastBookings' | t: { n: d.sampleSize } }}</p>
+              </div>
+            }
+          </section>
+        </div>
+      </div>
     </div>
   `,
 })

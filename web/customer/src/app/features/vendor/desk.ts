@@ -1,6 +1,14 @@
 import { ChangeDetectionStrategy, Component, inject, OnInit, signal } from '@angular/core';
 import { DatePipe, DecimalPipe } from '@angular/common';
 import { FormArray, FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
+import { NgIcon, provideIcons } from '@ng-icons/core';
+import {
+  phosphorTicket,
+  phosphorPlus,
+  phosphorX,
+  phosphorProhibit,
+  phosphorCheck,
+} from '@ng-icons/phosphor-icons/regular';
 import { CounterBookingRequest, VendorApiService } from '../../core/api/vendor-api.service';
 import { ToastService } from '../../core/toast/toast.service';
 import { CompanyBooking, VendorTrip } from '../../core/models';
@@ -11,87 +19,113 @@ import { TranslationService } from '../../core/i18n/translation.service';
 @Component({
   selector: 'app-vendor-desk',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [ReactiveFormsModule, DatePipe, DecimalPipe, VendorNavComponent, TranslatePipe],
+  imports: [ReactiveFormsModule, DatePipe, DecimalPipe, VendorNavComponent, NgIcon, TranslatePipe],
+  providers: [provideIcons({ phosphorTicket, phosphorPlus, phosphorX, phosphorProhibit, phosphorCheck })],
   template: `
-    <app-vendor-nav />
-    <h1 class="mb-6 text-2xl font-bold text-slate-900">{{ 'vendor.desk.title' | t }}</h1>
+    <div class="lg:grid lg:grid-cols-[15rem_1fr] lg:items-start lg:gap-8">
+      <app-vendor-nav />
 
-    <div class="grid gap-6 lg:grid-cols-3">
-      <section class="rounded-xl border border-slate-200 bg-white p-4">
-        <h2 class="mb-3 font-semibold text-slate-900">{{ 'vendor.desk.newBooking' | t }}</h2>
-        <form [formGroup]="form" (ngSubmit)="submit()" class="space-y-3">
-          <div>
-            <label for="tripId" class="mb-1 block text-sm font-medium text-slate-700">{{ 'vendor.desk.trip' | t }}</label>
-            <select id="tripId" formControlName="tripId" class="w-full rounded-md border border-slate-300 px-3 py-2 focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500">
-              <option value="">{{ 'vendor.common.select' | t }}</option>
-              @for (t of trips(); track t.id) {
-                <option [value]="t.id">{{ t.origin }} → {{ t.destination }} · {{ t.departureUtc | date: 'MMM d, HH:mm' }}</option>
-              }
-            </select>
-          </div>
-          <div>
-            <label for="customerEmail" class="mb-1 block text-sm font-medium text-slate-700">{{ 'vendor.desk.customerEmail' | t }}</label>
-            <input id="customerEmail" type="email" formControlName="customerEmail" class="w-full rounded-md border border-slate-300 px-3 py-2 focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500" />
-            <p class="mt-1 text-xs text-slate-400">{{ 'vendor.desk.emailHint' | t }}</p>
-          </div>
+      <div class="min-w-0">
+        <h1 class="animate-in mb-6 font-display text-2xl font-bold text-ink dark:text-white">{{ 'vendor.desk.title' | t }}</h1>
 
-          <div formArrayName="passengers" class="space-y-2">
-            <p class="text-sm font-medium text-slate-700">{{ 'vendor.desk.passengers' | t }}</p>
-            @for (g of passengers.controls; track $index) {
-              <div [formGroupName]="$index" class="flex items-center gap-2">
-                <input type="text" formControlName="firstName" [placeholder]="'vendor.desk.firstName' | t" class="w-1/3 rounded-md border border-slate-300 px-2 py-1.5 text-sm focus:border-brand-500 focus:outline-none" />
-                <input type="text" formControlName="lastName" [placeholder]="'vendor.desk.lastName' | t" class="w-1/3 rounded-md border border-slate-300 px-2 py-1.5 text-sm focus:border-brand-500 focus:outline-none" />
-                <input type="number" min="1" formControlName="seatNumber" [placeholder]="'vendor.desk.seat' | t" class="w-1/4 rounded-md border border-slate-300 px-2 py-1.5 text-sm focus:border-brand-500 focus:outline-none" />
-                @if (passengers.length > 1) {
-                  <button type="button" (click)="removePassenger($index)" class="text-rose-500 hover:text-rose-700">✕</button>
+        <div class="grid gap-6 lg:grid-cols-3">
+          <section class="card p-5">
+            <h2 class="mb-3 font-display font-semibold text-ink dark:text-white">{{ 'vendor.desk.newBooking' | t }}</h2>
+            <form [formGroup]="form" (ngSubmit)="submit()" class="space-y-3.5">
+              <div>
+                <label for="tripId" class="label">{{ 'vendor.desk.trip' | t }}</label>
+                <select id="tripId" formControlName="tripId" class="input">
+                  <option value="">{{ 'vendor.common.select' | t }}</option>
+                  @for (t of trips(); track t.id) {
+                    <option [value]="t.id">{{ t.origin }} → {{ t.destination }} · {{ t.departureUtc | date: 'MMM d, HH:mm' }}</option>
+                  }
+                </select>
+              </div>
+              <div>
+                <label for="customerEmail" class="label">{{ 'vendor.desk.customerEmail' | t }}</label>
+                <input id="customerEmail" type="email" formControlName="customerEmail" class="input" />
+                <p class="mt-1 text-xs text-slate-400 dark:text-slate-500">{{ 'vendor.desk.emailHint' | t }}</p>
+              </div>
+
+              <div formArrayName="passengers" class="space-y-2">
+                <p class="label mb-1">{{ 'vendor.desk.passengers' | t }}</p>
+                @for (g of passengers.controls; track $index) {
+                  <div [formGroupName]="$index" class="flex items-center gap-2">
+                    <input type="text" formControlName="firstName" [placeholder]="'vendor.desk.firstName' | t" class="input w-1/3 px-3 py-1.5 text-sm" />
+                    <input type="text" formControlName="lastName" [placeholder]="'vendor.desk.lastName' | t" class="input w-1/3 px-3 py-1.5 text-sm" />
+                    <input type="number" min="1" formControlName="seatNumber" [placeholder]="'vendor.desk.seat' | t" class="input w-1/4 px-3 py-1.5 text-sm" />
+                    @if (passengers.length > 1) {
+                      <button type="button" (click)="removePassenger($index)" [attr.aria-label]="'vendor.common.delete' | t" class="btn btn-ghost px-2 py-1.5 text-rose-500 hover:text-rose-700">
+                        <ng-icon name="phosphorX" aria-hidden="true" />
+                      </button>
+                    }
+                  </div>
+                }
+                <button type="button" (click)="addPassenger()" class="btn btn-ghost px-3 py-1.5 text-xs">
+                  <ng-icon name="phosphorPlus" aria-hidden="true" />{{ 'vendor.desk.addPassenger' | t }}
+                </button>
+              </div>
+
+              <button type="submit" [disabled]="submitting()" class="btn btn-primary w-full">
+                <ng-icon name="phosphorTicket" aria-hidden="true" />
+                {{ (submitting() ? 'vendor.desk.selling' : 'vendor.desk.sellTicket') | t }}
+              </button>
+            </form>
+          </section>
+
+          <section class="lg:col-span-2">
+            <div class="mb-3 flex items-center justify-between gap-3">
+              <h2 class="font-display font-semibold text-ink dark:text-white">{{ 'vendor.desk.recentBookings' | t }}</h2>
+            </div>
+            @if (loading()) {
+              <p class="text-slate-500 dark:text-slate-400">{{ 'vendor.common.loading' | t }}</p>
+            } @else if (bookings().length === 0) {
+              <div class="flex flex-col items-center gap-3 rounded-2xl border border-dashed border-slate-200 bg-slate-50/60 px-6 py-14 text-center dark:border-white/10 dark:bg-white/5">
+                <span class="grid h-12 w-12 place-items-center rounded-full bg-brand-50 text-brand-600 dark:bg-brand-500/15 dark:text-brand-300">
+                  <ng-icon name="phosphorTicket" class="text-2xl" aria-hidden="true" />
+                </span>
+                <p class="text-sm font-medium text-slate-600 dark:text-slate-300">{{ 'vendor.desk.empty' | t }}</p>
+              </div>
+            } @else {
+              <div class="stagger-children space-y-2">
+                @for (b of bookings(); track b.bookingId) {
+                  <div class="card flex flex-wrap items-center justify-between gap-3 p-3.5">
+                    <div class="min-w-0">
+                      <p class="truncate font-medium text-slate-800 dark:text-slate-100">{{ b.origin }} → {{ b.destination }}</p>
+                      <p class="text-xs tabular-nums text-slate-500 dark:text-slate-400">{{ b.customerEmail }} · {{ b.departureUtc | date: 'MMM d, HH:mm' }} · <span class="font-mono">{{ b.reference }}</span></p>
+                    </div>
+                    <div class="flex items-center gap-3">
+                      <span class="text-sm font-bold tabular-nums text-slate-900 dark:text-white">{{ b.totalAmount | number: '1.0-0' }} {{ b.currency }}</span>
+                      <span
+                        class="badge"
+                        [class]="
+                          b.status === 'Confirmed' ? 'badge-brand' :
+                          b.status === 'Cancelled' ? 'bg-rose-50 text-rose-700 dark:bg-rose-500/15 dark:text-rose-300' :
+                          'badge-accent'
+                        "
+                      >
+                        {{ statusLabel(b.status) }}
+                      </span>
+                      @if (b.status !== 'Cancelled') {
+                        @if (confirmingCancel() === b.bookingId) {
+                          <button type="button" [disabled]="busy() === b.bookingId" (click)="cancel(b)" class="btn btn-danger px-2.5 py-1.5 text-xs">
+                            <ng-icon name="phosphorCheck" aria-hidden="true" />{{ 'vendor.common.confirm' | t }}
+                          </button>
+                          <button type="button" (click)="confirmingCancel.set(null)" class="btn btn-ghost px-2.5 py-1.5 text-xs">{{ 'vendor.common.keep' | t }}</button>
+                        } @else {
+                          <button type="button" (click)="confirmingCancel.set(b.bookingId)" class="btn btn-ghost px-2.5 py-1.5 text-xs text-rose-600 hover:text-rose-700 dark:text-rose-400">
+                            <ng-icon name="phosphorProhibit" aria-hidden="true" />{{ 'vendor.trips.cancel' | t }}
+                          </button>
+                        }
+                      }
+                    </div>
+                  </div>
                 }
               </div>
             }
-            <button type="button" (click)="addPassenger()" class="text-sm font-medium text-brand-600 hover:text-brand-700">{{ 'vendor.desk.addPassenger' | t }}</button>
-          </div>
-
-          <button type="submit" [disabled]="submitting()" class="w-full rounded-md bg-emerald-600 px-4 py-2 font-medium text-white hover:bg-emerald-700 disabled:opacity-50">
-            {{ (submitting() ? 'vendor.desk.selling' : 'vendor.desk.sellTicket') | t }}
-          </button>
-        </form>
-      </section>
-
-      <section class="lg:col-span-2">
-        <h2 class="mb-2 font-semibold text-slate-900">{{ 'vendor.desk.recentBookings' | t }}</h2>
-        @if (loading()) {
-          <p class="text-slate-500">{{ 'vendor.common.loading' | t }}</p>
-        } @else if (bookings().length === 0) {
-          <p class="rounded-lg bg-slate-100 p-4 text-slate-600">{{ 'vendor.desk.empty' | t }}</p>
-        } @else {
-          <div class="space-y-2">
-            @for (b of bookings(); track b.bookingId) {
-              <div class="flex items-center justify-between rounded-xl border border-slate-200 bg-white p-3">
-                <div>
-                  <p class="font-medium text-slate-800">{{ b.origin }} → {{ b.destination }}</p>
-                  <p class="text-xs text-slate-500">{{ b.customerEmail }} · {{ b.departureUtc | date: 'MMM d, HH:mm' }} · <span class="font-mono">{{ b.reference }}</span></p>
-                </div>
-                <div class="flex items-center gap-3">
-                  <span class="text-sm font-bold text-slate-900">{{ b.totalAmount | number: '1.0-0' }} {{ b.currency }}</span>
-                  <span class="rounded-full px-2 py-0.5 text-xs font-semibold"
-                    [class.bg-emerald-100]="b.status === 'Confirmed'" [class.text-emerald-700]="b.status === 'Confirmed'"
-                    [class.bg-rose-100]="b.status === 'Cancelled'" [class.text-rose-700]="b.status === 'Cancelled'"
-                    [class.bg-amber-100]="b.status !== 'Confirmed' && b.status !== 'Cancelled'" [class.text-amber-700]="b.status !== 'Confirmed' && b.status !== 'Cancelled'">
-                    {{ statusLabel(b.status) }}
-                  </span>
-                  @if (b.status !== 'Cancelled') {
-                    @if (confirmingCancel() === b.bookingId) {
-                      <button type="button" [disabled]="busy() === b.bookingId" (click)="cancel(b)" class="text-sm font-medium text-rose-700">{{ 'vendor.common.confirm' | t }}</button>
-                      <button type="button" (click)="confirmingCancel.set(null)" class="text-sm text-slate-500">{{ 'vendor.common.keep' | t }}</button>
-                    } @else {
-                      <button type="button" (click)="confirmingCancel.set(b.bookingId)" class="text-sm font-medium text-rose-600 hover:text-rose-700">{{ 'vendor.trips.cancel' | t }}</button>
-                    }
-                  }
-                </div>
-              </div>
-            }
-          </div>
-        }
-      </section>
+          </section>
+        </div>
+      </div>
     </div>
   `,
 })

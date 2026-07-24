@@ -28,16 +28,14 @@ public sealed class TripManifestHandler(IApplicationDbContext db, ICurrentUser c
         var trip = await db.Trips.FirstOrDefaultAsync(t => t.Id == tripId && t.CompanyId == companyId, ct)
             ?? throw new NotFoundException("Trip", tripId);
 
-        var bookings = await db.Bookings
+        // Project in SQL (join passengers→booking) instead of loading whole Booking aggregates and
+        // over-fetching CustomerEmail/TotalAmount/etc. we don't need for a boarding list.
+        var passengers = await db.Bookings
             .Where(b => b.TripId == tripId && b.Status == BookingStatus.Confirmed)
-            .Include(b => b.Passengers)
-            .ToListAsync(ct);
-
-        var passengers = bookings
             .SelectMany(b => b.Passengers.Select(p =>
                 new TripManifestPassenger(p.FirstName, p.LastName, p.SeatNumber, b.Reference)))
             .OrderBy(p => p.SeatNumber)
-            .ToList();
+            .ToListAsync(ct);
 
         return new TripManifestResult(
             trip.Id, trip.Origin, trip.Destination, trip.DepartureUtc, passengers.Count, passengers);

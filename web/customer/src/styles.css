@@ -45,6 +45,13 @@
 
   --shadow-soft: 0 1px 2px rgb(11 16 32 / 0.04), 0 10px 30px rgb(11 16 32 / 0.07);
   --shadow-glow: 0 18px 50px rgb(0 122 61 / 0.28);
+  /* Layered premium elevation — a tight contact shadow + a soft ambient one. */
+  --shadow-card: 0 1px 2px rgb(11 16 32 / 0.05), 0 4px 14px rgb(11 16 32 / 0.06);
+  --shadow-card-hover: 0 2px 6px rgb(11 16 32 / 0.07), 0 18px 44px rgb(11 16 32 / 0.13);
+  --shadow-pop: 0 8px 24px rgb(11 16 32 / 0.12), 0 2px 6px rgb(11 16 32 / 0.06);
+
+  /* Motion tokens — one rhythm across the whole app. */
+  --ease-smooth: cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 @layer base {
@@ -79,17 +86,20 @@
 
   /* Buttons — pill. Use two classes: class="btn btn-primary". */
   .btn {
-    @apply inline-flex items-center justify-center gap-2 rounded-full px-5 py-2.5 text-sm font-semibold transition
-      focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50;
+    @apply inline-flex cursor-pointer items-center justify-center gap-2 rounded-full px-5 py-2.5 text-sm font-semibold
+      transition-all duration-200 ease-out active:scale-[0.97]
+      focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2
+      disabled:cursor-not-allowed disabled:opacity-50 disabled:active:scale-100 disabled:hover:translate-y-0;
   }
+  /* Prominent CTAs get a subtle lift + shadow bloom on hover (press cancels it, giving tactile depth). */
   .btn-primary {
-    @apply bg-brand-600 text-white shadow-sm hover:bg-brand-700 focus-visible:ring-brand-500;
+    @apply bg-brand-600 text-white shadow-sm hover:-translate-y-0.5 hover:bg-brand-700 hover:shadow-md focus-visible:ring-brand-500;
   }
   .btn-accent {
-    @apply bg-accent-500 text-ink shadow-sm hover:bg-accent-400 focus-visible:ring-accent-500;
+    @apply bg-accent-500 text-ink shadow-sm hover:-translate-y-0.5 hover:bg-accent-400 hover:shadow-md focus-visible:ring-accent-500;
   }
   .btn-dark {
-    @apply bg-ink text-white hover:bg-ink-800 focus-visible:ring-ink;
+    @apply bg-ink text-white shadow-sm hover:-translate-y-0.5 hover:bg-ink-800 hover:shadow-md focus-visible:ring-ink;
   }
   .btn-ghost {
     @apply bg-white text-slate-700 ring-1 ring-inset ring-slate-200 hover:bg-slate-50 focus-visible:ring-slate-400
@@ -118,8 +128,16 @@
 
   /* Surfaces */
   .card {
-    @apply rounded-3xl bg-white shadow-soft ring-1 ring-slate-200/70
+    @apply rounded-3xl bg-white ring-1 ring-slate-200/70 transition-shadow duration-300
       dark:bg-ink-800 dark:shadow-none dark:ring-white/10;
+    box-shadow: var(--shadow-card);
+  }
+  /* Add to any clickable card (trip result, promo, dashboard tile) for a hover lift + deeper shadow. */
+  .card-interactive {
+    @apply cursor-pointer transition-all duration-300 ease-out hover:-translate-y-1;
+  }
+  .card-interactive:hover {
+    box-shadow: var(--shadow-card-hover);
   }
   .badge {
     @apply inline-flex items-center gap-1 rounded-full px-3 py-1 text-xs font-semibold;
@@ -172,6 +190,47 @@
   }
   to {
     transform: translateX(-50%);
+  }
+}
+
+/* ── Entrance animation ───────────────────────────────────────────────────────────────────────
+   Put `animate-in` on a page section or card so it eases up + fades in on mount. For lists, add
+   `stagger-children` to the container so rows reveal in sequence (up to 8) rather than all at once. */
+@keyframes fade-in-up {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+.animate-in {
+  animation: fade-in-up 0.5s var(--ease-smooth) both;
+}
+.stagger-children > * {
+  animation: fade-in-up 0.5s var(--ease-smooth) both;
+}
+.stagger-children > *:nth-child(1) { animation-delay: 0.04s; }
+.stagger-children > *:nth-child(2) { animation-delay: 0.08s; }
+.stagger-children > *:nth-child(3) { animation-delay: 0.12s; }
+.stagger-children > *:nth-child(4) { animation-delay: 0.16s; }
+.stagger-children > *:nth-child(5) { animation-delay: 0.20s; }
+.stagger-children > *:nth-child(6) { animation-delay: 0.24s; }
+.stagger-children > *:nth-child(7) { animation-delay: 0.28s; }
+.stagger-children > *:nth-child(8) { animation-delay: 0.32s; }
+
+/* Honor the OS "reduce motion" setting everywhere — animations collapse to a near-instant state,
+   so the entrance/hover/marquee motion never causes discomfort. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
   }
 }
 

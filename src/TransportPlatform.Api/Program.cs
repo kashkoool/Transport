@@ -99,6 +99,39 @@ builder.Services.AddResponseCompression(options =>
 builder.Services.Configure<BrotliCompressionProviderOptions>(o => o.Level = CompressionLevel.Fastest);
 builder.Services.Configure<GzipCompressionProviderOptions>(o => o.Level = CompressionLevel.Fastest);
 
+// ── Output caching for ANONYMOUS read endpoints only (in-memory; no Redis needed) ──
+// These policies are opt-in per route via .CacheOutput("<name>"); nothing is cached by default,
+// and no authenticated/user-specific endpoint gets a policy, so a shared cache can never leak one
+// tenant's data to another. Short TTLs keep public data fresh without a write-path invalidation
+// dependency; the tags allow optional EvictByTagAsync from trip-lifecycle handlers later.
+builder.Services.AddOutputCache(options =>
+{
+    options.AddPolicy("SeoLong", b => b
+        .Expire(TimeSpan.FromMinutes(10))
+        .SetVaryByRouteValue("slug")
+        .Tag("seo"));
+    options.AddPolicy("Sitemap", b => b
+        .Expire(TimeSpan.FromHours(1))
+        .SetVaryByHeader("Host")
+        .Tag("seo"));
+    options.AddPolicy("PublicCompanies", b => b
+        .Expire(TimeSpan.FromMinutes(5))
+        .Tag("companies"));
+    options.AddPolicy("TripSearch", b => b
+        .Expire(TimeSpan.FromSeconds(30))
+        .SetVaryByQuery("origin", "destination", "date", "companyId", "maxPrice", "departAfter")
+        .Tag("trips"));
+    options.AddPolicy("TripStops", b => b
+        .Expire(TimeSpan.FromMinutes(2))
+        .SetVaryByRouteValue("tripId")
+        .Tag("trips"));
+    options.AddPolicy("PublicReviews", b => b
+        .Expire(TimeSpan.FromMinutes(1))
+        .SetVaryByRouteValue("id")
+        .SetVaryByQuery("page", "limit")
+        .Tag("reviews"));
+});
+
 // ── App-level request timeout (defense-in-depth against a hung request/upstream) ──
 builder.Services.AddRequestTimeouts(options =>
     options.DefaultPolicy = new() { Timeout = TimeSpan.FromSeconds(30) });
@@ -184,10 +217,11 @@ builder.Services.AddHostedService<DataRetentionWorker>();
 
 var app = builder.Build();
 
-// Development-only: seed demo data (roles, one user per role, an active company + upcoming
-// trips) so the stack is usable end-to-end on first run. Idempotent and self-contained — it
-// logs and continues on any failure, and is never wired outside Development. The integration
-// test host sets DevSeed:Enabled=false so seeding never pollutes test data.
+// Development-only: seed demo data (roles, the 3 fixed demo logins, several active companies with
+// staff/fleets, ~6 months of trip + booking history, reviews and promo codes) so the stack looks
+// like a real, lived-in platform on first run. Idempotent and self-contained — it logs and
+// continues on any failure, and is never wired outside Development. The integration test host
+// sets DevSeed:Enabled=false so seeding never pollutes test data.
 if (app.Environment.IsDevelopment() && app.Configuration.GetValue("DevSeed:Enabled", true))
 {
     using var scope = app.Services.CreateScope();
@@ -229,6 +263,12 @@ app.Use(async (context, next) =>
 
 app.UseCors(corsPolicy);
 app.UseRateLimiter();
+// After CORS + the limiter (so a cache hit still counts against the per-IP limit) and before auth
+// (every cached route is anonymous). Serves cached bytes for the opted-in read endpoints. Gated so
+// the integration-test host (OutputCache:Enabled=false) sees fresh data on mutate-then-read; the
+// .CacheOutput policies stay registered either way, so they become no-ops when the middleware is off.
+if (app.Configuration.GetValue("OutputCache:Enabled", true))
+    app.UseOutputCache();
 app.UseAuthentication();
 app.UseAuthorization();
 

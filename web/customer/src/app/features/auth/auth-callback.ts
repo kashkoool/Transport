@@ -1,5 +1,7 @@
 import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
+import { NgIcon, provideIcons } from '@ng-icons/core';
+import { phosphorCircleNotch, phosphorWarningCircle } from '@ng-icons/phosphor-icons/regular';
 import { AuthService } from '../../core/auth/auth.service';
 import { safeReturnPath } from '../../core/auth/safe-return';
 import { TranslatePipe } from '../../core/i18n/translate.pipe';
@@ -11,13 +13,18 @@ import { TranslatePipe } from '../../core/i18n/translate.pipe';
 @Component({
   selector: 'app-auth-callback',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [TranslatePipe],
+  imports: [NgIcon, TranslatePipe],
+  providers: [provideIcons({ phosphorCircleNotch, phosphorWarningCircle })],
   template: `
-    <div class="mx-auto max-w-sm text-center">
+    <div class="mx-auto flex min-h-[60vh] max-w-sm items-center justify-center text-center">
       @if (failed()) {
-        <p class="text-sm text-red-700">{{ 'authCallback.failed' | t }}</p>
+        <p class="flex items-center gap-2 text-sm text-rose-700 dark:text-rose-400">
+          <ng-icon name="phosphorWarningCircle" /> {{ 'authCallback.failed' | t }}
+        </p>
       } @else {
-        <p class="text-sm text-slate-600">{{ 'authCallback.signingIn' | t }}</p>
+        <p class="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-400">
+          <ng-icon name="phosphorCircleNotch" class="animate-spin text-brand-500" /> {{ 'authCallback.signingIn' | t }}
+        </p>
       }
     </div>
   `,
